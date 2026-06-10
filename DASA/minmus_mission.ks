@@ -210,6 +210,7 @@ function updateTelemetry {
 
 function setStage {
     parameter newStage.
+    logMsg("Entered stage: " + newStage).
     set telemetryStage to newStage.
     updateTelemetry(telemetryStage).
     

@@ -302,6 +302,10 @@
 
         const predefinedColors = {
             'Electric Charge': '#ffb000',
+            'Liquid Fuel': '#ef4444',
+            'Solid Fuel': '#b45309',
+            'Oxidizer': '#3b82f6',
+            'Mono Propellant': '#10b981',
             'Lqd Hydrogen': '#00aeef',
             'Lqd Oxygen': '#a78bfa',
             'Kerosene': '#ef4444',
@@ -310,7 +314,10 @@
         };
 
         function getResourceColor(name) {
-            return predefinedColors[name] || '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            if (!predefinedColors[name]) {
+                predefinedColors[name] = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+            }
+            return predefinedColors[name];
         }
 
         // Build Chart.js dataset config
@@ -529,6 +536,9 @@
                 if (!response.ok) return;
                 const data = await response.json();
 
+                // Check if mission time is paused (e.g. pre-launch or actual game pause)
+                const isPaused = !currTelemetry || (data.time === currTelemetry.time);
+
                 // Check for mission reset (time running backwards)
                 if (currTelemetry && data.time < currTelemetry.time) {
                     resetDashboardState();
@@ -538,9 +548,6 @@
                 prevTelemetry = currTelemetry;
                 currTelemetry = data;
                 telemetryRecvTime = performance.now();
-
-                // Check if mission time is paused (e.g. pre-launch or actual game pause)
-                const isPaused = !currTelemetry || (data.time === currTelemetry.time);
                 
                 let pauseChanged = false;
                 if (telemetryChart.options.scales.x.realtime.pause !== isPaused) {
@@ -1355,6 +1362,32 @@
                 if (eastPt.visible) ctx.fillText("E", eastPt.x + 4, eastPt.y + 4);
                 if (northPt.visible) ctx.fillText("N", northPt.x + 4, northPt.y + 4);
                 if (upPt.visible) ctx.fillText("U", upPt.x + 4, upPt.y - 4);
+
+                // Extended spatial reference crosshair lines passing through ship center (0,0,0)
+                const axisHalfLen = shipSize * 1.5;
+                ctx.lineWidth = 1;
+                
+                // East-West line (Red)
+                ctx.strokeStyle = "rgba(239, 68, 68, 0.25)";
+                drawLine(ctx, projectHorizon(-axisHalfLen, 0, 0), projectHorizon(axisHalfLen, 0, 0), true);
+                
+                // North-South line (Green)
+                ctx.strokeStyle = "rgba(16, 185, 129, 0.25)";
+                drawLine(ctx, projectHorizon(0, -axisHalfLen, 0), projectHorizon(0, axisHalfLen, 0), true);
+                
+                // Up-Down line (Blue)
+                ctx.strokeStyle = "rgba(0, 174, 239, 0.25)";
+                drawLine(ctx, projectHorizon(0, 0, -axisHalfLen), projectHorizon(0, 0, axisHalfLen), true);
+
+                // Draw labels at positive ends
+                ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+                ctx.font = "9px monospace";
+                const eastEnd = projectHorizon(axisHalfLen, 0, 0);
+                const northEnd = projectHorizon(0, axisHalfLen, 0);
+                const upEnd = projectHorizon(0, 0, axisHalfLen);
+                if (eastEnd.visible) ctx.fillText("+E", eastEnd.x + 4, eastEnd.y + 4);
+                if (northEnd.visible) ctx.fillText("+N", northEnd.x + 4, northEnd.y + 4);
+                if (upEnd.visible) ctx.fillText("+U", upEnd.x + 4, upEnd.y - 4);
             }
 
             // Clear projected parts for hover detection
