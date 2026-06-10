@@ -77,15 +77,12 @@ body::after {
 }
 .text-crt-green {
     color: var(--crt-green);
-    text-shadow: 0 0 8px rgba(51, 255, 51, 0.5);
 }
 .text-crt-amber {
     color: var(--crt-amber);
-    text-shadow: 0 0 8px rgba(255, 176, 0, 0.5);
 }
 .text-orange {
     color: var(--safety-orange);
-    text-shadow: 0 0 8px rgba(255, 102, 0, 0.4);
 }
 
 /* Header */
@@ -181,11 +178,10 @@ body::after {
     flex-direction: column;
     gap: 8px;
     flex-shrink: 0;
-    overflow-y: auto;
 }
-.flex-grow-panel {
+.right-sidebar .panel {
     flex: 1;
-    min-height: 200px;
+    min-height: 150px;
 }
 
 /* Center HUD Area */
@@ -424,6 +420,10 @@ body::after {
     border-left: 2px solid var(--crt-green);
     padding-left: 8px;
     margin-bottom: 4px;
+}
+#resources-container {
+    overflow-y: auto;
+    flex: 1;
 }
 
 /* Part hover Tooltip */

@@ -22,7 +22,7 @@
     </div>
 
     <div class="dashboard-grid">
-        <!-- Left Sidebar: Attitude & Orbital -->
+        <!-- Left Sidebar: Attitude & Target & Orbital -->
         <div class="left-sidebar custom-scrollbar">
             <div class="panel">
                 <h2 class="panel-title">Attitude</h2>
@@ -37,6 +37,15 @@
             </div>
 
             <div class="panel">
+                <h2 class="panel-title">Target</h2>
+                <div id="target-block">
+                    <div class="data-row"><span class="data-label">Target</span><span class="data-value" id="tgt-name">None</span></div>
+                    <div class="data-row"><span class="data-label">Distance</span><span class="data-value font-mono text-crt-amber" id="tgt-dist">--</span></div>
+                    <div class="data-row"><span class="data-label">Rel Vel</span><span class="data-value font-mono text-crt-amber" id="tgt-speed">--</span></div>
+                </div>
+            </div>
+
+            <div class="panel">
                 <h2 class="panel-title">Orbital</h2>
                 <div class="data-row"><span class="data-label">Body</span><span class="data-value" id="body">--</span></div>
                 <div class="data-row"><span class="data-label">Altitude</span><span class="data-value font-mono text-crt-amber" id="alt">--</span></div>
@@ -44,6 +53,7 @@
                 <div class="data-row"><span class="data-label">Periapsis</span><span class="data-value font-mono text-crt-amber" id="peri">--</span></div>
                 <div class="data-row"><span class="data-label">Inclination</span><span class="data-value font-mono" id="inc">--</span></div>
                 <div class="data-row"><span class="data-label">Velocity</span><span class="data-value font-mono text-crt-green" id="vel">--</span></div>
+                <div class="data-row"><span class="data-label">Delta V</span><span class="data-value font-mono text-crt-green" id="delta-v">--</span></div>
                 <div class="data-row"><span class="data-label">TWR</span><span class="data-value font-mono text-crt-green" id="twr">--</span></div>
                 <div class="data-row"><span class="data-label">Q (kPa)</span><span class="data-value font-mono text-orange" id="q">--</span></div>
             </div>
@@ -75,7 +85,7 @@
             <!-- Collapsible Bottom Drawer for Graphs -->
             <div id="graph-drawer" class="graph-drawer">
                 <button onclick="toggleGraphDrawer()" class="graph-drawer-toggle">
-                    HISTORICAL GRAPHS <span id="graph-drawer-icon">▲</span>
+                    HISTORICAL GRAPHS <span id="graph-drawer-icon">&#9650;</span>
                 </button>
                 <div class="graph-drawer-content">
                     <div class="graph-container-left">
@@ -97,28 +107,19 @@
             </div>
         </div>
 
-        <!-- Right Sidebar: Resources & Target & Log -->
+        <!-- Right Sidebar: Log & Resources -->
         <div class="right-sidebar custom-scrollbar">
             <div class="panel">
-                <h2 class="panel-title">Resources</h2>
-                <div id="resources-container">
-                    <div class="data-row"><span class="data-label">No resource data</span></div>
-                </div>
-            </div>
-
-            <div class="panel">
-                <h2 class="panel-title">Target</h2>
-                <div id="target-block">
-                    <div class="data-row"><span class="data-label">Target</span><span class="data-value" id="tgt-name">None</span></div>
-                    <div class="data-row"><span class="data-label">Distance</span><span class="data-value font-mono text-crt-amber" id="tgt-dist">--</span></div>
-                    <div class="data-row"><span class="data-label">Rel Vel</span><span class="data-value font-mono text-crt-amber" id="tgt-speed">--</span></div>
-                </div>
-            </div>
-
-            <div class="panel flex-grow-panel">
                 <h2 class="panel-title">Mission Log</h2>
                 <div id="milestones-container" class="custom-scrollbar font-mono text-crt-green" style="overflow-y: auto; flex: 1; min-height: 120px;">
                     <div class="timeline-item">Waiting for data...</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2 class="panel-title">Resources</h2>
+                <div id="resources-container" class="custom-scrollbar" style="overflow-y: auto; flex: 1; min-height: 120px;">
+                    <div class="data-row"><span class="data-label">No resource data</span></div>
                 </div>
             </div>
         </div>
@@ -146,10 +147,13 @@
             const icon = document.getElementById('graph-drawer-icon');
             if (drawer.classList.contains('open')) {
                 drawer.classList.remove('open');
-                icon.innerText = '▲';
+                icon.innerText = '\u25B2';
             } else {
                 drawer.classList.add('open');
-                icon.innerText = '▼';
+                icon.innerText = '\u25BC';
+                // Zoom out and center the Vessel Viewer
+                zoomScale = 0.6;
+                panOffset = { x: 0, y: 0 };
             }
         }
 
@@ -431,6 +435,10 @@
                     tab.classList.toggle('active');
                     telemetryChart.data.datasets[i].hidden = !d.active;
                     telemetryChart.update();
+                    // Force chart axes to resize by triggering window resize / chart update
+                    setTimeout(() => {
+                        window.dispatchEvent(new Event('resize'));
+                    }, 0);
                 };
                 container.appendChild(tab);
             });
@@ -742,27 +750,52 @@
                 // --- Milestones ---
                 if (data.milestones && data.milestones.length > 0) {
                     const mCont = document.getElementById('milestones-container');
-                    mCont.innerHTML = '';
-                    [...data.milestones].reverse().forEach(m => {
-                        const d = document.createElement('div');
-                        d.className = 'timeline-item';
-                        d.innerText = m;
-                        mCont.appendChild(d);
-                    });
+                    const currentCount = mCont.querySelectorAll('.timeline-item').length;
+                    
+                    // If it was "Waiting for data..." or count matches 1 placeholder
+                    const isPlaceholder = currentCount === 1 && mCont.querySelector('.timeline-item').innerText.includes('Waiting for data');
+                    
+                    if (isPlaceholder || data.milestones.length !== currentCount) {
+                        mCont.innerHTML = '';
+                        data.milestones.forEach((m, idx) => {
+                            const d = document.createElement('div');
+                            d.className = 'timeline-item';
+                            d.innerText = m;
+                            
+                            // If this is a new log item (the last index in chronologically ordered list)
+                            if (!isPlaceholder && idx === data.milestones.length - 1) {
+                                d.style.color = '#ef4444';
+                                d.style.transition = 'color 5.0s ease';
+                                setTimeout(() => {
+                                    d.style.color = '';
+                                }, 50);
+                            }
+                            mCont.appendChild(d);
+                        });
+                        mCont.scrollTop = mCont.scrollHeight;
+                    }
                 }
 
                 // --- Connection status ---
                 const connStatus = document.getElementById('conn-status');
+                const timeEl = document.getElementById('time').parentElement;
                 if (data.signalLost) {
                     connStatus.innerText = "SIGNAL LOST";
                     connStatus.style.background = "rgba(239, 68, 68, 0.2)";
                     connStatus.style.color = "var(--danger)";
                     connStatus.style.borderColor = "var(--danger)";
+                    
+                    timeEl.classList.remove('text-crt-green');
+                    timeEl.style.color = '#ef4444';
+                    timeEl.style.textShadow = 'none';
                 } else {
                     connStatus.innerText = "LIVE";
                     connStatus.style.background = "rgba(16, 185, 129, 0.2)";
                     connStatus.style.color = "var(--success)";
                     connStatus.style.borderColor = "var(--success)";
+                    
+                    timeEl.style.color = '';
+                    timeEl.classList.add('text-crt-green');
                 }
                 
                 updateSciencePayloadList();
@@ -791,8 +824,9 @@
             document.getElementById('alt').innerText = formatNumber(d.altitude || 0) + " m";
             document.getElementById('apo').innerText = formatNumber(d.apoapsis || 0) + " m";
             document.getElementById('peri').innerText = formatNumber(d.periapsis || 0) + " m";
-            document.getElementById('inc').innerText = (d.inclination || 0).toFixed(2) + "°";
+            document.getElementById('inc').innerText = (d.inclination || 0).toFixed(2) + "\u00B0";
             document.getElementById('vel').innerText = formatNumber(d.velocity || 0) + " m/s";
+            document.getElementById('delta-v').innerText = (d.deltaV !== undefined) ? formatNumber(d.deltaV) + " m/s" : "--";
             document.getElementById('twr').innerText = (d.twr || 0).toFixed(2);
             document.getElementById('q').innerText = (d.q || 0).toFixed(4);
             document.getElementById('stage').innerText = (d.stage || "--").toUpperCase();
@@ -870,9 +904,9 @@
             let hdgDeg = heading * 180 / Math.PI; if (hdgDeg < 0) hdgDeg += 360;
             const pitDeg = pitch * 180 / Math.PI;
             const rolDeg = roll * 180 / Math.PI;
-            document.getElementById('nb-hdg').innerText = hdgDeg.toFixed(1) + "°";
-            document.getElementById('nb-pit').innerText = pitDeg.toFixed(1) + "°";
-            document.getElementById('nb-rol').innerText = rolDeg.toFixed(1) + "°";
+            document.getElementById('nb-hdg').innerText = hdgDeg.toFixed(1) + "\u00B0";
+            document.getElementById('nb-pit').innerText = pitDeg.toFixed(1) + "\u00B0";
+            document.getElementById('nb-rol').innerText = rolDeg.toFixed(1) + "\u00B0";
 
             // Draw Background Dial
             ctx.fillStyle = '#080808';

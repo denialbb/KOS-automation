@@ -140,8 +140,14 @@ async function runDiagnostics() {
 
     try {
         console.log("[INFO] Navigating to dashboard...");
+        // Set the viewport to standard fullscreen dimensions
+        await page.setViewport({ width: 1920, height: 1080 });
         await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle2' });
         console.log("[OK] Navigation complete.");
+
+        // Click the Historical Graphs section to expand/open it
+        console.log("[INFO] Clicking Historical Graphs toggle...");
+        await page.click('.graph-drawer-toggle');
 
         // Wait 20 seconds for game telemetry and user interaction
         console.log("[INFO] Listening to dashboard for 20 seconds. Please feed telemetry from KSP if active...");
