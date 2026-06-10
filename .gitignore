@@ -1,0 +1,14 @@
+# Ignore telemetry and log directories
+telemetry/
+logs/
+
+# Ignore agent state and local configuration
+.agents/
+.gemini/
+
+# Node.js dependencies
+telemetry_server/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DASA Mission Control</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.5);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, var(--bg-color));
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .header {
+            width: 100%;
+            padding: 20px 40px;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-sizing: border-box;
+        }
+        .header h1 {
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid var(--success);
+            color: var(--success);
+            font-weight: 600;
+            animation: pulse 2s infinite;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            padding: 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            box-sizing: border-box;
+        }
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2), 0 0 20px var(--accent-glow);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+        .panel h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+        .data-label {
+            color: var(--text-muted);
+        }
+        .data-value {
+            font-weight: 600;
+        }
+        .progress-bar-container {
+            width: 100%;
+            background: rgba(0,0,0,0.5);
+            border-radius: 8px;
+            height: 10px;
+            overflow: hidden;
+            margin-top: 4px;
+            margin-bottom: 10px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            width: 0%;
+            transition: width 0.5s ease-out;
+        }
+        
+        /* Scrollbar styles for the parts list */
+        #parts-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        #parts-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+        #parts-list::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 4px;
+        }
+        .part-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            border-left: 4px solid var(--text-muted);
+            font-size: 0.95rem;
+        }
+        .part-item.science-part {
+            border-left-color: var(--accent);
+            background: rgba(56, 189, 248, 0.05);
+        }
+        .part-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .part-title {
+            font-weight: 600;
+        }
+        .part-name {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .part-tag {
+            font-size: 0.8rem;
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid var(--accent);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--accent);
+            font-family: monospace;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        @keyframes pulse-red {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .value-change {
+            animation: highlight 0.5s ease;
+        }
+        @keyframes highlight {
+            0% { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
+            100% { color: var(--text-main); text-shadow: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>DASA MISSION CONTROL</h1>
+        <div class="status-badge" id="conn-status">LIVE TELEMETRY</div>
+    </div>
+    <div class="container">
+        <!-- Panel 1: Orbital Parameters -->
+        <div class="panel">
+            <h2>Orbital Parameters</h2>
+            <div class="data-row"><span class="data-label">Body</span><span class="data-value" id="body">--</span></div>
+            <div class="data-row"><span class="data-label">Altitude</span><span class="data-value" id="alt">--</span></div>
+            <div class="data-row"><span class="data-label">Apoapsis</span><span class="data-value" id="apo">--</span></div>
+            <div class="data-row"><span class="data-label">Periapsis</span><span class="data-value" id="peri">--</span></div>
+            <div class="data-row"><span class="data-label">Inclination</span><span class="data-value" id="inc">--</span></div>
+            <div class="data-row"><span class="data-label">Velocity</span><span class="data-value" id="vel">--</span></div>
+        </div>
+
+        <!-- Panel 2: Vessel Status -->
+        <div class="panel">
+            <h2>Vessel Status</h2>
+            <div class="data-row"><span class="data-label">Vessel Name</span><span class="data-value" id="vname">--</span></div>
+            <div class="data-row"><span class="data-label">Mission Stage</span><span class="data-value" id="stage" style="color: var(--accent)">--</span></div>
+            <div class="data-row"><span class="data-label">Mission Time</span><span class="data-value" id="time">--</span></div>
+        </div>
+
+        <!-- Panel 3: Resource Status (Dynamic) -->
+        <div class="panel">
+            <h2>Resource Status</h2>
+            <div id="resources-container">
+                <div class="data-row"><span class="data-label">No resource data</span></div>
+            </div>
+        </div>
+
+        <!-- Panel 4: Target & POI Navigation -->
+        <div class="panel">
+            <h2>Navigation & Targets</h2>
+            <div class="data-row"><span class="data-label">Nearest POI</span><span class="data-value" id="poi-name">--</span></div>
+            <div class="data-row"><span class="data-label">POI Distance</span><span class="data-value" id="poi-dist">--</span></div>
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 12px 0; padding-top: 12px;"></div>
+            <div id="target-block">
+                <div class="data-row"><span class="data-label">Target</span><span class="data-value" id="tgt-name">No Target</span></div>
+                <div class="data-row"><span class="data-label">Distance</span><span class="data-value" id="tgt-dist">--</span></div>
+                <div class="data-row"><span class="data-label">Rel Velocity</span><span class="data-value" id="tgt-speed">--</span></div>
+            </div>
+        </div>
+
+        <!-- Panel 6: Maneuver Data -->
+        <div class="panel" id="maneuver-panel" style="display: none;">
+            <h2>Maneuver Node</h2>
+            <div class="data-row"><span class="data-label">Time to Node</span><span class="data-value" id="man-eta">--</span></div>
+            <div class="data-row"><span class="data-label">Delta-V</span><span class="data-value" id="man-dv">--</span></div>
+        </div>
+
+        <!-- Panel 5: Vessel Components & Verification -->
+        <div class="panel">
+            <h2>Vessel Components & Verification</h2>
+            <div style="max-height: 250px; overflow-y: auto; padding-right: 8px;" id="parts-list">
+                <div class="data-row"><span class="data-label">No components loaded</span></div>
+            </div>
+        </div>
+
+        <!-- Panel 7: 3D Vessel Viewer -->
+        <div class="panel" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
+                <h2 style="margin: 0; font-size: 1.1rem; border: none; padding-bottom: 0;">Vessel Viewer 3D</h2>
+                <div style="display: flex; gap: 4px; background: rgba(255,255,255,0.05); padding: 2px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+                    <button id="btn-mode-attitude" onclick="setViewerMode('attitude')" style="background: var(--accent); color: #000; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">Attitude 3D</button>
+                    <button id="btn-mode-blueprint" onclick="setViewerMode('blueprint')" style="background: transparent; color: var(--text-muted); border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">Blueprint</button>
+                </div>
+            </div>
+            <canvas id="vessel-canvas" width="400" height="250" style="width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); border-radius: 8px; cursor: grab;"></canvas>
+            <div id="vessel-debug" style="align-self: flex-start; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); font-family: monospace; white-space: pre-wrap; width: 100%; max-height: 80px; overflow-y: auto; display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        function formatNumber(num) {
+            if (num === undefined || num === null) return "--";
+            return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(num);
+        }
+
+        function updateValue(id, newValue) {
+            const el = document.getElementById(id);
+            if (el.innerText !== newValue) {
+                el.innerText = newValue;
+                el.classList.remove('value-change');
+                void el.offsetWidth; // trigger reflow
+                el.classList.add('value-change');
+            }
+        }
+
+        let baseMissionTime = 0;
+        let lastSyncTime = 0;
+        let hasManeuverNode = false;
+
+        function animateTime() {
+            if (lastSyncTime > 0) {
+                let currentVal = 0;
+                let prefix = "";
+                if (hasManeuverNode) {
+                    currentVal = baseMissionTime - (Date.now() - lastSyncTime) / 1000;
+                    if (currentVal < 0) currentVal = 0;
+                    prefix = "T- ";
+                } else {
+                    if (baseMissionTime === 0) {
+                        currentVal = 0;
+                    } else {
+                        currentVal = baseMissionTime + (Date.now() - lastSyncTime) / 1000;
+                    }
+                    prefix = "T+ ";
+                }
+                
+                let h = Math.floor(currentVal / 3600);
+                let m = Math.floor((currentVal % 3600) / 60);
+                let s = Math.floor(currentVal % 60);
+                let hStr = h < 10 ? "0" + h : h;
+                let mStr = m < 10 ? "0" + m : m;
+                let sStr = s < 10 ? "0" + s : s;
+                
+                const el = document.getElementById('time');
+                const newText = prefix + hStr + ":" + mStr + ":" + sStr;
+                if (el.innerText !== newText) {
+                    el.innerText = newText;
+                }
+            }
+            requestAnimationFrame(animateTime);
+        }
+        requestAnimationFrame(animateTime);
+
+        async function fetchTelemetry() {
+            try {
+                const response = await fetch('telemetry.json?t=' + Date.now(), { cache: "no-store" });
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Orbit & Status
+                    updateValue('body', data.body);
+                    updateValue('alt', formatNumber(data.altitude) + " m");
+                    updateValue('apo', formatNumber(data.apoapsis) + " m");
+                    updateValue('peri', formatNumber(data.periapsis) + " m");
+                    updateValue('inc', formatNumber(data.inclination) + "\u00B0");
+                    updateValue('vel', formatNumber(data.velocity) + " m/s");
+                    
+                    updateValue('vname', data.vessel);
+                    updateValue('stage', data.stage);
+                    
+                    if (data.attitude) {
+                        targetFore = data.attitude.fore;
+                        targetTop = data.attitude.top;
+                    }
+                    
+                    let newBaseTime = 0;
+                    if (data.maneuver && data.maneuver.hasNode) {
+                        hasManeuverNode = true;
+                        newBaseTime = data.maneuver.eta;
+                        document.getElementById('maneuver-panel').style.display = 'block';
+                        updateValue('man-eta', formatNumber(data.maneuver.eta) + " s");
+                        updateValue('man-dv', formatNumber(data.maneuver.dv) + " m/s");
+                    } else {
+                        hasManeuverNode = false;
+                        newBaseTime = data.time;
+                        document.getElementById('maneuver-panel').style.display = 'none';
+                    }
+                    
+                    let expectedTime = 0;
+                    if (lastSyncTime > 0) {
+                        if (hasManeuverNode) {
+                            expectedTime = baseMissionTime - (Date.now() - lastSyncTime) / 1000;
+                        } else {
+                            expectedTime = baseMissionTime + (Date.now() - lastSyncTime) / 1000;
+                        }
+                    }
+                    
+                    if (lastSyncTime === 0 || Math.abs(expectedTime - newBaseTime) > 1.5) {
+                        baseMissionTime = newBaseTime;
+                        lastSyncTime = Date.now();
+                    }
+
+                    // Dynamic Resources
+                    const resContainer = document.getElementById('resources-container');
+                    resContainer.innerHTML = '';
+                    if (data.resources && Object.keys(data.resources).length > 0) {
+                        for (const [resName, resData] of Object.entries(data.resources)) {
+                            const pct = resData.capacity > 0 ? (resData.amount / resData.capacity) * 100 : 0;
+                            
+                            const resRow = document.createElement('div');
+                            resRow.style.marginBottom = "8px";
+                            
+                            const textRow = document.createElement('div');
+                            textRow.className = 'data-row';
+                            textRow.style.marginBottom = '2px';
+                            textRow.style.fontSize = '0.95rem';
+                            
+                            const label = document.createElement('span');
+                            label.className = 'data-label';
+                            label.innerText = resName;
+                            
+                            const val = document.createElement('span');
+                            val.className = 'data-value';
+                            val.innerText = formatNumber(resData.amount) + " / " + formatNumber(resData.capacity);
+                            
+                            textRow.appendChild(label);
+                            textRow.appendChild(val);
+                            
+                            const barCont = document.createElement('div');
+                            barCont.className = 'progress-bar-container';
+                            
+                            const bar = document.createElement('div');
+                            bar.className = 'progress-bar';
+                            bar.style.width = pct + "%";
+                            
+                            if (resName === "ElectricCharge") {
+                                if (pct < 20) bar.style.background = "var(--danger)";
+                                else if (pct > 80) bar.style.background = "var(--success)";
+                                else bar.style.background = "linear-gradient(90deg, #38bdf8, #818cf8)";
+                            } else {
+                                bar.style.background = "linear-gradient(90deg, #818cf8, #a78bfa)";
+                            }
+                            
+                            barCont.appendChild(bar);
+                            resRow.appendChild(textRow);
+                            resRow.appendChild(barCont);
+                            resContainer.appendChild(resRow);
+                        }
+                    } else {
+                        resContainer.innerHTML = '<div class="data-row"><span class="data-label">No resource data</span></div>';
+                    }
+
+                    // POI Info
+                    if (data.closestPoi && data.closestPoi.name !== "None") {
+                        updateValue('poi-name', data.closestPoi.name);
+                        updateValue('poi-dist', formatNumber(data.closestPoi.distance) + " m");
+                    } else {
+                        updateValue('poi-name', "None");
+                        updateValue('poi-dist', "--");
+                    }
+
+                    // Target Rendezvous Info
+                    if (data.target && data.target.hasTarget) {
+                        document.getElementById('target-block').style.opacity = "1";
+                        updateValue('tgt-name', data.target.name);
+                        document.getElementById('tgt-name').style.color = "var(--accent)";
+                        updateValue('tgt-dist', formatNumber(data.target.distance) + " m");
+                        updateValue('tgt-speed', formatNumber(data.target.relVelocity) + " m/s");
+                    } else {
+                        document.getElementById('target-block').style.opacity = "0.5";
+                        updateValue('tgt-name', "No Target Selected");
+                        document.getElementById('tgt-name').style.color = "var(--text-muted)";
+                        updateValue('tgt-dist', "--");
+                        updateValue('tgt-speed', "--");
+                    }
+
+                    // Update parts list
+                    const partsList = document.getElementById('parts-list');
+                    if (data.parts && data.parts.length > 0) {
+                        partsList.innerHTML = '';
+                        data.parts.forEach(part => {
+                            const isScience = /science|sensor|thermometer|barometer|gravi|seismic|scope/i.test(part.name) || /science|sensor|thermometer|barometer|gravi|seismic|scope/i.test(part.title);
+                            
+                            const item = document.createElement('div');
+                            item.className = 'part-item' + (isScience ? ' science-part' : '');
+                            
+                            const info = document.createElement('div');
+                            info.className = 'part-info';
+                            
+                            const title = document.createElement('div');
+                            title.className = 'part-title';
+                            title.innerText = part.title;
+                            if (isScience) {
+                                title.innerHTML += ' <span style="color: var(--accent); font-size: 0.75rem; margin-left: 6px; font-weight: 800;">[SCIENCE]</span>';
+                            }
+                            
+                            const name = document.createElement('span');
+                            name.className = 'part-name';
+                            name.innerText = part.name;
+                            
+                            info.appendChild(title);
+                            info.appendChild(name);
+                            item.appendChild(info);
+                            
+                            if (part.tag) {
+                                const tag = document.createElement('span');
+                                tag.className = 'part-tag';
+                                tag.innerText = part.tag;
+                                item.appendChild(tag);
+                            }
+                            
+                            partsList.appendChild(item);
+                        });
+                        
+                        // Draw 2D Wireframe
+                        if (typeof drawVessel === 'function') {
+                            drawVessel(data.parts);
+                        }
+                    } else {
+                        partsList.innerHTML = '<div class="data-row"><span class="data-label">No components loaded</span></div>';
+                    }
+
+                    if (data.signalLost) {
+                        const connStatus = document.getElementById('conn-status');
+                        connStatus.innerText = "SIGNAL LOST";
+                        connStatus.style.borderColor = "var(--danger)";
+                        connStatus.style.color = "var(--danger)";
+                        connStatus.style.background = "rgba(239, 68, 68, 0.2)";
+                        connStatus.style.animation = "pulse-red 1s infinite";
+                    } else {
+                        const connStatus = document.getElementById('conn-status');
+                        connStatus.innerText = "LIVE TELEMETRY";
+                        connStatus.style.borderColor = "var(--success)";
+                        connStatus.style.color = "var(--success)";
+                        connStatus.style.background = "rgba(16, 185, 129, 0.2)";
+                        connStatus.style.animation = "pulse 2s infinite";
+                    }
+                }
+            } catch (err) {
+                console.error("Telemetry fetch error:", err);
+                document.getElementById('conn-status').innerText = "OFFLINE";
+                document.getElementById('conn-status').style.borderColor = "var(--danger)";
+                document.getElementById('conn-status').style.color = "var(--danger)";
+                document.getElementById('conn-status').style.background = "rgba(239, 68, 68, 0.2)";
+            }
+        }
+
+        let vesselStructure = null;
+        let structStatus = "Initializing...";
+        let viewerMode = "attitude";
+        
+        let cameraYaw = 0.78; // 45 deg
+        let cameraPitch = -0.4; // -23 deg
+        let zoomScale = 1.0;
+        let panOffset = { x: 0, y: 0 };
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        
+        let shipSize = 1;
+        let renderScale = 1;
+        let shipCenterX = 0, shipCenterY = 0, shipCenterZ = 0;
+        
+        // Attitude vectors (interpolated)
+        let currentFore = [0, 0, 1];
+        let currentTop = [0, 1, 0];
+        let targetFore = [0, 0, 1];
+        let targetTop = [0, 1, 0];
+        
+        let activePartsCache = [];
+        let vesselMeshes = null;
+
+        function setViewerMode(mode) {
+            viewerMode = mode;
+            const btnAttitude = document.getElementById('btn-mode-attitude');
+            const btnBlueprint = document.getElementById('btn-mode-blueprint');
+            if (mode === 'attitude') {
+                btnAttitude.style.background = 'var(--accent)';
+                btnAttitude.style.color = '#000';
+                btnBlueprint.style.background = 'transparent';
+                btnBlueprint.style.color = 'var(--text-muted)';
+            } else {
+                btnBlueprint.style.background = 'var(--accent)';
+                btnBlueprint.style.color = '#000';
+                btnAttitude.style.background = 'transparent';
+                btnAttitude.style.color = 'var(--text-muted)';
+                cameraYaw = 0;
+                cameraPitch = 0;
+                zoomScale = 1.0;
+                panOffset = { x: 0, y: 0 };
+            }
+            calculateScale();
+        }
+
+        function calculateScale() {
+            if (!vesselStructure || !vesselStructure.parts) return;
+            const canvas = document.getElementById('vessel-canvas');
+            if (!canvas) return;
+            
+            let minX = 999, maxX = -999, minY = 999, maxY = -999, minZ = 999, maxZ = -999;
+            let count = 0;
+            vesselStructure.parts.forEach(p => {
+                count++;
+                const x = p.pos[0];
+                const y = p.pos[1];
+                const z = p.pos[2];
+                const sx = p.size[0] || 0.5;
+                const sy = p.size[1] || 0.5;
+                const sz = p.size[2] || 0.5;
+                
+                if (x - sx/2 < minX) minX = x - sx/2;
+                if (x + sx/2 > maxX) maxX = x + sx/2;
+                if (y - sy/2 < minY) minY = y - sy/2;
+                if (y + sy/2 > maxY) maxY = y + sy/2;
+                if (z - sz/2 < minZ) minZ = z - sz/2;
+                if (z + sz/2 > maxZ) maxZ = z + sz/2;
+            });
+            
+            if (count === 0) return;
+            
+            const dx = maxX - minX;
+            const dy = maxY - minY;
+            const dz = maxZ - minZ;
+            shipSize = Math.max(dx, dy, dz, 0.1);
+            
+            shipCenterX = (minX + maxX) / 2;
+            shipCenterY = (minY + maxY) / 2;
+            shipCenterZ = (minZ + maxZ) / 2;
+            
+            const pad = 20;
+            if (viewerMode === "attitude") {
+                renderScale = (Math.min(canvas.width - pad*2, canvas.height - pad*2) / shipSize) * 1.6;
+            } else {
+                renderScale = Math.min(canvas.width - pad*2, canvas.height - pad*2) / shipSize;
+            }
+        }
+
+        async function fetchStructure() {
+            try {
+                const res = await fetch('vessel_structure.json?t=' + Date.now(), { cache: "no-store" });
+                if (res.ok) {
+                    vesselStructure = await res.json();
+                    structStatus = "Loaded successfully";
+                    calculateScale();
+                } else {
+                    structStatus = `Failed to load: ${res.status} ${res.statusText}`;
+                }
+            } catch(e) {
+                structStatus = `Error fetching: ${e.message}`;
+            }
+            const dbg = document.getElementById('vessel-debug');
+            if (dbg) dbg.innerText = `Structure Status: ${structStatus}`;
+        }
+        
+        async function fetchMeshes() {
+            try {
+                const response = await fetch('vessel_mesh.json?t=' + Date.now(), { cache: "no-store" });
+                if (response.ok) {
+                    vesselMeshes = await response.json();
+                }
+            } catch (err) {
+                // Not an error if mesh pipeline isn't run, fallback to procedural
+            }
+        }
+        
+        function drawVessel(activeParts) {
+            activePartsCache = activeParts;
+        }
+
+        // 3D Rendering & Projections
+        function lerp(a, b, t) { return a + (b - a) * t; }
+        function lerpVec(a, b, t) {
+            return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+        }
+        function normalizeVec(v) {
+            const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+            if (len === 0) return [0, 0, 1];
+            return [v[0]/len, v[1]/len, v[2]/len];
+        }
+        function crossProduct(a, b) {
+            return [
+                a[1]*b[2] - a[2]*b[1],
+                a[2]*b[0] - a[0]*b[2],
+                a[0]*b[1] - a[1]*b[0]
+            ];
+        }
+
+        function project(x, y, z, R_star, R_top, R_fore) {
+            const lx = x - shipCenterX;
+            const ly = y - shipCenterY;
+            const lz = z - shipCenterZ;
+            
+            let rx, ry, rz;
+            if (viewerMode === "attitude") {
+                rx = lx * R_star[0] + ly * R_top[0] + lz * R_fore[0];
+                ry = lx * R_star[1] + ly * R_top[1] + lz * R_fore[1];
+                rz = lx * R_star[2] + ly * R_top[2] + lz * R_fore[2];
+            } else {
+                rx = lx;
+                ry = ly;
+                rz = lz;
+            }
+            
+            const x1 = rx * Math.cos(cameraYaw) - ry * Math.sin(cameraYaw);
+            const y1 = rx * Math.sin(cameraYaw) + ry * Math.cos(cameraYaw);
+            const z1 = rz;
+            
+            const cx = x1;
+            const cy = y1 * Math.sin(cameraPitch) - z1 * Math.cos(cameraPitch);
+            const cz = y1 * Math.cos(cameraPitch) + z1 * Math.sin(cameraPitch);
+            
+            const canvas = document.getElementById('vessel-canvas');
+            const halfW = canvas.width / 2;
+            const halfH = canvas.height / 2;
+            
+            if (viewerMode === "attitude") {
+                const fov = shipSize * 2.5;
+                const camDist = shipSize * 2.0;
+                const depth = camDist + cz;
+                const scale3D = fov / Math.max(fov + depth, 1);
+                return {
+                    x: halfW + panOffset.x + cx * scale3D * renderScale * zoomScale,
+                    y: halfH + panOffset.y + cy * scale3D * renderScale * zoomScale,
+                    visible: depth > -fov,
+                    zDepth: cz
+                };
+            } else {
+                return {
+                    x: halfW + panOffset.x + cx * renderScale * zoomScale,
+                    y: halfH + panOffset.y + cy * renderScale * zoomScale,
+                    visible: true,
+                    zDepth: cz
+                };
+            }
+        }
+
+        function projectHorizon(hx, hy, hz) {
+            const x1 = hx * Math.cos(cameraYaw) - hy * Math.sin(cameraYaw);
+            const y1 = hx * Math.sin(cameraYaw) + hy * Math.cos(cameraYaw);
+            const z1 = hz;
+            
+            const cx = x1;
+            const cy = y1 * Math.sin(cameraPitch) - z1 * Math.cos(cameraPitch);
+            const cz = y1 * Math.cos(cameraPitch) + z1 * Math.sin(cameraPitch);
+            
+            const canvas = document.getElementById('vessel-canvas');
+            const halfW = canvas.width / 2;
+            const halfH = canvas.height / 2;
+            
+            const fov = shipSize * 2.5;
+            const camDist = shipSize * 2.0;
+            const depth = camDist + cz;
+            const scale3D = fov / Math.max(fov + depth, 1);
+            return {
+                x: halfW + panOffset.x + cx * scale3D * renderScale * zoomScale,
+                y: halfH + panOffset.y + cy * scale3D * renderScale * zoomScale,
+                visible: depth > -fov,
+                zDepth: cz
+            };
+        }
+
+        function drawLine(ctx, p1, p2, isGrid = false) {
+            if (p1.visible && p2.visible) {
+                if (!isGrid && shipSize > 0) {
+                    const avgZ = (p1.zDepth + p2.zDepth) / 2;
+                    let opacity = 0.9 - (avgZ + shipSize/2) / shipSize * 0.75;
+                    opacity = Math.max(0.15, Math.min(0.9, opacity));
+                    
+                    ctx.globalAlpha = opacity;
+                    if (avgZ > 0) {
+                        ctx.setLineDash([2, 3]);
+                    } else {
+                        ctx.setLineDash([]);
+                    }
+                } else {
+                    ctx.globalAlpha = 1.0;
+                    ctx.setLineDash([]);
+                }
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+                ctx.globalAlpha = 1.0;
+                ctx.setLineDash([]);
+            }
+        }
+
+        // Procedural 3D Shape drawing
+        function getPartStyle(name, title) {
+            const n = (name + " " + title).toLowerCase();
+            if (n.includes("command") || n.includes("pod") || n.includes("capsule") || n.includes("probe") || n.includes("core") || n.includes("anna") || n.includes("service")) 
+                return { shape: "capsule", color: "rgba(34, 197, 94, 0.8)" }; // Neon Green
+            if (n.includes("tank") || n.includes("booster") || n.includes("fuselage") || n.includes("shroud")) 
+                return { shape: "cylinder", color: "rgba(56, 189, 248, 0.8)" }; // Cyan
+            if (n.includes("engine") || n.includes("lr87") || n.includes("hecate") || n.includes("terrier") || n.includes("poodle") || n.includes("swivel") || n.includes("reliant")) 
+                return { shape: "engine", color: "rgba(239, 68, 68, 0.8)" }; // Red
+            if (n.includes("solar") || n.includes("panel") || n.includes("radiator")) 
+                return { shape: "panel", color: "rgba(234, 179, 8, 0.8)" }; // Gold
+            if (n.includes("cone") || n.includes("fairing") || n.includes("fin") || n.includes("vane") || n.includes("wing") || n.includes("aero")) 
+                return { shape: "aero", color: "rgba(20, 184, 166, 0.8)" }; // Teal
+            if (n.includes("decoupler") || n.includes("separator") || n.includes("clamp")) 
+                return { shape: "ring", color: "rgba(156, 163, 175, 0.8)" }; // Gray
+            if (n.includes("science") || n.includes("sensor") || n.includes("thermometer") || n.includes("barometer") || n.includes("gravi") || n.includes("seismic") || n.includes("scope") || n.includes("gooo") || n.includes("materials.bay") || n.includes("antenna") || n.includes("communotron")) 
+                return { shape: "science", color: "rgba(168, 85, 247, 0.8)" }; // Purple
+            return { shape: "box", color: "rgba(226, 232, 240, 0.8)" }; // Off-white
+        }
+
+        function drawCircle(ctx, cx, cy, cz, rx, ry, R_star, R_top, R_fore) {
+            const pts = [];
+            const segments = 16;
+            for (let i = 0; i < segments; i++) {
+                const angle = (i / segments) * Math.PI * 2;
+                const px = cx + rx * Math.cos(angle);
+                const py = cy + ry * Math.sin(angle);
+                const pz = cz;
+                pts.push(project(px, py, pz, R_star, R_top, R_fore));
+            }
+            for (let i = 0; i < segments; i++) {
+                drawLine(ctx, pts[i], pts[(i + 1) % segments]);
+            }
+            return pts;
+        }
+
+        function drawProceduralPart(ctx, p, R_star, R_top, R_fore) {
+            const style = getPartStyle(p.name, p.title || "");
+            ctx.strokeStyle = style.color;
+            ctx.lineWidth = 1.5;
+
+            const x = p.pos[0];
+            const y = p.pos[1];
+            const z = p.pos[2];
+            const sx = p.size[0] || 0.5;
+            const sy = p.size[1] || 0.5;
+            const sz = p.size[2] || 0.5;
+            
+            if (style.shape === "cylinder") {
+                const topPts = drawCircle(ctx, x, y, z + sz/2, sx/2, sy/2, R_star, R_top, R_fore);
+                const botPts = drawCircle(ctx, x, y, z - sz/2, sx/2, sy/2, R_star, R_top, R_fore);
+                const mid1 = drawCircle(ctx, x, y, z + sz/6, sx/2, sy/2, R_star, R_top, R_fore);
+                const mid2 = drawCircle(ctx, x, y, z - sz/6, sx/2, sy/2, R_star, R_top, R_fore);
+                for (let i = 0; i < 16; i += 4) {
+                    drawLine(ctx, topPts[i], botPts[i]);
+                }
+            } else if (style.shape === "aero") {
+                if ((p.name + (p.title || "")).toLowerCase().includes("fin") || (p.name + (p.title || "")).toLowerCase().includes("wing")) {
+                    const root = project(x, y, z + sz/2, R_star, R_top, R_fore);
+                    const tip = project(x + sx, y, z - sz/2, R_star, R_top, R_fore);
+                    const back = project(x, y, z - sz/2, R_star, R_top, R_fore);
+                    drawLine(ctx, root, tip);
+                    drawLine(ctx, tip, back);
+                    drawLine(ctx, back, root);
+                } else {
+                    const botPts = drawCircle(ctx, x, y, z - sz/2, sx/2, sy/2, R_star, R_top, R_fore);
+                    const midPts = drawCircle(ctx, x, y, z, sx/4, sy/4, R_star, R_top, R_fore);
+                    const apex = project(x, y, z + sz/2, R_star, R_top, R_fore);
+                    for (let i = 0; i < 16; i += 4) {
+                        drawLine(ctx, botPts[i], apex);
+                    }
+                }
+            } else if (style.shape === "capsule") {
+                const topPts = drawCircle(ctx, x, y, z + sz/2, sx/3, sy/3, R_star, R_top, R_fore);
+                const botPts = drawCircle(ctx, x, y, z - sz/2, sx/2, sy/2, R_star, R_top, R_fore);
+                for (let i = 0; i < 16; i += 4) {
+                    drawLine(ctx, topPts[i], botPts[i]);
+                }
+            } else if (style.shape === "engine") {
+                const topPts = drawCircle(ctx, x, y, z + sz/2, sx/2.5, sy/2.5, R_star, R_top, R_fore);
+                const midPts = drawCircle(ctx, x, y, z + sz/6, sx/6, sy/6, R_star, R_top, R_fore);
+                const botPts = drawCircle(ctx, x, y, z - sz/2, sx/2, sy/2, R_star, R_top, R_fore);
+                for (let i = 0; i < 16; i += 2) {
+                    drawLine(ctx, topPts[i], midPts[i]);
+                    drawLine(ctx, midPts[i], botPts[i]);
+                }
+            } else if (style.shape === "ring") {
+                drawCircle(ctx, x, y, z, sx/2, sy/2, R_star, R_top, R_fore);
+                drawCircle(ctx, x, y, z - sz/4, sx/2, sy/2, R_star, R_top, R_fore);
+                drawCircle(ctx, x, y, z + sz/4, sx/2, sy/2, R_star, R_top, R_fore);
+            } else if (style.shape === "panel") {
+                const p1 = project(x - sx/2, y - sy/2, z, R_star, R_top, R_fore);
+                const p2 = project(x + sx/2, y - sy/2, z, R_star, R_top, R_fore);
+                const p3 = project(x + sx/2, y + sy/2, z, R_star, R_top, R_fore);
+                const p4 = project(x - sx/2, y + sy/2, z, R_star, R_top, R_fore);
+                drawLine(ctx, p1, p2);
+                drawLine(ctx, p2, p3);
+                drawLine(ctx, p3, p4);
+                drawLine(ctx, p4, p1);
+                const m12 = project(x, y - sy/2, z, R_star, R_top, R_fore);
+                const m34 = project(x, y + sy/2, z, R_star, R_top, R_fore);
+                const m14 = project(x - sx/2, y, z, R_star, R_top, R_fore);
+                const m23 = project(x + sx/2, y, z, R_star, R_top, R_fore);
+                drawLine(ctx, m12, m34);
+                drawLine(ctx, m14, m23);
+            } else {
+                drawPartBox(ctx, p, R_star, R_top, R_fore);
+            }
+        }
+
+        function drawMeshPart(ctx, p, meshData, R_star, R_top, R_fore) {
+            const style = getPartStyle(p.name, p.title || "");
+            ctx.strokeStyle = style.color;
+            ctx.lineWidth = 1.0;
+            
+            // To avoid overwhelming the canvas with thousands of lines, 
+            // the mesh data should ideally be decimated offline.
+            // Even so, we will only draw lines if it's manageable.
+            const projectedVerts = meshData.verts.map(v => 
+                project(v[0], v[1], v[2], R_star, R_top, R_fore)
+            );
+            
+            for (let i = 0; i < meshData.tris.length; i++) {
+                const t = meshData.tris[i];
+                const p1 = projectedVerts[t[0]];
+                const p2 = projectedVerts[t[1]];
+                const p3 = projectedVerts[t[2]];
+                
+                // Backface culling approximation:
+                // Only draw if points are visible (in front of camera)
+                if (p1 && p2 && p3 && p1.visible && p2.visible && p3.visible) {
+                    // Quick cross product for normal to cull backfaces
+                    const dx1 = p2.x - p1.x;
+                    const dy1 = p2.y - p1.y;
+                    const dx2 = p3.x - p1.x;
+                    const dy2 = p3.y - p1.y;
+                    if (dx1 * dy2 - dy1 * dx2 > 0) {
+                        drawLine(ctx, p1, p2);
+                        drawLine(ctx, p2, p3);
+                        drawLine(ctx, p3, p1);
+                    }
+                }
+            }
+        }
+
+        function drawPartBox(ctx, p, R_star, R_top, R_fore) {
+            const x = p.pos[0];
+            const y = p.pos[1];
+            const z = p.pos[2];
+            const sx = p.size[0] || 0.5;
+            const sy = p.size[1] || 0.5;
+            const sz = p.size[2] || 0.5;
+            
+            const corners = [
+                project(x - sx/2, y - sy/2, z - sz/2, R_star, R_top, R_fore),
+                project(x + sx/2, y - sy/2, z - sz/2, R_star, R_top, R_fore),
+                project(x + sx/2, y + sy/2, z - sz/2, R_star, R_top, R_fore),
+                project(x - sx/2, y + sy/2, z - sz/2, R_star, R_top, R_fore),
+                project(x - sx/2, y - sy/2, z + sz/2, R_star, R_top, R_fore),
+                project(x + sx/2, y - sy/2, z + sz/2, R_star, R_top, R_fore),
+                project(x + sx/2, y + sy/2, z + sz/2, R_star, R_top, R_fore),
+                project(x - sx/2, y + sy/2, z + sz/2, R_star, R_top, R_fore)
+            ];
+            
+            drawLine(ctx, corners[0], corners[1]);
+            drawLine(ctx, corners[1], corners[2]);
+            drawLine(ctx, corners[2], corners[3]);
+            drawLine(ctx, corners[3], corners[0]);
+            
+            drawLine(ctx, corners[4], corners[5]);
+            drawLine(ctx, corners[5], corners[6]);
+            drawLine(ctx, corners[6], corners[7]);
+            drawLine(ctx, corners[7], corners[4]);
+            
+            drawLine(ctx, corners[0], corners[4]);
+            drawLine(ctx, corners[1], corners[5]);
+            drawLine(ctx, corners[2], corners[6]);
+            drawLine(ctx, corners[3], corners[7]);
+        }
+
+        function drawPartConnection(ctx, p, R_star, R_top, R_fore, activeUids) {
+            if (!p.parent) return;
+            const parent = vesselStructure.parts.find(p2 => p2.uid === p.parent);
+            if (parent && activeUids.has(parent.uid)) {
+                const pt1 = project(p.pos[0], p.pos[1], p.pos[2], R_star, R_top, R_fore);
+                const pt2 = project(parent.pos[0], parent.pos[1], parent.pos[2], R_star, R_top, R_fore);
+                drawLine(ctx, pt1, pt2);
+            }
+        }
+
+        function animateViewer() {
+            requestAnimationFrame(animateViewer);
+            
+            if (!vesselStructure || !vesselStructure.parts) return;
+            const canvas = document.getElementById('vessel-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const activeUids = new Set(activePartsCache.map(p => p.uid));
+            
+            if (viewerMode === "attitude") {
+                currentFore = lerpVec(currentFore, targetFore, 0.1);
+                currentFore = normalizeVec(currentFore);
+                
+                const dot = currentFore[0]*targetTop[0] + currentFore[1]*targetTop[1] + currentFore[2]*targetTop[2];
+                const orthoTop = [
+                    targetTop[0] - dot * currentFore[0],
+                    targetTop[1] - dot * currentFore[1],
+                    targetTop[2] - dot * currentFore[2]
+                ];
+                currentTop = lerpVec(currentTop, orthoTop, 0.1);
+                currentTop = normalizeVec(currentTop);
+            }
+            
+            const R_fore = currentFore;
+            const R_top = currentTop;
+            const R_star = crossProduct(R_fore, R_top);
+            
+            // Grid and ENU Axes (Attitude only)
+            if (viewerMode === "attitude") {
+                ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                ctx.lineWidth = 1;
+                
+                const gridZ = -shipSize * 0.7;
+                const gridSize = shipSize * 1.5;
+                const gridDivs = 6;
+                
+                for (let i = 0; i <= gridDivs; i++) {
+                    const ratio = i / gridDivs;
+                    const coord = -gridSize + ratio * gridSize * 2;
+                    
+                    drawLine(ctx, projectHorizon(-gridSize, coord, gridZ), projectHorizon(gridSize, coord, gridZ));
+                    drawLine(ctx, projectHorizon(coord, -gridSize, gridZ), projectHorizon(coord, gridSize, gridZ));
+                }
+                
+                // Compass Axes
+                const axesZ = gridZ;
+                const axesLen = shipSize * 0.3;
+                const origin = projectHorizon(0, 0, axesZ);
+                const eastPt = projectHorizon(axesLen, 0, axesZ);
+                const northPt = projectHorizon(0, axesLen, axesZ);
+                const upPt = projectHorizon(0, 0, axesZ + axesLen);
+                
+                ctx.strokeStyle = "rgba(239, 68, 68, 0.5)"; // E - Red
+                ctx.lineWidth = 2;
+                drawLine(ctx, origin, eastPt);
+                
+                ctx.strokeStyle = "rgba(16, 185, 129, 0.5)"; // N - Green
+                drawLine(ctx, origin, northPt);
+                
+                ctx.strokeStyle = "rgba(59, 130, 246, 0.5)"; // U - Blue
+                drawLine(ctx, origin, upPt);
+                
+                ctx.fillStyle = "rgba(255,255,255,0.7)";
+                ctx.font = "10px monospace";
+                if (eastPt.visible) ctx.fillText("E", eastPt.x + 4, eastPt.y + 4);
+                if (northPt.visible) ctx.fillText("N", northPt.x + 4, northPt.y + 4);
+                if (upPt.visible) ctx.fillText("U", upPt.x + 4, upPt.y - 4);
+            }
+            
+            // Draw skeleton lines
+            ctx.strokeStyle = viewerMode === "attitude" ? "rgba(56, 189, 248, 0.25)" : "rgba(255, 255, 255, 0.15)";
+            ctx.lineWidth = 1.5;
+            vesselStructure.parts.forEach(p => {
+                if (activeUids.has(p.uid)) {
+                    drawPartConnection(ctx, p, R_star, R_top, R_fore, activeUids);
+                }
+            });
+            
+            // Draw wireframe boxes
+            vesselStructure.parts.forEach(p => {
+                if (!activeUids.has(p.uid)) return;
+                
+                // Real mesh drawing if available, else procedural fallback
+                if (vesselMeshes && vesselMeshes[p.uid] && vesselMeshes[p.uid].verts && vesselMeshes[p.uid].verts.length > 0) {
+                    drawMeshPart(ctx, p, vesselMeshes[p.uid], R_star, R_top, R_fore);
+                } else {
+                    drawProceduralPart(ctx, p, R_star, R_top, R_fore);
+                }
+            });
+        }
+
+        // Setup mouse/touch drag controls
+        function initControls() {
+            const canvas = document.getElementById('vessel-canvas');
+            if (!canvas) return;
+            
+            // Zoom (Mouse Wheel)
+            canvas.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = 1.1;
+                if (e.deltaY < 0) {
+                    zoomScale *= zoomFactor;
+                } else {
+                    zoomScale /= zoomFactor;
+                }
+                zoomScale = Math.max(0.1, Math.min(10, zoomScale));
+            });
+
+            // Prevent context menu on right click for panning
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Pan & Rotate
+            canvas.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+                canvas.style.cursor = 'grabbing';
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaX = e.clientX - previousMousePosition.x;
+                const deltaY = e.clientY - previousMousePosition.y;
+                
+                // Right click (buttons=2), shift key, or blueprint mode forces Pan
+                if (e.buttons === 2 || e.shiftKey || e.buttons === 4 || viewerMode === 'blueprint') {
+                    panOffset.x += deltaX;
+                    panOffset.y += deltaY;
+                } else if (viewerMode === 'attitude') {
+                    cameraYaw += deltaX * 0.01;
+                    cameraPitch += deltaY * 0.01;
+                    cameraPitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, cameraPitch));
+                }
+                
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                if (canvas) canvas.style.cursor = 'grab';
+            });
+            
+            canvas.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    isDragging = true;
+                    previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+            window.addEventListener('touchmove', (e) => {
+                if (!isDragging || e.touches.length !== 1) return;
+                const deltaX = e.touches[0].clientX - previousMousePosition.x;
+                const deltaY = e.touches[0].clientY - previousMousePosition.y;
+                
+                if (viewerMode === 'blueprint') {
+                    panOffset.x += deltaX;
+                    panOffset.y += deltaY;
+                } else {
+                    cameraYaw += deltaX * 0.01;
+                    cameraPitch += deltaY * 0.01;
+                    cameraPitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, cameraPitch));
+                }
+                
+                previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            });
+            window.addEventListener('touchend', () => {
+                isDragging = false;
+            });
+        }
+
+        initControls();
+        setInterval(fetchStructure, 5000);
+        fetchStructure();
+        setInterval(fetchMeshes, 10000);
+        fetchMeshes();
+        setInterval(fetchTelemetry, 1000);
+        fetchTelemetry();
+        animateViewer();
+    </script>
+</body>
+</html>
