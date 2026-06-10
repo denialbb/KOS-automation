@@ -63,6 +63,15 @@
             </div>
             <canvas id="vessel-canvas" class="vessel-canvas"></canvas>
 
+            <!-- Floating Part Tooltip -->
+            <div id="part-tooltip"></div>
+
+            <!-- Floating Science Payload Panel -->
+            <div id="science-payload-card" class="science-payload-card" style="display: none;">
+                <h2 class="panel-title" style="color: var(--crt-green); border-color: rgba(51, 255, 51, 0.2); margin-bottom: 2px;">Vessel Science Payload</h2>
+                <div id="science-parts-list" class="science-parts-list custom-scrollbar"></div>
+            </div>
+
             <!-- Collapsible Bottom Drawer for Graphs -->
             <div id="graph-drawer" class="graph-drawer">
                 <button onclick="toggleGraphDrawer()" class="graph-drawer-toggle">
@@ -161,6 +170,85 @@
         let activePartsCache = [];
         let vesselMeshes = null;
 
+        // Part hover & science
+        let hoveredPart = null;
+        let mousePos = { x: 0, y: 0 };
+        window.projectedParts = [];
+        let currentDrawingHovered = false;
+
+        const scienceKeywords = [
+            "science", "sensor", "experiment", "scanner", "thermometer", "barometer",
+            "gravi", "seismic", "scope", "gooo", "materials.bay", "spectrometer", "instrument",
+            "magnetometer", "rpws", "mass.spec", "camera", "imaging", "photometer", "goniometer",
+            "radiometer", "detector", "telescope", "radiation", "geiger"
+        ];
+
+        function isSciencePart(partName) {
+            const name = partName.toLowerCase();
+            return scienceKeywords.some(keyword => name.includes(keyword));
+        }
+
+        function getPartCategory(name) {
+            const n = name.toLowerCase();
+            if (n.includes("command") || n.includes("pod") || n.includes("capsule") || n.includes("probe") || n.includes("core")) return "Command Module";
+            if (n.includes("tank") || n.includes("fuselage")) return "Fuel Tank";
+            if (n.includes("booster")) return "Solid Booster";
+            if (n.includes("engine") || n.includes("reliant") || n.includes("swivel") || n.includes("terrier") || n.includes("hecate") || n.includes("lr87")) return "Liquid Engine";
+            if (n.includes("solar") || n.includes("panel")) return "Solar Panel";
+            if (n.includes("battery")) return "Battery Pack";
+            if (n.includes("decoupler") || n.includes("separator")) return "Decoupler";
+            if (n.includes("science") || n.includes("sensor") || n.includes("thermometer") || n.includes("barometer") || n.includes("spectrometer") || n.includes("materials.bay") || n.includes("gooo")) return "Science Instrument";
+            if (n.includes("antenna") || n.includes("communotron")) return "Comms Antenna";
+            if (n.includes("rcs") || n.includes("acs")) return "RCS Thrusters";
+            return "Vessel Utility Part";
+        }
+
+        function updateSciencePayloadList() {
+            const listContainer = document.getElementById('science-parts-list');
+            const card = document.getElementById('science-payload-card');
+            if (!listContainer || !card) return;
+
+            if (!vesselStructure || !vesselStructure.parts || viewerMode !== 'blueprint') {
+                card.style.display = 'none';
+                return;
+            }
+
+            const scienceParts = vesselStructure.parts.filter(p => isSciencePart(p.name));
+
+            if (scienceParts.length === 0) {
+                listContainer.innerHTML = '<div style="font-size:10px;color:var(--text-muted);padding:4px;">No science parts detected.</div>';
+                card.style.display = 'block';
+                return;
+            }
+
+            card.style.display = 'block';
+            listContainer.innerHTML = '';
+            
+            const activeUids = new Set(activePartsCache.map(p => p.uid));
+
+            scienceParts.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'science-part-item';
+                const isActive = activeUids.has(p.uid);
+                const statusColor = isActive ? 'var(--crt-green)' : 'var(--text-muted)';
+                const statusText = isActive ? 'online' : 'staged/lost';
+                
+                el.innerHTML = `
+                    <div style="font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.title || p.name}</div>
+                    <div class="science-part-status" style="color:${statusColor}">${statusText}</div>
+                `;
+                
+                el.onmouseenter = () => {
+                    if (isActive) hoveredPart = p;
+                };
+                el.onmouseleave = () => {
+                    if (hoveredPart === p) hoveredPart = null;
+                };
+                
+                listContainer.appendChild(el);
+            });
+        }
+
         // Telemetry interpolation buffer
         let prevTelemetry = null;
         let currTelemetry = null;
@@ -177,10 +265,27 @@
             { key: 'q',    label: 'Q (kPa)',         color: '#ef4444', group: 'dynamics',   yAxis: 'y2', active: true },
         ];
         
-        const resDatasets = [
-            { key: 'ec',   label: 'EC %',            color: '#f59e0b' },
-            { key: 'fuel', label: 'Fuel %',          color: '#06b6d4' }
-        ];
+        // Resource names and colors formatter
+        function formatResourceName(name) {
+            let clean = name.replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+            clean = clean.replace(/[_-]+/g, ' ');
+            clean = clean.replace(/([a-z])([A-Z])/g, '$1 $2');
+            clean = clean.replace(/([A-Z])([A-Z][a-z])/g, '$1 $2');
+            return clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').trim();
+        }
+
+        const predefinedColors = {
+            'Electric Charge': '#ffb000',
+            'Lqd Hydrogen': '#00aeef',
+            'Lqd Oxygen': '#a78bfa',
+            'Kerosene': '#ef4444',
+            'Hydrazine': '#10b981',
+            'Fuel Cell': '#71717a'
+        };
+
+        function getResourceColor(name) {
+            return predefinedColors[name] || '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+        }
 
         // Build Chart.js dataset config
         function buildChartDatasets() {
@@ -243,7 +348,7 @@
         const ctxResChart = document.getElementById('resource-chart').getContext('2d');
         const resourceChart = new Chart(ctxResChart, {
             type: 'line',
-            data: { datasets: resDatasets.map(d => ({ label: d.label, data: [], borderColor: d.color, tension: 0.4, borderWidth: 1.5, pointRadius: 0 })) },
+            data: { datasets: [] },
             options: {
                 responsive: true, maintainAspectRatio: false,
                 scales: {
@@ -279,6 +384,54 @@
                 cameraYaw = 0; cameraPitch = 0; zoomScale = 1.0; panOffset = { x: 0, y: 0 };
             }
             calculateScale();
+            updateSciencePayloadList();
+            if (viewerMode !== 'blueprint') {
+                const tooltip = document.getElementById('part-tooltip');
+                if (tooltip) tooltip.style.display = 'none';
+                hoveredPart = null;
+            }
+        }
+
+        function updateHoveredPart() {
+            if (!window.projectedParts || window.projectedParts.length === 0) {
+                hoveredPart = null;
+                return;
+            }
+            
+            let closest = null;
+            let minD = 20;
+            
+            window.projectedParts.forEach(entry => {
+                const dx = mousePos.x - entry.x;
+                const dy = mousePos.y - entry.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < minD) {
+                    if (!closest || entry.zDepth < closest.zDepth) {
+                        closest = entry;
+                    }
+                }
+            });
+            
+            hoveredPart = closest ? closest.part : null;
+            
+            const tooltip = document.getElementById('part-tooltip');
+            if (tooltip) {
+                if (closest && viewerMode === 'blueprint') {
+                    const p = closest.part;
+                    const cat = getPartCategory(p.name);
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (mousePos.x + 15) + 'px';
+                    tooltip.style.top = (mousePos.y + 15) + 'px';
+                    tooltip.innerHTML = `
+                        <div style="font-weight:bold;color:var(--crt-green);margin-bottom:4px;font-family:var(--font-mono);">${p.title || p.name}</div>
+                        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">UID: ${p.uid}</div>
+                        <div style="font-size:11px;margin-bottom:2px;"><span style="color:var(--text-muted);">Type:</span> ${cat}</div>
+                        <div style="font-size:11px;"><span style="color:var(--text-muted);">Size:</span> ${p.size[0].toFixed(2)}m × ${p.size[1].toFixed(2)}m × ${p.size[2].toFixed(2)}m</div>
+                    `;
+                } else {
+                    tooltip.style.display = 'none';
+                }
+            }
         }
 
         // ==========================================
@@ -304,39 +457,14 @@
                 if (data.parts && data.parts.length > 0) activePartsCache = data.parts;
 
                 // --- Graph data ---
-                if (telemetryChart.data.labels.length > maxDataPoints) {
-                    telemetryChart.data.labels.shift();
-                    telemetryChart.data.datasets.forEach(ds => ds.data.shift());
-                }
-                telemetryChart.data.labels.push(formatTime(data.time || 0));
-
-                // Compute resource percentages
-                let ecPct = 0, fuelPct = 0;
-                if (data.resources) {
-                    if (data.resources.ElectricCharge) {
-                        const r = data.resources.ElectricCharge;
-                        ecPct = r.capacity > 0 ? (r.amount / r.capacity) * 100 : 0;
-                    }
-                    // Sum all fuel-like resources
-                    let fuelAmt = 0, fuelCap = 0;
-                    for (const [name, r] of Object.entries(data.resources)) {
-                        if (name !== "ElectricCharge") {
-                            fuelAmt += r.amount;
-                            fuelCap += r.capacity;
-                        }
-                    }
-                    fuelPct = fuelCap > 0 ? (fuelAmt / fuelCap) * 100 : 0;
-                }
-
+                const now = Date.now();
                 const vals = {
                     alt: (data.altitude || 0) / 1000,
                     vel: data.velocity || 0,
                     twr: data.twr || 0,
                     q: data.q || 0,
-                    ec: ecPct,
-                    fuel: fuelPct,
                 };
-                const now = Date.now();
+                
                 datasets.forEach((d, i) => {
                     telemetryChart.data.datasets[i].data.push({
                         x: now,
@@ -345,13 +473,47 @@
                 });
                 telemetryChart.update('quiet');
                 
-                resDatasets.forEach((d, i) => {
-                    resourceChart.data.datasets[i].data.push({
-                        x: now,
-                        y: vals[d.key] || 0
+                // Dynamic resource datasets
+                if (data.resources) {
+                    const activeKeys = Object.keys(data.resources);
+                    const activeCleanNames = activeKeys.map(k => formatResourceName(k) + " %");
+                    
+                    activeKeys.forEach(resKey => {
+                        const cleanName = formatResourceName(resKey);
+                        const label = cleanName + " %";
+                        const r = data.resources[resKey];
+                        const pct = r.capacity > 0 ? (r.amount / r.capacity) * 100 : 0;
+                        
+                        let ds = resourceChart.data.datasets.find(d => d.label === label);
+                        if (!ds) {
+                            ds = {
+                                label: label,
+                                data: [],
+                                borderColor: getResourceColor(cleanName),
+                                tension: 0.4,
+                                borderWidth: 1.5,
+                                pointRadius: 0
+                            };
+                            resourceChart.data.datasets.push(ds);
+                        }
+                        
+                        ds.data.push({
+                            x: now,
+                            y: pct
+                        });
                     });
-                });
-                resourceChart.update('quiet');
+                    
+                    resourceChart.data.datasets.forEach(ds => {
+                        if (!activeCleanNames.includes(ds.label)) {
+                            ds.data.push({
+                                x: now,
+                                y: 0
+                            });
+                        }
+                    });
+                    
+                    resourceChart.update('quiet');
+                }
 
                 // --- Milestones ---
                 if (data.milestones && data.milestones.length > 0) {
@@ -378,6 +540,8 @@
                     connStatus.style.color = "var(--success)";
                     connStatus.style.borderColor = "var(--success)";
                 }
+                
+                updateSciencePayloadList();
             } catch (err) {
                 console.error("Telemetry fetch error:", err);
             }
@@ -414,14 +578,16 @@
             if (d.resources && Object.keys(d.resources).length > 0) {
                 resContainer.innerHTML = '';
                 for (const [resName, resData] of Object.entries(d.resources)) {
+                    const cleanName = formatResourceName(resName);
                     const pct = resData.capacity > 0 ? (resData.amount / resData.capacity) * 100 : 0;
                     const el = document.createElement('div');
                     el.className = 'gauge-container';
-                    let color = '#F5F5F5';
-                    if (resName === "ElectricCharge") color = pct < 20 ? 'var(--danger)' : 'var(--success)';
-                    else if (resName.includes("Fuel") || resName.includes("Hydrogen") || resName.includes("Oxygen")) color = 'var(--accent)';
+                    let color = getResourceColor(cleanName);
+                    if (resName === "ElectricCharge" && pct < 20) {
+                        color = 'var(--danger)';
+                    }
                     el.innerHTML =
-                        '<div class="data-row"><span class="data-label">' + resName + '</span><span class="data-value tabular">' + formatNumber(resData.amount) + ' / ' + formatNumber(resData.capacity) + '</span></div>' +
+                        '<div class="data-row"><span class="data-label">' + cleanName + '</span><span class="data-value tabular">' + formatNumber(resData.amount) + ' / ' + formatNumber(resData.capacity) + '</span></div>' +
                         '<div class="gauge-bar"><div class="gauge-fill" style="width:' + pct.toFixed(1) + '%; background:' + color + ';"></div></div>';
                     resContainer.appendChild(el);
                 }
@@ -483,132 +649,187 @@
             document.getElementById('nb-pit').innerText = pitDeg.toFixed(1) + "°";
             document.getElementById('nb-rol').innerText = rolDeg.toFixed(1) + "°";
 
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(-roll); // Fixed roll direction
-
+            // Draw Background Dial
+            ctx.fillStyle = '#080808';
             ctx.beginPath();
-            ctx.arc(0, 0, R, 0, Math.PI * 2);
+            ctx.arc(cx, cy, R, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Calculate starboard vector (star = fore x top)
+            let star = [
+                fore[1]*top[2] - fore[2]*top[1],
+                fore[2]*top[0] - fore[0]*top[2],
+                fore[0]*top[1] - fore[1]*top[0]
+            ];
+            let slen = Math.sqrt(star[0]*star[0] + star[1]*star[1] + star[2]*star[2]);
+            if (slen > 0.0001) { star = [star[0]/slen, star[1]/slen, star[2]/slen]; }
+
+            // 3D Projection math for navball coordinates P = [px, py, pz]
+            function projectSphere(px, py, pz) {
+                const sx = px * star[0] + py * star[1] + pz * star[2];
+                const sy = px * top[0] + py * top[1] + pz * top[2];
+                const sz = px * fore[0] + py * fore[1] + pz * fore[2];
+                return {
+                    x: cx + sx * R,
+                    y: cy - sy * R,
+                    z: sz
+                };
+            }
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, R, 0, Math.PI * 2);
             ctx.clip();
 
-            const pitchPx = (pitch / (Math.PI / 2)) * R;
-
-            // KSP Sky (Blue)
-            ctx.fillStyle = '#2b74b3';
-            ctx.fillRect(-R, -R*2 + pitchPx, R*2, R*2);
-
-            // KSP Ground (Brown)
-            ctx.fillStyle = '#9b5a26';
-            ctx.fillRect(-R, pitchPx, R*2, R*2);
-
-            // Horizon line (Orange)
-            ctx.strokeStyle = "#e88b20";
+            // 1. Draw Horizon Equator (Orange)
+            ctx.strokeStyle = "#ff6600";
             ctx.lineWidth = 2.5;
-            ctx.beginPath(); ctx.moveTo(-R, pitchPx); ctx.lineTo(R, pitchPx); ctx.stroke();
+            ctx.beginPath();
+            let first = true;
+            for (let i = 0; i <= 64; i++) {
+                const angle = (i / 64) * Math.PI * 2;
+                const pt = projectSphere(Math.cos(angle), Math.sin(angle), 0);
+                if (pt.z >= 0) {
+                    if (first) { ctx.moveTo(pt.x, pt.y); first = false; }
+                    else { ctx.lineTo(pt.x, pt.y); }
+                } else {
+                    first = true;
+                }
+            }
+            ctx.stroke();
 
-            // Pitch ladder lines
-            ctx.lineWidth = 1.5;
+            // 2. Draw Pitch Parallels (every 15 degrees)
+            ctx.lineWidth = 1;
+            for (let lat = -75; lat <= 75; lat += 15) {
+                if (lat === 0) continue;
+                const pz = Math.sin(lat * Math.PI / 180);
+                const r = Math.cos(lat * Math.PI / 180);
+                ctx.strokeStyle = lat > 0 ? "rgba(51, 255, 51, 0.4)" : "rgba(255, 176, 0, 0.4)";
+                ctx.beginPath();
+                let first = true;
+                for (let i = 0; i <= 64; i++) {
+                    const angle = (i / 64) * Math.PI * 2;
+                    const pt = projectSphere(r * Math.cos(angle), r * Math.sin(angle), pz);
+                    if (pt.z >= 0) {
+                        if (first) { ctx.moveTo(pt.x, pt.y); first = false; }
+                        else { ctx.lineTo(pt.x, pt.y); }
+                    } else {
+                        first = true;
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // 3. Draw Heading Meridians (every 30 degrees)
+            ctx.strokeStyle = "rgba(51, 255, 51, 0.15)";
+            ctx.lineWidth = 1;
+            for (let lon = 0; lon < 360; lon += 30) {
+                const lonRad = lon * Math.PI / 180;
+                ctx.beginPath();
+                let first = true;
+                for (let i = -18; i <= 18; i++) {
+                    const lat = (i / 18) * 90;
+                    const latRad = lat * Math.PI / 180;
+                    const pz = Math.sin(latRad);
+                    const r = Math.cos(latRad);
+                    const pt = projectSphere(r * Math.sin(lonRad), r * Math.cos(lonRad), pz);
+                    if (pt.z >= 0) {
+                        if (first) { ctx.moveTo(pt.x, pt.y); first = false; }
+                        else { ctx.lineTo(pt.x, pt.y); }
+                    } else {
+                        first = true;
+                    }
+                }
+                ctx.stroke();
+            }
+
+            // 4. Draw Cardinal Markers and Pitch Labels
             ctx.font = "bold 10px 'Roboto Mono'";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            for (let p = -80; p <= 80; p += 10) {
-                if (p === 0) continue;
-                const y = (-p / 90) * R + pitchPx;
-                const halfW = Math.abs(p) % 30 === 0 ? 30 : 15;
-                ctx.strokeStyle = "#FFF";
-                ctx.beginPath();
-                if (p < 0) { ctx.setLineDash([4, 4]); } else { ctx.setLineDash([]); }
-                ctx.moveTo(-halfW, y); ctx.lineTo(halfW, y);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                if (Math.abs(p) % 30 === 0) {
-                    ctx.fillStyle = "#FFF";
-                    ctx.fillText(Math.abs(p).toString(), halfW + 16, y);
-                    ctx.fillText(Math.abs(p).toString(), -halfW - 16, y);
-                }
-            }
 
-            // Heading labels
-            ctx.font = "bold 12px 'Roboto Mono'";
             const cardinals = [
-                { label: "N", angle: 0 }, { label: "E", angle: 90 },
-                { label: "S", angle: 180 }, { label: "W", angle: 270 },
+                { label: "N", pos: [0, 1, 0], color: "#33ff33" },
+                { label: "E", pos: [1, 0, 0], color: "#33ff33" },
+                { label: "S", pos: [0, -1, 0], color: "#ffb000" },
+                { label: "W", pos: [-1, 0, 0], color: "#ffb000" }
             ];
-            const hdgRad = heading;
             cardinals.forEach(c => {
-                const cRad = c.angle * Math.PI / 180;
-                let dNorm = ((cRad - hdgRad + Math.PI) % (2*Math.PI)) - Math.PI;
-                if (dNorm < -Math.PI) dNorm += 2*Math.PI;
-                const xPos = (dNorm / Math.PI) * R;
-                if (Math.abs(xPos) < R - 15) {
-                    ctx.fillStyle = "#e88b20";
-                    ctx.fillText(c.label, xPos, pitchPx - 14);
-                    ctx.strokeStyle = "#e88b20"; ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.moveTo(xPos, pitchPx - 4); ctx.lineTo(xPos, pitchPx + 4); ctx.stroke();
+                const pt = projectSphere(c.pos[0], c.pos[1], c.pos[2]);
+                if (pt.z >= 0) {
+                    ctx.fillStyle = c.color;
+                    ctx.fillText(c.label, pt.x, pt.y);
                 }
             });
-            for (let deg = 0; deg < 360; deg += 10) {
-                if (deg % 90 === 0) continue;
-                const cRad = deg * Math.PI / 180;
-                let dNorm = ((cRad - hdgRad + Math.PI) % (2*Math.PI)) - Math.PI;
-                if (dNorm < -Math.PI) dNorm += 2*Math.PI;
-                const xPos = (dNorm / Math.PI) * R;
-                if (Math.abs(xPos) < R - 5) {
-                    ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1;
-                    ctx.beginPath(); ctx.moveTo(xPos, pitchPx - 3); ctx.lineTo(xPos, pitchPx + 3); ctx.stroke();
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+            ctx.font = "8px 'Roboto Mono'";
+            for (let lat = -60; lat <= 60; lat += 30) {
+                if (lat === 0) continue;
+                const latRad = lat * Math.PI / 180;
+                const pz = Math.sin(latRad);
+                const r = Math.cos(latRad);
+                const ptN = projectSphere(0, r, pz);
+                if (ptN.z >= 0) {
+                    ctx.fillText(Math.abs(lat).toString(), ptN.x, ptN.y);
+                }
+                const ptS = projectSphere(0, -r, pz);
+                if (ptS.z >= 0) {
+                    ctx.fillText(Math.abs(lat).toString(), ptS.x, ptS.y);
                 }
             }
 
             ctx.restore();
 
-            // Center marker (KSP Orange V)
-            ctx.strokeStyle = "#e88b20"; 
+            // 5. Draw static Aircraft Nose Indicator
+            ctx.strokeStyle = "#ff6600";
             ctx.lineWidth = 2.5;
             ctx.lineJoin = "round";
             ctx.beginPath();
-            // Left wing
-            ctx.moveTo(cx - 20, cy); ctx.lineTo(cx - 5, cy);
-            // Center V
-            ctx.lineTo(cx, cy + 8);
-            ctx.lineTo(cx + 5, cy);
-            // Right wing
+            ctx.moveTo(cx - 20, cy); ctx.lineTo(cx - 6, cy);
+            ctx.lineTo(cx, cy + 6);
+            ctx.lineTo(cx + 6, cy);
             ctx.lineTo(cx + 20, cy);
             ctx.stroke();
 
-            // Roll indicator ring
+            ctx.fillStyle = "#ff6600";
+            ctx.beginPath();
+            ctx.arc(cx, cy, 2, 0, Math.PI*2);
+            ctx.fill();
+
+            // 6. Draw Roll bezel tick marks
             ctx.save();
             ctx.translate(cx, cy);
-            ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 2;
+            
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.lineWidth = 1.5;
             ctx.beginPath();
             ctx.arc(0, 0, R - 1, -Math.PI, 0);
             ctx.stroke();
-            
-            const rollTicks = [-60,-45,-30,-15,0,15,30,45,60];
+
+            const rollTicks = [-60, -45, -30, -15, 0, 15, 30, 45, 60];
             rollTicks.forEach(deg => {
                 const a = (-90 + deg) * Math.PI / 180;
-                const inner = deg === 0 ? R - 10 : R - 6;
+                const inner = deg === 0 ? R - 8 : R - 5;
                 const outer = R - 1;
-                ctx.strokeStyle = deg === 0 ? "#e88b20" : "#FFF";
-                ctx.lineWidth = deg === 0 ? 3 : 2;
+                ctx.strokeStyle = deg === 0 ? "#ff6600" : "rgba(255, 255, 255, 0.6)";
+                ctx.lineWidth = deg === 0 ? 2.5 : 1.5;
                 ctx.beginPath();
                 ctx.moveTo(Math.cos(a)*inner, Math.sin(a)*inner);
                 ctx.lineTo(Math.cos(a)*outer, Math.sin(a)*outer);
                 ctx.stroke();
             });
 
-            // Roll pointer
-            const rPtrAngle = (-90 + rolDeg) * Math.PI / 180; // Negative due to inverted Y in canvas? Wait, roll rotates canvas clockwise. So pointer moves opposite. Let's try +rolDeg.
-            ctx.fillStyle = "#e88b20";
+            const rPtrAngle = (-90 + rolDeg) * Math.PI / 180;
+            ctx.fillStyle = "#ff6600";
             ctx.beginPath();
-            const rpR = R - 12;
+            const rpR = R - 10;
             ctx.moveTo(Math.cos(rPtrAngle)*rpR, Math.sin(rPtrAngle)*rpR);
-            ctx.lineTo(Math.cos(rPtrAngle - 0.08)*(rpR+8), Math.sin(rPtrAngle - 0.08)*(rpR+8));
-            ctx.lineTo(Math.cos(rPtrAngle + 0.08)*(rpR+8), Math.sin(rPtrAngle + 0.08)*(rpR+8));
+            ctx.lineTo(Math.cos(rPtrAngle - 0.08)*(rpR+6), Math.sin(rPtrAngle - 0.08)*(rpR+6));
+            ctx.lineTo(Math.cos(rPtrAngle + 0.08)*(rpR+6), Math.sin(rPtrAngle + 0.08)*(rpR+6));
             ctx.closePath(); ctx.fill();
             ctx.restore();
 
-            // Outer bezel
-            ctx.strokeStyle = "#222"; ctx.lineWidth = 4;
+            ctx.strokeStyle = "#333333"; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();
         }
 
@@ -708,7 +929,7 @@
 
         function drawLine(ctx, p1, p2, isGrid = false) {
             if (p1.visible && p2.visible) {
-                if (!isGrid && shipSize > 0) {
+                if (!isGrid && shipSize > 0 && !currentDrawingHovered) {
                     const avgZ = (p1.zDepth + p2.zDepth) / 2;
                     let opacity = 0.9 - (avgZ + shipSize/2) / shipSize * 0.75;
                     opacity = Math.max(0.15, Math.min(0.9, opacity));
@@ -768,10 +989,15 @@
             return pts;
         }
 
-        function drawProceduralPart(ctx, p, R_star, R_top, R_fore) {
+        function drawProceduralPart(ctx, p, R_star, R_top, R_fore, isHovered = false) {
             const style = getPartStyle(p.name, p.title || "");
-            ctx.strokeStyle = style.color;
-            ctx.lineWidth = 1.5;
+            ctx.save();
+            ctx.strokeStyle = isHovered ? "#33ff33" : style.color;
+            ctx.lineWidth = isHovered ? 3.0 : 1.5;
+            if (isHovered) {
+                ctx.shadowColor = "#33ff33";
+                ctx.shadowBlur = 12;
+            }
 
             const x = p.pos[0];
             const y = p.pos[1];
@@ -840,12 +1066,18 @@
             } else {
                 drawPartBox(ctx, p, R_star, R_top, R_fore);
             }
+            ctx.restore();
         }
 
-        function drawMeshPart(ctx, p, meshData, R_star, R_top, R_fore) {
+        function drawMeshPart(ctx, p, meshData, R_star, R_top, R_fore, isHovered = false) {
             const style = getPartStyle(p.name, p.title || "");
-            ctx.strokeStyle = style.color;
-            ctx.lineWidth = 1.0;
+            ctx.save();
+            ctx.strokeStyle = isHovered ? "#33ff33" : style.color;
+            ctx.lineWidth = isHovered ? 2.5 : 1.0;
+            if (isHovered) {
+                ctx.shadowColor = "#33ff33";
+                ctx.shadowBlur = 12;
+            }
             
             // To avoid overwhelming the canvas with thousands of lines, 
             // the mesh data should ideally be decimated offline.
@@ -875,6 +1107,7 @@
                     }
                 }
             }
+            ctx.restore();
         }
 
         function drawPartBox(ctx, p, R_star, R_top, R_fore) {
@@ -1003,6 +1236,9 @@
                 if (upPt.visible) ctx.fillText("U", upPt.x + 4, upPt.y - 4);
             }
 
+            // Clear projected parts for hover detection
+            window.projectedParts = [];
+
             // Skeleton
             ctx.strokeStyle = viewerMode === "attitude" ? "rgba(0, 174, 239, 0.25)" : "rgba(255, 255, 255, 0.15)";
             ctx.lineWidth = 1.5;
@@ -1013,12 +1249,35 @@
             // Parts
             vesselStructure.parts.forEach(p => {
                 if (!activeUids.has(p.uid)) return;
+
+                // Track projected center for hit-testing
+                const proj = project(p.pos[0], p.pos[1], p.pos[2], R_star, R_top, R_fore);
+                window.projectedParts.push({
+                    uid: p.uid,
+                    part: p,
+                    x: proj.x,
+                    y: proj.y,
+                    zDepth: proj.zDepth
+                });
+
+                const isHovered = hoveredPart && hoveredPart.uid === p.uid;
+                if (isHovered) {
+                    currentDrawingHovered = true;
+                }
+
                 if (vesselMeshes && vesselMeshes[p.uid] && vesselMeshes[p.uid].verts && vesselMeshes[p.uid].verts.length > 0) {
-                    drawMeshPart(ctx, p, vesselMeshes[p.uid], R_star, R_top, R_fore);
+                    drawMeshPart(ctx, p, vesselMeshes[p.uid], R_star, R_top, R_fore, isHovered);
                 } else {
-                    drawProceduralPart(ctx, p, R_star, R_top, R_fore);
+                    drawProceduralPart(ctx, p, R_star, R_top, R_fore, isHovered);
+                }
+
+                if (isHovered) {
+                    currentDrawingHovered = false;
                 }
             });
+
+            // Call hover update in render loop to handle panning/camera rotations smoothly
+            updateHoveredPart();
         }
 
         // ==========================================
@@ -1035,6 +1294,18 @@
                 zoomScale = Math.max(0.1, Math.min(10, zoomScale));
             });
             canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Track mouse coordinates for hover tooltip and highlight
+            canvas.addEventListener('mousemove', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mousePos.x = e.clientX - rect.left;
+                mousePos.y = e.clientY - rect.top;
+                updateHoveredPart();
+            });
+            canvas.addEventListener('mouseleave', () => {
+                mousePos = { x: -1000, y: -1000 };
+                updateHoveredPart();
+            });
 
             let isDragging = false;
             let previousMousePosition = { x: 0, y: 0 };
@@ -1089,7 +1360,11 @@
         async function fetchStructure() {
             try {
                 const res = await fetch('vessel_structure.json?t=' + Date.now(), { cache: "no-store" });
-                if (res.ok) { vesselStructure = await res.json(); calculateScale(); }
+                if (res.ok) { 
+                    vesselStructure = await res.json(); 
+                    calculateScale(); 
+                    updateSciencePayloadList();
+                }
             } catch(e) {}
         }
         async function fetchMeshes() {
