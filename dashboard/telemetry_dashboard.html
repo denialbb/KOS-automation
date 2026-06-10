@@ -16,9 +16,9 @@
         <h1 class="dashboard-title">DASA TELEMETRY</h1>
         <div class="header-center">
             <div class="mission-time font-mono text-crt-green">T+ <span id="time">00:00:00</span></div>
-            <div class="status-badge" id="conn-status">LIVE</div>
+            <div class="stage-indicator font-mono" style="margin-left: 20px;">STAGE: <span id="stage" class="text-crt-amber">--</span></div>
         </div>
-        <div class="stage-indicator font-mono">STAGE: <span id="stage" class="text-crt-amber">--</span></div>
+        <div class="status-badge" id="conn-status">LIVE</div>
     </div>
 
     <div class="dashboard-grid">
@@ -765,11 +765,17 @@
                             // If this is a new log item (the last index in chronologically ordered list)
                             if (!isPlaceholder && idx === data.milestones.length - 1) {
                                 d.style.color = '#ef4444';
-                                d.style.transition = 'color 5.0s ease';
+                                d.style.transition = 'color 5.0s ease, border-left-color 5.0s ease';
                                 setTimeout(() => {
                                     d.style.color = '';
                                 }, 50);
                             }
+                            
+                            // Fade the border-left-color to transparent after 5 seconds
+                            setTimeout(() => {
+                                d.classList.add('fade-border');
+                            }, 5000);
+                            
                             mCont.appendChild(d);
                         });
                         mCont.scrollTop = mCont.scrollHeight;
