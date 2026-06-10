@@ -20,7 +20,7 @@ when true then {
 	print "Pitch: "+round(90-vang(ship:up:forevector,ship:facing:forevector))+" degrees       " at(0,5).
 	print "Orbital velocity: "+round(ship:velocity:orbit:mag)+" m/s       " at (0,6).
 	print "Running: uAscent" at (0,8).
-    
+
     local r_dist is body:radius + ship:altitude.
     local grav is body:mu / (r_dist * r_dist).
     local twr is 0.
@@ -29,7 +29,7 @@ when true then {
     print "TWR: " + round(twr, 2) + "        " at(0,31).
     print "Q:   " + round(ship:dynamicpressure, 4) + " kPa   " at(0,32).
     print "EC:  " + round(ship:electriccharge) + "       " at(0,33).
-    
+
     preserve.
 	}
 }
@@ -40,6 +40,9 @@ lock throttle to 1.
 
 if maxthrust = 0 {
 	stage.
+    logMsg("Stage " + stage_num + " separation").
+	set stage_num to stage_num + 1.
+    logMsg("Stage " + stage_num + " ignition").
 }
 
 //staging
@@ -53,7 +56,8 @@ when true then {
 	stage.
 		if maxthrust > 0 {
 		print "Stage "+n+" separation. Stage "+(n+1)+" ignition." at(0,1).
-		
+        if defined logMsg { logMsg("Stage " + n + " separation"). }
+
         local ec is 0.
         local ecMax is 1.
         for r in ship:resources {
@@ -67,7 +71,7 @@ when true then {
         if exists(histFile) {
             log round(missiontime) + ",Staging," + ship:body:name + "," + round(ship:altitude) + "," + round(ship:periapsis) + "," + round(ship:apoapsis) + "," + round(ship:orbit:inclination, 1) + "," + ecPct + "," + round(ship:velocity:orbit:mag) to histFile.
         }
-        
+
 		set n to n+1.
 		set InitialStageThrust to maxthrust.
 	}
