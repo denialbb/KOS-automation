@@ -441,7 +441,6 @@ if scanChoice = "y" {
         runpath("0:/DASA/VesselScan.ks").
     }
 }
-}
 
 local skipDeployment is false.
 // 1. Wait for deployment / Pre-launch
