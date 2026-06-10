@@ -85,7 +85,10 @@
                         </div>
                     </div>
                     <div class="graph-container-right">
-                        <h2 class="panel-title">Resource History</h2>
+                        <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--panel-border); margin-bottom: 8px; padding-bottom: 4px;">
+                            <h2 class="panel-title" style="margin: 0; border: none; padding: 0;">Resource History</h2>
+                            <div class="graph-tabs" id="resource-tabs" style="margin: 0;"></div>
+                        </div>
                         <div class="graph-canvas-wrapper">
                             <canvas id="resource-chart"></canvas>
                         </div>
@@ -282,6 +285,21 @@
             return clean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ').trim();
         }
 
+        function abbreviateResourceName(name) {
+            const n = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+            if (n === "electriccharge" || n === "ec") return "EC";
+            if (n === "liquidfuel" || n === "lf") return "LF";
+            if (n === "oxidizer" || n === "ox") return "OX";
+            if (n === "monopropellant" || n === "mp") return "MP";
+            if (n === "lqdhydrogen" || n === "lh2" || n === "liquidhydrogen") return "LH2";
+            if (n === "lqdoxygen" || n === "lox" || n === "liquidoxygen") return "LOX";
+            if (n === "kerosene") return "Kero";
+            if (n === "hydrazine") return "Hydr";
+            if (n === "fuelcell" || n === "fc") return "FC";
+            if (n === "xenongas" || n === "xenon") return "Xe";
+            return name;
+        }
+
         const predefinedColors = {
             'Electric Charge': '#ffb000',
             'Lqd Hydrogen': '#00aeef',
@@ -373,7 +391,7 @@
                     },
                     y: { type: 'linear', min: 0, max: 100, grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } }
                 },
-                plugins: { legend: { display: true, labels: { color: '#888', font: { size: 10, family: 'Roboto Mono' } } } }
+                plugins: { legend: { display: false } }
             }
         });
 
@@ -468,11 +486,38 @@
             if (mCont) mCont.innerHTML = '<div class="timeline-item">Waiting for data...</div>';
             const resContainer = document.getElementById('resources-container');
             if (resContainer) resContainer.innerHTML = '<div class="data-row"><span class="data-label">No resource data</span></div>';
+            const resTabs = document.getElementById('resource-tabs');
+            if (resTabs) resTabs.innerHTML = '';
+            window.lastResourceTabsSig = "";
             hoveredPart = null;
             activePartsCache = [];
             lastScienceListStateStr = "";
             prevTelemetry = null;
             currTelemetry = null;
+        }
+
+        function updateResourceTabs() {
+            const container = document.getElementById('resource-tabs');
+            if (!container) return;
+            
+            const keys = resourceChart.data.datasets.map(d => d.label).join(',');
+            const currentSig = keys;
+            if (window.lastResourceTabsSig === currentSig) return;
+            window.lastResourceTabsSig = currentSig;
+            
+            container.innerHTML = '';
+            resourceChart.data.datasets.forEach((ds, i) => {
+                const cleanLabel = ds.label.replace(" %", "");
+                const tab = document.createElement('div');
+                tab.className = 'graph-tab' + (!ds.hidden ? ' active' : '');
+                tab.innerHTML = '<div class="graph-tab-swatch" style="background:' + ds.borderColor + ';"></div>' + cleanLabel;
+                tab.onclick = () => {
+                    ds.hidden = !ds.hidden;
+                    tab.classList.toggle('active');
+                    resourceChart.update();
+                };
+                container.appendChild(tab);
+            });
         }
 
         // ==========================================
@@ -494,6 +539,23 @@
                 currTelemetry = data;
                 telemetryRecvTime = performance.now();
 
+                // Check if mission time is paused (e.g. pre-launch or actual game pause)
+                const isPaused = !currTelemetry || (data.time === currTelemetry.time);
+                
+                let pauseChanged = false;
+                if (telemetryChart.options.scales.x.realtime.pause !== isPaused) {
+                    telemetryChart.options.scales.x.realtime.pause = isPaused;
+                    pauseChanged = true;
+                }
+                if (resourceChart.options.scales.x.realtime.pause !== isPaused) {
+                    resourceChart.options.scales.x.realtime.pause = isPaused;
+                    pauseChanged = true;
+                }
+                if (pauseChanged) {
+                    telemetryChart.update('none');
+                    resourceChart.update('none');
+                }
+
                 // Attitude targets
                 if (data.attitude) {
                     targetFore = data.attitude.fore;
@@ -511,62 +573,66 @@
                 }
 
                 // --- Graph data ---
-                const now = Date.now();
-                const vals = {
-                    alt: (data.altitude || 0) / 1000,
-                    vel: data.velocity || 0,
-                    twr: data.twr || 0,
-                    q: data.q || 0,
-                };
-                
-                datasets.forEach((d, i) => {
-                    telemetryChart.data.datasets[i].data.push({
-                        x: now,
-                        y: vals[d.key] || 0
-                    });
-                });
-                telemetryChart.update('quiet');
-                
-                // Dynamic resource datasets
-                if (data.resources) {
-                    const activeKeys = Object.keys(data.resources);
-                    const activeCleanNames = activeKeys.map(k => formatResourceName(k) + " %");
+                if (!isPaused) {
+                    const now = Date.now();
+                    const vals = {
+                        alt: (data.altitude || 0) / 1000,
+                        vel: data.velocity || 0,
+                        twr: data.twr || 0,
+                        q: data.q || 0,
+                    };
                     
-                    activeKeys.forEach(resKey => {
-                        const cleanName = formatResourceName(resKey);
-                        const label = cleanName + " %";
-                        const r = data.resources[resKey];
-                        const pct = r.capacity > 0 ? (r.amount / r.capacity) * 100 : 0;
-                        
-                        let ds = resourceChart.data.datasets.find(d => d.label === label);
-                        if (!ds) {
-                            ds = {
-                                label: label,
-                                data: [],
-                                borderColor: getResourceColor(cleanName),
-                                tension: 0.4,
-                                borderWidth: 1.5,
-                                pointRadius: 0
-                            };
-                            resourceChart.data.datasets.push(ds);
-                        }
-                        
-                        ds.data.push({
+                    datasets.forEach((d, i) => {
+                        telemetryChart.data.datasets[i].data.push({
                             x: now,
-                            y: pct
+                            y: vals[d.key] || 0
                         });
                     });
+                    telemetryChart.update('quiet');
                     
-                    resourceChart.data.datasets.forEach(ds => {
-                        if (!activeCleanNames.includes(ds.label)) {
+                    // Dynamic resource datasets
+                    if (data.resources) {
+                        const activeKeys = Object.keys(data.resources);
+                        const activeAbbrevNames = activeKeys.map(k => abbreviateResourceName(formatResourceName(k)) + " %");
+                        
+                        activeKeys.forEach(resKey => {
+                            const cleanName = formatResourceName(resKey);
+                            const abbrevName = abbreviateResourceName(cleanName);
+                            const label = abbrevName + " %";
+                            const r = data.resources[resKey];
+                            const pct = r.capacity > 0 ? (r.amount / r.capacity) * 100 : 0;
+                            
+                            let ds = resourceChart.data.datasets.find(d => d.label === label);
+                            if (!ds) {
+                                ds = {
+                                    label: label,
+                                    data: [],
+                                    borderColor: getResourceColor(cleanName),
+                                    tension: 0.4,
+                                    borderWidth: 1.5,
+                                    pointRadius: 0
+                                };
+                                resourceChart.data.datasets.push(ds);
+                            }
+                            
                             ds.data.push({
                                 x: now,
-                                y: 0
+                                y: pct
                             });
-                        }
-                    });
-                    
-                    resourceChart.update('quiet');
+                        });
+                        
+                        resourceChart.data.datasets.forEach(ds => {
+                            if (!activeAbbrevNames.includes(ds.label)) {
+                                ds.data.push({
+                                    x: now,
+                                    y: 0
+                                });
+                            }
+                        });
+                        
+                        resourceChart.update('quiet');
+                        updateResourceTabs();
+                    }
                 }
 
                 // --- Milestones ---
@@ -633,6 +699,7 @@
                 resContainer.innerHTML = '';
                 for (const [resName, resData] of Object.entries(d.resources)) {
                     const cleanName = formatResourceName(resName);
+                    const abbrevName = abbreviateResourceName(cleanName);
                     const pct = resData.capacity > 0 ? (resData.amount / resData.capacity) * 100 : 0;
                     const el = document.createElement('div');
                     el.className = 'gauge-container';
@@ -641,7 +708,7 @@
                         color = 'var(--danger)';
                     }
                     el.innerHTML =
-                        '<div class="data-row"><span class="data-label">' + cleanName + '</span><span class="data-value tabular">' + formatNumber(resData.amount) + ' / ' + formatNumber(resData.capacity) + '</span></div>' +
+                        '<div class="data-row"><span class="data-label">' + abbrevName + '</span><span class="data-value tabular">' + formatNumber(resData.amount) + ' / ' + formatNumber(resData.capacity) + '</span></div>' +
                         '<div class="gauge-bar"><div class="gauge-fill" style="width:' + pct.toFixed(1) + '%; background:' + color + ';"></div></div>';
                     resContainer.appendChild(el);
                 }
