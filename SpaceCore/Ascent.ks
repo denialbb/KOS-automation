@@ -56,7 +56,7 @@ when true then {
 	stage.
 		if maxthrust > 0 {
 		print "Stage "+n+" separation. Stage "+(n+1)+" ignition." at(0,1).
-        if defined logMsg { logMsg("Stage " + n + " separation"). }
+        logMsg("Stage " + n + " separation").
 
         local ec is 0.
         local ecMax is 1.

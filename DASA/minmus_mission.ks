@@ -426,7 +426,16 @@ when time:seconds > lastTelemetryUpdate + 0.2 then {
 
 setStage("Booting").
 logMsg("Minmus Automation Mission Initialized.").
-runpath("0:/DASA/VesselScan.ks").
+print "Scan vessel structure? (y/n)".
+local scanChoice is "".
+until scanChoice = "y" or scanChoice = "n" {
+    set scanChoice to terminal:input:getchar().
+}
+if scanChoice = "y" {
+    runpath("0:/DASA/VesselScan.ks").
+} else {
+    logMsg("Skipping vessel scan.").
+}
 
 // 1. Wait for deployment / Pre-launch
 if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING" and ship:altitude < 70000) {
