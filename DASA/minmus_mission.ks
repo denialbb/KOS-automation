@@ -13,6 +13,7 @@ global localLogPath is "1:/local_log.txt".
 local apuState is false.
 local lastPowerCheck is 0.
 global telemetryStage is "Booting".
+global missionMilestones is list().
 local lastTelemetryUpdate is 0.
 
 if exists("0:/logs/mission_history.log") {
@@ -46,6 +47,7 @@ function logMsg {
     }
     local line is "[" + tStr + formatTime(tVal) + "] " + msg.
     print line.
+    missionMilestones:add(line).
     
     if homeconnection:isconnected {
         // If we have local logs cached from blackout, flush them to archive
@@ -72,6 +74,14 @@ function updateTelemetry {
         }
     }
     
+    local currentMass is ship:mass.
+    local currentThrust is ship:availablethrust.
+    local r_dist is body:radius + ship:altitude.
+    local grav is body:mu / (r_dist * r_dist).
+    local currentTwr is 0.
+    if grav > 0 and currentMass > 0 { set currentTwr to currentThrust / (currentMass * grav). }
+    local currentQ is ship:dynamicpressure.
+
     local dq is char(34).
     
     // Construct parts array
@@ -142,6 +152,8 @@ function updateTelemetry {
     set jsonStr to jsonStr + dq + "velocity" + dq + ": " + round(ship:velocity:orbit:mag) + ", ".
     set jsonStr to jsonStr + dq + "electricCharge" + dq + ": " + round(ec) + ", ".
     set jsonStr to jsonStr + dq + "electricChargeMax" + dq + ": " + round(ecMax) + ", ".
+    set jsonStr to jsonStr + dq + "twr" + dq + ": " + round(currentTwr, 2) + ", ".
+    set jsonStr to jsonStr + dq + "q" + dq + ": " + round(currentQ, 4) + ", ".
     set jsonStr to jsonStr + dq + "body" + dq + ": " + dq + ship:body:name + dq + ", ".
     set jsonStr to jsonStr + dq + "resources" + dq + ": " + resJson + ", ".
     set jsonStr to jsonStr + dq + "closestPoi" + dq + ": {" + dq + "name" + dq + ":" + dq + closestPoiName + dq + "," + dq + "distance" + dq + ":" + round(closestPoiDist) + "}, ".
@@ -170,7 +182,18 @@ function updateTelemetry {
         set jsonStr to jsonStr + dq + "maneuver" + dq + ": { " + dq + "hasNode" + dq + ": false, " + dq + "eta" + dq + ": 0, " + dq + "dv" + dq + ": 0 }, ".
     }
 
-    set jsonStr to jsonStr + dq + "parts" + dq + ": " + partsJson.
+    set jsonStr to jsonStr + dq + "parts" + dq + ": " + partsJson + ", ".
+    
+    local milestonesJson is "[".
+    local firstMilestone is true.
+    for ms in missionMilestones {
+        if not firstMilestone { set milestonesJson to milestonesJson + ", ". }
+        set firstMilestone to false.
+        set milestonesJson to milestonesJson + dq + ms:replace(dq, "") + dq.
+    }
+    set milestonesJson to milestonesJson + "]".
+    
+    set jsonStr to jsonStr + dq + "milestones" + dq + ": " + milestonesJson.
     set jsonStr to jsonStr + "}".
     
     // Only write telemetry to archive if KSC connection is active to prevent kOS crash
@@ -358,28 +381,7 @@ function createNodeFromVector {
     return nd.
 }
 
-function evaluateNodeMinmusEncounter {
-    parameter nd, targetPe.
-    local ob is nd:orbit.
-    local hasEncounter is false.
-    local pe is 999999999.
-    
-    until false {
-        if ob:body:name = "Minmus" {
-            set hasEncounter to true.
-            set pe to ob:periapsis.
-            break.
-        }
-        if not ob:hasnextpatch { break. }
-        set ob to ob:nextpatch.
-    }
-    
-    if hasEncounter {
-        return pe.
-    } else {
-        return 1000000000 + abs(nd:orbit:apoapsis - body("Minmus"):orbit:semimajoraxis).
-    }
-}
+
 
 // ------------------------------------------------------------------------
 // Main Mission Sequence
@@ -391,7 +393,7 @@ when time:seconds > lastPowerCheck + 5 then {
     preserve.
 }
 
-when time:seconds > lastTelemetryUpdate + 1 then {
+when time:seconds > lastTelemetryUpdate + 0.2 then {
     local hasConn is homeconnection:isconnected.
     if hasConn <> hadConnection {
         if hasConn {
@@ -488,93 +490,36 @@ if relInc > 0.05 {
 
 // 3. Hohmann Transfer
 setStage("Hohmann Transfer").
-logMsg("Calculating transfer to Minmus.").
-local r1 is ship:orbit:semimajoraxis.
-local r2 is target:orbit:semimajoraxis.
-local a_trans is (r1 + r2) / 2.
-local t_trans is constant:pi * sqrt(a_trans^3 / body:mu).
-local reqPhase is 180 - ((360 / target:orbit:period) * t_trans).
-set reqPhase to reqPhase - 360 * floor(reqPhase / 360). // Normalize
+logMsg("Calculating transfer to Minmus using Astrogator.").
+local bms is addons:astrogator:calculateBurns(target).
 
-local phaseRate is (360 / target:orbit:period) - (360 / ship:orbit:period).
-
-// Calculate current phase angle
-local r_s is ship:position - ship:body:position.
-local r_t is target:position - ship:body:position.
-local phaseAngle is vang(r_s, r_t).
-if vdot(vcrs(r_s, r_t), shipNormal) < 0 { set phaseAngle to 360 - phaseAngle. }
-
-local dAngle is phaseAngle - reqPhase.
-if dAngle < 0 { set dAngle to dAngle + 360. }
-local timeToBurn is abs(dAngle / phaseRate).
-
-// Estimate dV
-local v1 is sqrt(body:mu / r1).
-local v_trans is sqrt(body:mu * (2/r1 - 1/a_trans)).
-local estDV is v_trans - v1.
-
-logMsg("Analytical transfer estimate: " + round(timeToBurn) + "s, dV: " + round(estDV) + "m/s.").
-
-local nd is node(time:seconds + timeToBurn, 0, 0, estDV).
-add nd.
-wait 0.1.
-
-// Numerical Optimization for Encounter
-logMsg("Optimizing transfer node for Minmus encounter.").
-local stepTime is 60.
-local stepDV is 2.
-local improved is true.
-local iteration is 0.
-local targetPe is 20000.
-
-until (not improved) or (iteration > 100) {
-    set improved to false.
-    set iteration to iteration + 1.
+if bms:length = 0 {
+    logMsg("CRITICAL ERROR: Astrogator failed to calculate transfer burns!").
+} else {
+    local bm is bms[0].
     
-    local candidates is list(
-        list(nd:time + stepTime, nd:prograde),
-        list(nd:time - stepTime, nd:prograde),
-        list(nd:time, nd:prograde + stepDV),
-        list(nd:time, nd:prograde - stepDV),
-        list(nd:time + stepTime, nd:prograde + stepDV),
-        list(nd:time - stepTime, nd:prograde - stepDV),
-        list(nd:time + stepTime, nd:prograde - stepDV),
-        list(nd:time - stepTime, nd:prograde + stepDV)
-    ).
+    local timeToWindow is bm:atTime - time:seconds.
+    local incDiff is abs(target:orbit:inclination - ship:orbit:inclination).
+    local dvNeeded is bm:totalDV.
+    local dvAvail is ship:stagedeltav(ship:stagenum):current. // Current stage dv. Or ship:deltav:current.
     
-    local bestScore is evaluateNodeMinmusEncounter(nd, targetPe).
-    local bestCandidate is list(nd:time, nd:prograde).
+    // Fallback if stagedeltav doesn't work, use ship:deltav:current
+    if dvAvail = 0 { set dvAvail to ship:deltav:current. }
+
+    logMsg("Astrogator Transfer Data:").
+    logMsg(" - Transfer Window: T-" + round(timeToWindow) + "s").
+    logMsg(" - Relative Inclination: " + round(incDiff, 2) + " deg").
+    logMsg(" - Delta-V Needed: " + round(dvNeeded, 1) + " m/s").
+    logMsg(" - Delta-V Available: " + round(dvAvail, 1) + " m/s").
     
-    for c in candidates {
-        set nd:time to c[0].
-        set nd:prograde to c[1].
-        wait 0.01.
-        local score is evaluateNodeMinmusEncounter(nd, targetPe).
-        
-        local diff is 0.
-        if score > 1000000000 { set diff to score. } else { set diff to abs(score - targetPe). }
-        local bestDiff is 0.
-        if bestScore > 1000000000 { set bestDiff to bestScore. } else { set bestDiff to abs(bestScore - targetPe). }
-        
-        if diff < bestDiff {
-            set bestScore to score.
-            set bestCandidate to c.
-            set improved to true.
-        }
+    if dvAvail < dvNeeded {
+        logMsg("WARNING: Insufficient Delta-V for maneuver!").
     }
     
-    set nd:time to bestCandidate[0].
-    set nd:prograde to bestCandidate[1].
-    
-    if not improved {
-        if stepTime > 1 or stepDV > 0.1 {
-            set stepTime to max(1, stepTime * 0.5).
-            set stepDV to max(0.1, stepDV * 0.5).
-            set improved to true.
-        }
-    }
+    add bm:toNode.
+    wait 0.1.
+    logMsg("Transfer node created via Astrogator.").
 }
-logMsg("Optimized transfer node created. Delta-V: " + round(nd:prograde, 1) + " m/s").
 runpath("0:/SpaceCore/ExeNode.ks").
 
 // 4. Coast to Minmus
