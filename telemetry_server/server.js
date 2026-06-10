@@ -84,6 +84,19 @@ app.get('/vessel_structure.json', (req, res) => {
     }
 });
 
+// Serve vessel_mesh.json
+app.get('/vessel_mesh.json', (req, res) => {
+    const filePath = path.join(__dirname, '..', 'telemetry', 'vessel_mesh.json');
+    if (fs.existsSync(filePath)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.sendFile(filePath);
+    } else {
+        res.json({});
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Node.js Telemetry Server running at http://localhost:${PORT}`);
 });

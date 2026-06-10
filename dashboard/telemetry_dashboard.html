@@ -4,631 +4,682 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DASA Mission Control</title>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg-color: #0f172a;
-            --panel-bg: rgba(30, 41, 59, 0.7);
-            --accent: #38bdf8;
-            --accent-glow: rgba(56, 189, 248, 0.5);
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
+            --bg-color: #0F0F0F;
+            --panel-bg: #1A1A1A;
+            --accent: #00AEEF;
+            --text-main: #F5F5F5;
+            --text-muted: #888888;
             --danger: #ef4444;
             --success: #10b981;
+            --warning: #f59e0b;
         }
+        * { box-sizing: border-box; }
         body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Outfit', sans-serif;
-            background: radial-gradient(circle at top right, #1e293b, var(--bg-color));
+            margin: 0; padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-color);
             color: var(--text-main);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
+            overflow: hidden;
         }
+        .tabular { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
+
+        /* Header */
         .header {
-            width: 100%;
-            padding: 20px 40px;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-sizing: border-box;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 20px;
+            background: #111;
+            border-bottom: 1px solid #333;
+            height: 46px; flex-shrink: 0;
         }
-        .header h1 {
-            margin: 0;
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        .header h1 { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: 2px; color: #FFF; }
+        .header-center { display: flex; align-items: center; gap: 16px; }
+        .mission-time { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
         .status-badge {
-            padding: 8px 16px;
-            border-radius: 20px;
-            background: rgba(16, 185, 129, 0.2);
-            border: 1px solid var(--success);
-            color: var(--success);
-            font-weight: 600;
-            animation: pulse 2s infinite;
+            padding: 3px 10px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;
+            background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);
         }
-        .container {
-            max-width: 1200px;
-            width: 100%;
-            padding: 40px;
+
+        /* Grid Layout */
+        .dashboard-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 24px;
-            box-sizing: border-box;
+            grid-template-columns: 300px 1fr 300px;
+            grid-template-rows: 1fr 260px;
+            gap: 8px;
+            padding: 8px;
+            flex: 1;
+            height: calc(100vh - 62px);
         }
         .panel {
             background: var(--panel-bg);
-            border-radius: 16px;
-            padding: 24px;
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .panel:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2), 0 0 20px var(--accent-glow);
-            border-color: rgba(56, 189, 248, 0.3);
-        }
-        .panel h2 {
-            margin-top: 0;
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 8px;
-        }
-        .data-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 1.1rem;
-        }
-        .data-label {
-            color: var(--text-muted);
-        }
-        .data-value {
-            font-weight: 600;
-        }
-        .progress-bar-container {
-            width: 100%;
-            background: rgba(0,0,0,0.5);
-            border-radius: 8px;
-            height: 10px;
-            overflow: hidden;
-            margin-top: 4px;
-            margin-bottom: 10px;
-        }
-        .progress-bar {
-            height: 100%;
-            background: linear-gradient(90deg, #38bdf8, #818cf8);
-            width: 0%;
-            transition: width 0.5s ease-out;
-        }
-        
-        /* Scrollbar styles for the parts list */
-        #parts-list::-webkit-scrollbar {
-            width: 6px;
-        }
-        #parts-list::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 4px;
-        }
-        #parts-list::-webkit-scrollbar-thumb {
-            background: var(--accent);
-            border-radius: 4px;
-        }
-        .part-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            margin-bottom: 8px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            border-left: 4px solid var(--text-muted);
-            font-size: 0.95rem;
-        }
-        .part-item.science-part {
-            border-left-color: var(--accent);
-            background: rgba(56, 189, 248, 0.05);
-        }
-        .part-info {
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
-            gap: 2px;
+            overflow: hidden;
         }
-        .part-title {
-            font-weight: 600;
+        .panel h2 {
+            margin: 0 0 8px 0; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);
+            border-bottom: 1px solid #333; padding-bottom: 4px; letter-spacing: 1px;
+            flex-shrink: 0;
         }
-        .part-name {
-            font-size: 0.8rem;
-            color: var(--text-muted);
+
+        /* Grid Areas */
+        .nav-panel { grid-column: 1; grid-row: 1; overflow-y: auto; }
+        .hud-panel { grid-column: 2; grid-row: 1; position: relative; padding: 0; display: flex; justify-content: center; align-items: center; background: #080808; }
+        .resource-panel { grid-column: 3; grid-row: 1; overflow-y: auto; }
+        .graph-panel { grid-column: 1 / span 2; grid-row: 2; }
+        .milestone-panel { grid-column: 3; grid-row: 2; overflow-y: auto; }
+
+        /* Data Rows */
+        .data-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; }
+        .data-label { color: var(--text-muted); }
+        .data-value { font-weight: 600; }
+
+        /* Linear Gauges */
+        .gauge-container { margin-bottom: 10px; }
+        .gauge-bar { width: 100%; height: 6px; background: #333; border-radius: 2px; overflow: hidden; margin-top: 3px; }
+        .gauge-fill { height: 100%; transition: width 0.3s; }
+
+        /* Navball Container */
+        .navball-wrap { position: relative; width: 220px; height: 220px; margin: 6px auto 4px; flex-shrink: 0; }
+        #navball-canvas { width: 220px; height: 220px; border-radius: 50%; border: 2px solid #444; background: #111; display: block; }
+        .navball-readout {
+            display: flex; justify-content: space-between; padding: 2px 10px; font-size: 0.75rem; color: var(--text-muted);
         }
-        .part-tag {
-            font-size: 0.8rem;
-            background: rgba(56, 189, 248, 0.15);
-            border: 1px solid var(--accent);
-            padding: 2px 8px;
-            border-radius: 4px;
-            color: var(--accent);
-            font-family: monospace;
+        .navball-readout span { font-family: 'Roboto Mono', monospace; }
+
+        /* Timelines */
+        .timeline-item { font-size: 0.8rem; padding: 3px 0; border-left: 2px solid var(--accent); padding-left: 8px; margin-bottom: 3px; color: #DDD; }
+
+        /* HUD Controls */
+        .hud-controls { position: absolute; top: 8px; left: 8px; display: flex; gap: 4px; z-index: 10; }
+        .hud-btn { background: rgba(255,255,255,0.1); border: 1px solid #444; color: #FFF; padding: 3px 7px; font-size: 0.7rem; border-radius: 4px; cursor: pointer; }
+        .hud-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
+
+        /* Graph Tabs */
+        .graph-tabs { display: flex; gap: 4px; margin-bottom: 6px; flex-shrink: 0; flex-wrap: wrap; }
+        .graph-tab {
+            display: flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 3px;
+            background: #222; border: 1px solid #444; font-size: 0.7rem; cursor: pointer; user-select: none;
         }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-        }
-        @keyframes pulse-red {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-        .value-change {
-            animation: highlight 0.5s ease;
-        }
-        @keyframes highlight {
-            0% { color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
-            100% { color: var(--text-main); text-shadow: none; }
-        }
+        .graph-tab.active { border-color: var(--accent); background: rgba(0,174,239,0.15); }
+        .graph-tab .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+        /* Maneuver node */
+        .mnv-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 3px 0; }
+        .mnv-label { color: var(--accent); font-weight: 600; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>DASA MISSION CONTROL</h1>
-        <div class="status-badge" id="conn-status">LIVE TELEMETRY</div>
+        <h1>DASA TELEMETRY</h1>
+        <div class="header-center">
+            <div class="mission-time tabular">T+ <span id="time">00:00:00</span></div>
+            <div class="status-badge" id="conn-status">LIVE</div>
+        </div>
+        <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);" class="tabular">STAGE: <span id="stage" style="color: var(--accent);">--</span></div>
     </div>
-    <div class="container">
-        <!-- Panel 1: Orbital Parameters -->
-        <div class="panel">
-            <h2>Orbital Parameters</h2>
+
+    <div class="dashboard-grid">
+        <!-- Left: Nav & Orbital -->
+        <div class="panel nav-panel">
+            <h2>Attitude</h2>
+            <div class="navball-wrap">
+                <canvas id="navball-canvas" width="220" height="220"></canvas>
+            </div>
+            <div class="navball-readout">
+                <span>HDG <span id="nb-hdg">---</span></span>
+                <span>PIT <span id="nb-pit">---</span></span>
+                <span>ROL <span id="nb-rol">---</span></span>
+            </div>
+
+            <h2 style="margin-top: 10px;">Orbital</h2>
             <div class="data-row"><span class="data-label">Body</span><span class="data-value" id="body">--</span></div>
-            <div class="data-row"><span class="data-label">Altitude</span><span class="data-value" id="alt">--</span></div>
-            <div class="data-row"><span class="data-label">Apoapsis</span><span class="data-value" id="apo">--</span></div>
-            <div class="data-row"><span class="data-label">Periapsis</span><span class="data-value" id="peri">--</span></div>
-            <div class="data-row"><span class="data-label">Inclination</span><span class="data-value" id="inc">--</span></div>
-            <div class="data-row"><span class="data-label">Velocity</span><span class="data-value" id="vel">--</span></div>
+            <div class="data-row"><span class="data-label">Altitude</span><span class="data-value tabular" id="alt">--</span></div>
+            <div class="data-row"><span class="data-label">Apoapsis</span><span class="data-value tabular" id="apo">--</span></div>
+            <div class="data-row"><span class="data-label">Periapsis</span><span class="data-value tabular" id="peri">--</span></div>
+            <div class="data-row"><span class="data-label">Inclination</span><span class="data-value tabular" id="inc">--</span></div>
+            <div class="data-row"><span class="data-label">Velocity</span><span class="data-value tabular" id="vel">--</span></div>
+            <div class="data-row"><span class="data-label">TWR</span><span class="data-value tabular" id="twr" style="color: var(--success);">--</span></div>
+            <div class="data-row"><span class="data-label">Q (kPa)</span><span class="data-value tabular" id="q" style="color: var(--warning);">--</span></div>
+
+            <div id="maneuver-block" style="display: none; margin-top: 6px;">
+                <h2>Maneuver Node</h2>
+                <div class="mnv-row"><span class="data-label">ETA</span><span class="mnv-label tabular" id="mnv-eta">--</span></div>
+                <div class="mnv-row"><span class="data-label">Delta-V</span><span class="mnv-label tabular" id="mnv-dv">--</span></div>
+            </div>
         </div>
 
-        <!-- Panel 2: Vessel Status -->
-        <div class="panel">
-            <h2>Vessel Status</h2>
-            <div class="data-row"><span class="data-label">Vessel Name</span><span class="data-value" id="vname">--</span></div>
-            <div class="data-row"><span class="data-label">Mission Stage</span><span class="data-value" id="stage" style="color: var(--accent)">--</span></div>
-            <div class="data-row"><span class="data-label">Mission Time</span><span class="data-value" id="time">--</span></div>
+        <!-- Center: 3D HUD -->
+        <div class="panel hud-panel">
+            <div class="hud-controls">
+                <button id="btn-mode-attitude" class="hud-btn active" onclick="setViewerMode('attitude')">Attitude 3D</button>
+                <button id="btn-mode-blueprint" class="hud-btn" onclick="setViewerMode('blueprint')">Blueprint</button>
+            </div>
+            <canvas id="vessel-canvas" width="800" height="600" style="width: 100%; height: 100%; cursor: grab;"></canvas>
         </div>
 
-        <!-- Panel 3: Resource Status (Dynamic) -->
-        <div class="panel">
-            <h2>Resource Status</h2>
+        <!-- Right: Resources -->
+        <div class="panel resource-panel">
+            <h2>Resources</h2>
             <div id="resources-container">
                 <div class="data-row"><span class="data-label">No resource data</span></div>
             </div>
-        </div>
 
-        <!-- Panel 4: Target & POI Navigation -->
-        <div class="panel">
-            <h2>Navigation & Targets</h2>
-            <div class="data-row"><span class="data-label">Nearest POI</span><span class="data-value" id="poi-name">--</span></div>
-            <div class="data-row"><span class="data-label">POI Distance</span><span class="data-value" id="poi-dist">--</span></div>
-            <div style="border-top: 1px solid rgba(255, 255, 255, 0.1); margin: 12px 0; padding-top: 12px;"></div>
+                        <h2 style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="const c = document.getElementById('resource-graph-container'); const i = document.getElementById('res-graph-icon'); if(c.style.display==='none'){c.style.display='block';i.innerText='▼';}else{c.style.display='none';i.innerText='▶';}">
+                <span>Resource History</span>
+                <span id="res-graph-icon">▶</span>
+            </h2>
+            <div id="resource-graph-container" style="display: none; height: 150px; position: relative;">
+                <canvas id="resource-chart"></canvas>
+            </div>
+
+            <h2 style="margin-top: 12px;">Target</h2>
             <div id="target-block">
-                <div class="data-row"><span class="data-label">Target</span><span class="data-value" id="tgt-name">No Target</span></div>
-                <div class="data-row"><span class="data-label">Distance</span><span class="data-value" id="tgt-dist">--</span></div>
-                <div class="data-row"><span class="data-label">Rel Velocity</span><span class="data-value" id="tgt-speed">--</span></div>
+                <div class="data-row"><span class="data-label">Target</span><span class="data-value" id="tgt-name">None</span></div>
+                <div class="data-row"><span class="data-label">Distance</span><span class="data-value tabular" id="tgt-dist">--</span></div>
+                <div class="data-row"><span class="data-label">Rel Vel</span><span class="data-value tabular" id="tgt-speed">--</span></div>
             </div>
         </div>
 
-        <!-- Panel 6: Maneuver Data -->
-        <div class="panel" id="maneuver-panel" style="display: none;">
-            <h2>Maneuver Node</h2>
-            <div class="data-row"><span class="data-label">Time to Node</span><span class="data-value" id="man-eta">--</span></div>
-            <div class="data-row"><span class="data-label">Delta-V</span><span class="data-value" id="man-dv">--</span></div>
-        </div>
-
-        <!-- Panel 5: Vessel Components & Verification -->
-        <div class="panel">
-            <h2>Vessel Components & Verification</h2>
-            <div style="max-height: 250px; overflow-y: auto; padding-right: 8px;" id="parts-list">
-                <div class="data-row"><span class="data-label">No components loaded</span></div>
+        <!-- Bottom Left/Center: Graphs -->
+        <div class="panel graph-panel">
+            <div class="graph-tabs" id="graph-tabs"></div>
+            <div style="position: relative; flex: 1; min-height: 0;">
+                <canvas id="telemetry-chart"></canvas>
             </div>
         </div>
 
-        <!-- Panel 7: 3D Vessel Viewer -->
-        <div class="panel" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
-                <h2 style="margin: 0; font-size: 1.1rem; border: none; padding-bottom: 0;">Vessel Viewer 3D</h2>
-                <div style="display: flex; gap: 4px; background: rgba(255,255,255,0.05); padding: 2px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                    <button id="btn-mode-attitude" onclick="setViewerMode('attitude')" style="background: var(--accent); color: #000; border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">Attitude 3D</button>
-                    <button id="btn-mode-blueprint" onclick="setViewerMode('blueprint')" style="background: transparent; color: var(--text-muted); border: none; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">Blueprint</button>
-                </div>
+        <!-- Bottom Right: Milestones -->
+        <div class="panel milestone-panel">
+            <h2>Mission Log</h2>
+            <div id="milestones-container">
+                <div class="timeline-item">Waiting for data...</div>
             </div>
-            <canvas id="vessel-canvas" width="400" height="250" style="width: 100%; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.5); border-radius: 8px; cursor: grab;"></canvas>
-            <div id="vessel-debug" style="align-self: flex-start; margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); font-family: monospace; white-space: pre-wrap; width: 100%; max-height: 80px; overflow-y: auto; display: none;"></div>
         </div>
     </div>
 
     <script>
+        // ==========================================
+        // UTILITY
+        // ==========================================
         function formatNumber(num) {
             if (num === undefined || num === null) return "--";
+            if (Math.abs(num) >= 1e6) return (num / 1e6).toFixed(2) + "M";
+            if (Math.abs(num) >= 1e4) return (num / 1e3).toFixed(1) + "k";
             return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(num);
         }
-
-        function updateValue(id, newValue) {
-            const el = document.getElementById(id);
-            if (el.innerText !== newValue) {
-                el.innerText = newValue;
-                el.classList.remove('value-change');
-                void el.offsetWidth; // trigger reflow
-                el.classList.add('value-change');
-            }
+        function formatTime(t) {
+            let h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = Math.floor(t % 60);
+            return (h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
         }
 
+        // ==========================================
+        // GLOBAL STATE
+        // ==========================================
         let baseMissionTime = 0;
         let lastSyncTime = 0;
-        let hasManeuverNode = false;
 
-        function animateTime() {
-            if (lastSyncTime > 0) {
-                let currentVal = 0;
-                let prefix = "";
-                if (hasManeuverNode) {
-                    currentVal = baseMissionTime - (Date.now() - lastSyncTime) / 1000;
-                    if (currentVal < 0) currentVal = 0;
-                    prefix = "T- ";
-                } else {
-                    if (baseMissionTime === 0) {
-                        currentVal = 0;
-                    } else {
-                        currentVal = baseMissionTime + (Date.now() - lastSyncTime) / 1000;
-                    }
-                    prefix = "T+ ";
-                }
-                
-                let h = Math.floor(currentVal / 3600);
-                let m = Math.floor((currentVal % 3600) / 60);
-                let s = Math.floor(currentVal % 60);
-                let hStr = h < 10 ? "0" + h : h;
-                let mStr = m < 10 ? "0" + m : m;
-                let sStr = s < 10 ? "0" + s : s;
-                
-                const el = document.getElementById('time');
-                const newText = prefix + hStr + ":" + mStr + ":" + sStr;
-                if (el.innerText !== newText) {
-                    el.innerText = newText;
-                }
-            }
-            requestAnimationFrame(animateTime);
-        }
-        requestAnimationFrame(animateTime);
-
-        async function fetchTelemetry() {
-            try {
-                const response = await fetch('telemetry.json?t=' + Date.now(), { cache: "no-store" });
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Orbit & Status
-                    updateValue('body', data.body);
-                    updateValue('alt', formatNumber(data.altitude) + " m");
-                    updateValue('apo', formatNumber(data.apoapsis) + " m");
-                    updateValue('peri', formatNumber(data.periapsis) + " m");
-                    updateValue('inc', formatNumber(data.inclination) + "\u00B0");
-                    updateValue('vel', formatNumber(data.velocity) + " m/s");
-                    
-                    updateValue('vname', data.vessel);
-                    updateValue('stage', data.stage);
-                    
-                    if (data.attitude) {
-                        targetFore = data.attitude.fore;
-                        targetTop = data.attitude.top;
-                    }
-                    
-                    let newBaseTime = 0;
-                    if (data.maneuver && data.maneuver.hasNode) {
-                        hasManeuverNode = true;
-                        newBaseTime = data.maneuver.eta;
-                        document.getElementById('maneuver-panel').style.display = 'block';
-                        updateValue('man-eta', formatNumber(data.maneuver.eta) + " s");
-                        updateValue('man-dv', formatNumber(data.maneuver.dv) + " m/s");
-                    } else {
-                        hasManeuverNode = false;
-                        newBaseTime = data.time;
-                        document.getElementById('maneuver-panel').style.display = 'none';
-                    }
-                    
-                    let expectedTime = 0;
-                    if (lastSyncTime > 0) {
-                        if (hasManeuverNode) {
-                            expectedTime = baseMissionTime - (Date.now() - lastSyncTime) / 1000;
-                        } else {
-                            expectedTime = baseMissionTime + (Date.now() - lastSyncTime) / 1000;
-                        }
-                    }
-                    
-                    if (lastSyncTime === 0 || Math.abs(expectedTime - newBaseTime) > 1.5) {
-                        baseMissionTime = newBaseTime;
-                        lastSyncTime = Date.now();
-                    }
-
-                    // Dynamic Resources
-                    const resContainer = document.getElementById('resources-container');
-                    resContainer.innerHTML = '';
-                    if (data.resources && Object.keys(data.resources).length > 0) {
-                        for (const [resName, resData] of Object.entries(data.resources)) {
-                            const pct = resData.capacity > 0 ? (resData.amount / resData.capacity) * 100 : 0;
-                            
-                            const resRow = document.createElement('div');
-                            resRow.style.marginBottom = "8px";
-                            
-                            const textRow = document.createElement('div');
-                            textRow.className = 'data-row';
-                            textRow.style.marginBottom = '2px';
-                            textRow.style.fontSize = '0.95rem';
-                            
-                            const label = document.createElement('span');
-                            label.className = 'data-label';
-                            label.innerText = resName;
-                            
-                            const val = document.createElement('span');
-                            val.className = 'data-value';
-                            val.innerText = formatNumber(resData.amount) + " / " + formatNumber(resData.capacity);
-                            
-                            textRow.appendChild(label);
-                            textRow.appendChild(val);
-                            
-                            const barCont = document.createElement('div');
-                            barCont.className = 'progress-bar-container';
-                            
-                            const bar = document.createElement('div');
-                            bar.className = 'progress-bar';
-                            bar.style.width = pct + "%";
-                            
-                            if (resName === "ElectricCharge") {
-                                if (pct < 20) bar.style.background = "var(--danger)";
-                                else if (pct > 80) bar.style.background = "var(--success)";
-                                else bar.style.background = "linear-gradient(90deg, #38bdf8, #818cf8)";
-                            } else {
-                                bar.style.background = "linear-gradient(90deg, #818cf8, #a78bfa)";
-                            }
-                            
-                            barCont.appendChild(bar);
-                            resRow.appendChild(textRow);
-                            resRow.appendChild(barCont);
-                            resContainer.appendChild(resRow);
-                        }
-                    } else {
-                        resContainer.innerHTML = '<div class="data-row"><span class="data-label">No resource data</span></div>';
-                    }
-
-                    // POI Info
-                    if (data.closestPoi && data.closestPoi.name !== "None") {
-                        updateValue('poi-name', data.closestPoi.name);
-                        updateValue('poi-dist', formatNumber(data.closestPoi.distance) + " m");
-                    } else {
-                        updateValue('poi-name', "None");
-                        updateValue('poi-dist', "--");
-                    }
-
-                    // Target Rendezvous Info
-                    if (data.target && data.target.hasTarget) {
-                        document.getElementById('target-block').style.opacity = "1";
-                        updateValue('tgt-name', data.target.name);
-                        document.getElementById('tgt-name').style.color = "var(--accent)";
-                        updateValue('tgt-dist', formatNumber(data.target.distance) + " m");
-                        updateValue('tgt-speed', formatNumber(data.target.relVelocity) + " m/s");
-                    } else {
-                        document.getElementById('target-block').style.opacity = "0.5";
-                        updateValue('tgt-name', "No Target Selected");
-                        document.getElementById('tgt-name').style.color = "var(--text-muted)";
-                        updateValue('tgt-dist', "--");
-                        updateValue('tgt-speed', "--");
-                    }
-
-                    // Update parts list
-                    const partsList = document.getElementById('parts-list');
-                    if (data.parts && data.parts.length > 0) {
-                        partsList.innerHTML = '';
-                        data.parts.forEach(part => {
-                            const isScience = /science|sensor|thermometer|barometer|gravi|seismic|scope/i.test(part.name) || /science|sensor|thermometer|barometer|gravi|seismic|scope/i.test(part.title);
-                            
-                            const item = document.createElement('div');
-                            item.className = 'part-item' + (isScience ? ' science-part' : '');
-                            
-                            const info = document.createElement('div');
-                            info.className = 'part-info';
-                            
-                            const title = document.createElement('div');
-                            title.className = 'part-title';
-                            title.innerText = part.title;
-                            if (isScience) {
-                                title.innerHTML += ' <span style="color: var(--accent); font-size: 0.75rem; margin-left: 6px; font-weight: 800;">[SCIENCE]</span>';
-                            }
-                            
-                            const name = document.createElement('span');
-                            name.className = 'part-name';
-                            name.innerText = part.name;
-                            
-                            info.appendChild(title);
-                            info.appendChild(name);
-                            item.appendChild(info);
-                            
-                            if (part.tag) {
-                                const tag = document.createElement('span');
-                                tag.className = 'part-tag';
-                                tag.innerText = part.tag;
-                                item.appendChild(tag);
-                            }
-                            
-                            partsList.appendChild(item);
-                        });
-                        
-                        // Draw 2D Wireframe
-                        if (typeof drawVessel === 'function') {
-                            drawVessel(data.parts);
-                        }
-                    } else {
-                        partsList.innerHTML = '<div class="data-row"><span class="data-label">No components loaded</span></div>';
-                    }
-
-                    if (data.signalLost) {
-                        const connStatus = document.getElementById('conn-status');
-                        connStatus.innerText = "SIGNAL LOST";
-                        connStatus.style.borderColor = "var(--danger)";
-                        connStatus.style.color = "var(--danger)";
-                        connStatus.style.background = "rgba(239, 68, 68, 0.2)";
-                        connStatus.style.animation = "pulse-red 1s infinite";
-                    } else {
-                        const connStatus = document.getElementById('conn-status');
-                        connStatus.innerText = "LIVE TELEMETRY";
-                        connStatus.style.borderColor = "var(--success)";
-                        connStatus.style.color = "var(--success)";
-                        connStatus.style.background = "rgba(16, 185, 129, 0.2)";
-                        connStatus.style.animation = "pulse 2s infinite";
-                    }
-                }
-            } catch (err) {
-                console.error("Telemetry fetch error:", err);
-                document.getElementById('conn-status').innerText = "OFFLINE";
-                document.getElementById('conn-status').style.borderColor = "var(--danger)";
-                document.getElementById('conn-status').style.color = "var(--danger)";
-                document.getElementById('conn-status').style.background = "rgba(239, 68, 68, 0.2)";
-            }
-        }
-
-        let vesselStructure = null;
-        let structStatus = "Initializing...";
-        let viewerMode = "attitude";
-        
-        let cameraYaw = 0.78; // 45 deg
-        let cameraPitch = -0.4; // -23 deg
-        let zoomScale = 1.0;
-        let panOffset = { x: 0, y: 0 };
-        let isDragging = false;
-        let previousMousePosition = { x: 0, y: 0 };
-        
-        let shipSize = 1;
-        let renderScale = 1;
-        let shipCenterX = 0, shipCenterY = 0, shipCenterZ = 0;
-        
-        // Attitude vectors (interpolated)
+        // Attitude interpolation
         let currentFore = [0, 0, 1];
         let currentTop = [0, 1, 0];
         let targetFore = [0, 0, 1];
         let targetTop = [0, 1, 0];
-        
+
+        // Vessel viewer
+        let vesselStructure = null;
+        let viewerMode = "attitude";
+        let cameraYaw = 0.78, cameraPitch = -0.4, zoomScale = 1.0, panOffset = { x: 0, y: 0 };
+        let shipSize = 1, renderScale = 1, shipCenterX = 0, shipCenterY = 0, shipCenterZ = 0;
         let activePartsCache = [];
         let vesselMeshes = null;
 
+        // Telemetry interpolation buffer
+        let prevTelemetry = null;
+        let currTelemetry = null;
+        let telemetryRecvTime = 0;
+        const TELEM_INTERVAL = 200; // expected ms between fetches
+
+        // ==========================================
+        // CHART SETUP — 3 logical groups, toggleable
+        // ==========================================
+        const maxDataPoints = 300;
+        const datasets = [
+            { key: 'alt',  label: 'Altitude (km)',   color: '#00AEEF', group: 'trajectory', yAxis: 'y1', active: true },
+            { key: 'vel',  label: 'Velocity (m/s)',  color: '#a78bfa', group: 'trajectory', yAxis: 'y1', active: true },
+            { key: 'twr',  label: 'TWR',             color: '#10b981', group: 'dynamics',   yAxis: 'y2', active: true },
+            { key: 'q',    label: 'Q (kPa)',         color: '#ef4444', group: 'dynamics',   yAxis: 'y2', active: true },
+        ];
+        
+        const resDatasets = [
+            { key: 'ec',   label: 'EC %',            color: '#f59e0b' },
+            { key: 'fuel', label: 'Fuel %',          color: '#06b6d4' }
+        ];
+
+        // Build Chart.js dataset config
+        function buildChartDatasets() {
+            return datasets.map(d => ({
+                label: d.label,
+                data: [],
+                borderColor: d.color,
+                yAxisID: d.yAxis,
+                tension: 0.2,
+                hidden: !d.active,
+            }));
+        }
+
+        const ctxChart = document.getElementById('telemetry-chart').getContext('2d');
+        const telemetryChart = new Chart(ctxChart, {
+            type: 'line',
+            data: { labels: [], datasets: buildChartDatasets() },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                elements: { point: { radius: 0 }, line: { borderWidth: 1.5 } },
+                scales: {
+                    x: { display: false },
+                    y1: { type: 'linear', position: 'left',  display: 'auto', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { family: 'Roboto Mono', size: 10 } }, title: { display: false } },
+                    y2: { type: 'linear', position: 'right', display: 'auto', grid: { drawOnChartArea: false }, ticks: { color: '#888', font: { family: 'Roboto Mono', size: 10 } }, title: { display: false } },
+                    
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+
+        // Build toggle tabs
+        function buildGraphTabs() {
+            const container = document.getElementById('graph-tabs');
+            container.innerHTML = '';
+            datasets.forEach((d, i) => {
+                const tab = document.createElement('div');
+                tab.className = 'graph-tab' + (d.active ? ' active' : '');
+                tab.innerHTML = '<div class="swatch" style="background:' + d.color + ';"></div>' + d.label;
+                tab.onclick = () => {
+                    d.active = !d.active;
+                    tab.classList.toggle('active');
+                    telemetryChart.data.datasets[i].hidden = !d.active;
+                    telemetryChart.update();
+                };
+                container.appendChild(tab);
+            });
+        }
+        buildGraphTabs();
+
+        const ctxResChart = document.getElementById('resource-chart').getContext('2d');
+        const resourceChart = new Chart(ctxResChart, {
+            type: 'line',
+            data: { labels: [], datasets: resDatasets.map(d => ({ label: d.label, data: [], borderColor: d.color, tension: 0.2 })) },
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                elements: { point: { radius: 0 }, line: { borderWidth: 1.5 } },
+                scales: {
+                    x: { display: false },
+                    y: { type: 'linear', min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { family: 'Roboto Mono', size: 10 } } }
+                },
+                plugins: { legend: { display: true, labels: { color: '#888', font: { size: 10 } } } }
+            }
+        });
+
+
+        // ==========================================
+        // VIEWER MODE
+        // ==========================================
         function setViewerMode(mode) {
             viewerMode = mode;
-            const btnAttitude = document.getElementById('btn-mode-attitude');
-            const btnBlueprint = document.getElementById('btn-mode-blueprint');
             if (mode === 'attitude') {
-                btnAttitude.style.background = 'var(--accent)';
-                btnAttitude.style.color = '#000';
-                btnBlueprint.style.background = 'transparent';
-                btnBlueprint.style.color = 'var(--text-muted)';
+                document.getElementById('btn-mode-attitude').classList.add('active');
+                document.getElementById('btn-mode-blueprint').classList.remove('active');
             } else {
-                btnBlueprint.style.background = 'var(--accent)';
-                btnBlueprint.style.color = '#000';
-                btnAttitude.style.background = 'transparent';
-                btnAttitude.style.color = 'var(--text-muted)';
-                cameraYaw = 0;
-                cameraPitch = 0;
-                zoomScale = 1.0;
-                panOffset = { x: 0, y: 0 };
+                document.getElementById('btn-mode-blueprint').classList.add('active');
+                document.getElementById('btn-mode-attitude').classList.remove('active');
+                cameraYaw = 0; cameraPitch = 0; zoomScale = 1.0; panOffset = { x: 0, y: 0 };
             }
             calculateScale();
         }
 
-        function calculateScale() {
-            if (!vesselStructure || !vesselStructure.parts) return;
-            const canvas = document.getElementById('vessel-canvas');
-            if (!canvas) return;
-            
-            let minX = 999, maxX = -999, minY = 999, maxY = -999, minZ = 999, maxZ = -999;
-            let count = 0;
-            vesselStructure.parts.forEach(p => {
-                count++;
-                const x = p.pos[0];
-                const y = p.pos[1];
-                const z = p.pos[2];
-                const sx = p.size[0] || 0.5;
-                const sy = p.size[1] || 0.5;
-                const sz = p.size[2] || 0.5;
-                
-                if (x - sx/2 < minX) minX = x - sx/2;
-                if (x + sx/2 > maxX) maxX = x + sx/2;
-                if (y - sy/2 < minY) minY = y - sy/2;
-                if (y + sy/2 > maxY) maxY = y + sy/2;
-                if (z - sz/2 < minZ) minZ = z - sz/2;
-                if (z + sz/2 > maxZ) maxZ = z + sz/2;
-            });
-            
-            if (count === 0) return;
-            
-            const dx = maxX - minX;
-            const dy = maxY - minY;
-            const dz = maxZ - minZ;
-            shipSize = Math.max(dx, dy, dz, 0.1);
-            
-            shipCenterX = (minX + maxX) / 2;
-            shipCenterY = (minY + maxY) / 2;
-            shipCenterZ = (minZ + maxZ) / 2;
-            
-            const pad = 20;
-            if (viewerMode === "attitude") {
-                renderScale = (Math.min(canvas.width - pad*2, canvas.height - pad*2) / shipSize) * 1.6;
-            } else {
-                renderScale = Math.min(canvas.width - pad*2, canvas.height - pad*2) / shipSize;
-            }
-        }
+        // ==========================================
+        // TELEMETRY FETCH (1 Hz)
+        // ==========================================
+        async function fetchTelemetry() {
+            try {
+                const response = await fetch('telemetry.json?t=' + Date.now(), { cache: "no-store" });
+                if (!response.ok) return;
+                const data = await response.json();
 
-        async function fetchStructure() {
-            try {
-                const res = await fetch('vessel_structure.json?t=' + Date.now(), { cache: "no-store" });
-                if (res.ok) {
-                    vesselStructure = await res.json();
-                    structStatus = "Loaded successfully";
-                    calculateScale();
-                } else {
-                    structStatus = `Failed to load: ${res.status} ${res.statusText}`;
+                // Interpolation buffer: shift current to previous
+                prevTelemetry = currTelemetry;
+                currTelemetry = data;
+                telemetryRecvTime = performance.now();
+
+                // Attitude targets
+                if (data.attitude) {
+                    targetFore = data.attitude.fore;
+                    targetTop = data.attitude.top;
                 }
-            } catch(e) {
-                structStatus = `Error fetching: ${e.message}`;
-            }
-            const dbg = document.getElementById('vessel-debug');
-            if (dbg) dbg.innerText = `Structure Status: ${structStatus}`;
-        }
-        
-        async function fetchMeshes() {
-            try {
-                const response = await fetch('vessel_mesh.json?t=' + Date.now(), { cache: "no-store" });
-                if (response.ok) {
-                    vesselMeshes = await response.json();
+
+                if (data.parts && data.parts.length > 0) activePartsCache = data.parts;
+
+                // --- Graph data ---
+                if (telemetryChart.data.labels.length > maxDataPoints) {
+                    telemetryChart.data.labels.shift();
+                    telemetryChart.data.datasets.forEach(ds => ds.data.shift());
+                }
+                telemetryChart.data.labels.push(formatTime(data.time || 0));
+
+                // Compute resource percentages
+                let ecPct = 0, fuelPct = 0;
+                if (data.resources) {
+                    if (data.resources.ElectricCharge) {
+                        const r = data.resources.ElectricCharge;
+                        ecPct = r.capacity > 0 ? (r.amount / r.capacity) * 100 : 0;
+                    }
+                    // Sum all fuel-like resources
+                    let fuelAmt = 0, fuelCap = 0;
+                    for (const [name, r] of Object.entries(data.resources)) {
+                        if (name !== "ElectricCharge") {
+                            fuelAmt += r.amount;
+                            fuelCap += r.capacity;
+                        }
+                    }
+                    fuelPct = fuelCap > 0 ? (fuelAmt / fuelCap) * 100 : 0;
+                }
+
+                const vals = {
+                    alt: (data.altitude || 0) / 1000,
+                    vel: data.velocity || 0,
+                    twr: data.twr || 0,
+                    q: data.q || 0,
+                    ec: ecPct,
+                    fuel: fuelPct,
+                };
+                datasets.forEach((d, i) => {
+                    telemetryChart.data.datasets[i].data.push(vals[d.key] || 0);
+                });
+                telemetryChart.update();
+                
+                if (resourceChart.data.labels.length > maxDataPoints) {
+                    resourceChart.data.labels.shift();
+                    resourceChart.data.datasets.forEach(ds => ds.data.shift());
+                }
+                resourceChart.data.labels.push(formatTime(data.time || 0));
+                resDatasets.forEach((d, i) => {
+                    resourceChart.data.datasets[i].data.push(vals[d.key] || 0);
+                });
+                resourceChart.update();
+
+                // --- Milestones ---
+                if (data.milestones && data.milestones.length > 0) {
+                    const mCont = document.getElementById('milestones-container');
+                    mCont.innerHTML = '';
+                    [...data.milestones].reverse().forEach(m => {
+                        const d = document.createElement('div');
+                        d.className = 'timeline-item';
+                        d.innerText = m;
+                        mCont.appendChild(d);
+                    });
+                }
+
+                // --- Connection status ---
+                const connStatus = document.getElementById('conn-status');
+                if (data.signalLost) {
+                    connStatus.innerText = "SIGNAL LOST";
+                    connStatus.style.background = "rgba(239, 68, 68, 0.2)";
+                    connStatus.style.color = "var(--danger)";
+                    connStatus.style.borderColor = "var(--danger)";
+                } else {
+                    connStatus.innerText = "LIVE";
+                    connStatus.style.background = "rgba(16, 185, 129, 0.2)";
+                    connStatus.style.color = "var(--success)";
+                    connStatus.style.borderColor = "var(--success)";
                 }
             } catch (err) {
-                // Not an error if mesh pipeline isn't run, fallback to procedural
+                console.error("Telemetry fetch error:", err);
             }
         }
-        
-        function drawVessel(activeParts) {
-            activePartsCache = activeParts;
+
+        // ==========================================
+        // INTERPOLATED HUD UPDATE (called at 60fps)
+        // ==========================================
+        function updateHUD() {
+            const d = currTelemetry;
+            if (!d) return;
+
+            // Compute interpolation factor
+            let t = 1;
+            if (prevTelemetry) {
+                t = Math.min(1, (performance.now() - telemetryRecvTime) / TELEM_INTERVAL);
+            }
+            const p = prevTelemetry || d;
+
+            function iLerp(a, b) { return a + (b - a) * t; }
+
+            document.getElementById('body').innerText = d.body || "--";
+            document.getElementById('alt').innerText = formatNumber(d.altitude || 0) + " m";
+            document.getElementById('apo').innerText = formatNumber(d.apoapsis || 0) + " m";
+            document.getElementById('peri').innerText = formatNumber(d.periapsis || 0) + " m";
+            document.getElementById('inc').innerText = (d.inclination || 0).toFixed(2) + "°";
+            document.getElementById('vel').innerText = formatNumber(d.velocity || 0) + " m/s";
+            document.getElementById('twr').innerText = (d.twr || 0).toFixed(2);
+            document.getElementById('q').innerText = (d.q || 0).toFixed(4);
+            document.getElementById('stage').innerText = (d.stage || "--").toUpperCase();
+
+            // Resources
+            const resContainer = document.getElementById('resources-container');
+            if (d.resources && Object.keys(d.resources).length > 0) {
+                resContainer.innerHTML = '';
+                for (const [resName, resData] of Object.entries(d.resources)) {
+                    const pct = resData.capacity > 0 ? (resData.amount / resData.capacity) * 100 : 0;
+                    const el = document.createElement('div');
+                    el.className = 'gauge-container';
+                    let color = '#F5F5F5';
+                    if (resName === "ElectricCharge") color = pct < 20 ? 'var(--danger)' : 'var(--success)';
+                    else if (resName.includes("Fuel") || resName.includes("Hydrogen") || resName.includes("Oxygen")) color = 'var(--accent)';
+                    el.innerHTML =
+                        '<div class="data-row"><span class="data-label">' + resName + '</span><span class="data-value tabular">' + formatNumber(resData.amount) + ' / ' + formatNumber(resData.capacity) + '</span></div>' +
+                        '<div class="gauge-bar"><div class="gauge-fill" style="width:' + pct.toFixed(1) + '%; background:' + color + ';"></div></div>';
+                    resContainer.appendChild(el);
+                }
+            }
+
+            // Target
+            if (d.target && d.target.hasTarget) {
+                document.getElementById('tgt-name').innerText = d.target.name;
+                document.getElementById('tgt-dist').innerText = formatNumber(d.target.distance) + " m";
+                document.getElementById('tgt-speed').innerText = formatNumber(d.target.relVelocity) + " m/s";
+            }
+
+            // Maneuver node
+            const mnvBlock = document.getElementById('maneuver-block');
+            if (d.maneuver && d.maneuver.hasNode) {
+                mnvBlock.style.display = '';
+                document.getElementById('mnv-eta').innerText = formatTime(d.maneuver.eta);
+                document.getElementById('mnv-dv').innerText = d.maneuver.dv.toFixed(1) + " m/s";
+            } else {
+                mnvBlock.style.display = 'none';
+            }
+
+            // Time
+            baseMissionTime = d.time || 0;
+            lastSyncTime = Date.now();
         }
 
-        // 3D Rendering & Projections
+        // ==========================================
+        // NAVBALL — Proper spherical projection
+        // ==========================================
+        function drawNavball(ctx, w, h, fore, top) {
+            ctx.clearRect(0, 0, w, h);
+            const R = Math.min(w, h) / 2 - 3;
+            const cx = w / 2, cy = h / 2;
+
+            // Decompose attitude
+            const pitch = Math.asin(Math.max(-1, Math.min(1, fore[2])));
+            const heading = Math.atan2(fore[0], fore[1]);
+
+            let upRef = [0, 0, 1];
+            let d = fore[2];
+            let orthUp = [upRef[0] - d*fore[0], upRef[1] - d*fore[1], upRef[2] - d*fore[2]];
+            let len = Math.sqrt(orthUp[0]**2 + orthUp[1]**2 + orthUp[2]**2);
+            if (len > 0.001) { orthUp[0]/=len; orthUp[1]/=len; orthUp[2]/=len; } else { orthUp = [1,0,0]; }
+            let orthRight = [
+                fore[1]*orthUp[2] - fore[2]*orthUp[1],
+                fore[2]*orthUp[0] - fore[0]*orthUp[2],
+                fore[0]*orthUp[1] - fore[1]*orthUp[0]
+            ];
+            const roll = Math.atan2(
+                top[0]*orthRight[0] + top[1]*orthRight[1] + top[2]*orthRight[2],
+                top[0]*orthUp[0] + top[1]*orthUp[1] + top[2]*orthUp[2]
+            );
+
+            let hdgDeg = heading * 180 / Math.PI; if (hdgDeg < 0) hdgDeg += 360;
+            const pitDeg = pitch * 180 / Math.PI;
+            const rolDeg = roll * 180 / Math.PI;
+            document.getElementById('nb-hdg').innerText = hdgDeg.toFixed(1) + "°";
+            document.getElementById('nb-pit').innerText = pitDeg.toFixed(1) + "°";
+            document.getElementById('nb-rol').innerText = rolDeg.toFixed(1) + "°";
+
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(-roll); // Fixed roll direction
+
+            ctx.beginPath();
+            ctx.arc(0, 0, R, 0, Math.PI * 2);
+            ctx.clip();
+
+            const pitchPx = (pitch / (Math.PI / 2)) * R;
+
+            // KSP Sky (Blue)
+            ctx.fillStyle = '#2b74b3';
+            ctx.fillRect(-R, -R*2 + pitchPx, R*2, R*2);
+
+            // KSP Ground (Brown)
+            ctx.fillStyle = '#9b5a26';
+            ctx.fillRect(-R, pitchPx, R*2, R*2);
+
+            // Horizon line (Orange)
+            ctx.strokeStyle = "#e88b20";
+            ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.moveTo(-R, pitchPx); ctx.lineTo(R, pitchPx); ctx.stroke();
+
+            // Pitch ladder lines
+            ctx.lineWidth = 1.5;
+            ctx.font = "bold 10px 'Roboto Mono'";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            for (let p = -80; p <= 80; p += 10) {
+                if (p === 0) continue;
+                const y = (-p / 90) * R + pitchPx;
+                const halfW = Math.abs(p) % 30 === 0 ? 30 : 15;
+                ctx.strokeStyle = "#FFF";
+                ctx.beginPath();
+                if (p < 0) { ctx.setLineDash([4, 4]); } else { ctx.setLineDash([]); }
+                ctx.moveTo(-halfW, y); ctx.lineTo(halfW, y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                if (Math.abs(p) % 30 === 0) {
+                    ctx.fillStyle = "#FFF";
+                    ctx.fillText(Math.abs(p).toString(), halfW + 16, y);
+                    ctx.fillText(Math.abs(p).toString(), -halfW - 16, y);
+                }
+            }
+
+            // Heading labels
+            ctx.font = "bold 12px 'Roboto Mono'";
+            const cardinals = [
+                { label: "N", angle: 0 }, { label: "E", angle: 90 },
+                { label: "S", angle: 180 }, { label: "W", angle: 270 },
+            ];
+            const hdgRad = heading;
+            cardinals.forEach(c => {
+                const cRad = c.angle * Math.PI / 180;
+                let dNorm = ((cRad - hdgRad + Math.PI) % (2*Math.PI)) - Math.PI;
+                if (dNorm < -Math.PI) dNorm += 2*Math.PI;
+                const xPos = (dNorm / Math.PI) * R;
+                if (Math.abs(xPos) < R - 15) {
+                    ctx.fillStyle = "#e88b20";
+                    ctx.fillText(c.label, xPos, pitchPx - 14);
+                    ctx.strokeStyle = "#e88b20"; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(xPos, pitchPx - 4); ctx.lineTo(xPos, pitchPx + 4); ctx.stroke();
+                }
+            });
+            for (let deg = 0; deg < 360; deg += 10) {
+                if (deg % 90 === 0) continue;
+                const cRad = deg * Math.PI / 180;
+                let dNorm = ((cRad - hdgRad + Math.PI) % (2*Math.PI)) - Math.PI;
+                if (dNorm < -Math.PI) dNorm += 2*Math.PI;
+                const xPos = (dNorm / Math.PI) * R;
+                if (Math.abs(xPos) < R - 5) {
+                    ctx.strokeStyle = "rgba(255,255,255,0.5)"; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.moveTo(xPos, pitchPx - 3); ctx.lineTo(xPos, pitchPx + 3); ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+
+            // Center marker (KSP Orange V)
+            ctx.strokeStyle = "#e88b20"; 
+            ctx.lineWidth = 2.5;
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            // Left wing
+            ctx.moveTo(cx - 20, cy); ctx.lineTo(cx - 5, cy);
+            // Center V
+            ctx.lineTo(cx, cy + 8);
+            ctx.lineTo(cx + 5, cy);
+            // Right wing
+            ctx.lineTo(cx + 20, cy);
+            ctx.stroke();
+
+            // Roll indicator ring
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, R - 1, -Math.PI, 0);
+            ctx.stroke();
+            
+            const rollTicks = [-60,-45,-30,-15,0,15,30,45,60];
+            rollTicks.forEach(deg => {
+                const a = (-90 + deg) * Math.PI / 180;
+                const inner = deg === 0 ? R - 10 : R - 6;
+                const outer = R - 1;
+                ctx.strokeStyle = deg === 0 ? "#e88b20" : "#FFF";
+                ctx.lineWidth = deg === 0 ? 3 : 2;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(a)*inner, Math.sin(a)*inner);
+                ctx.lineTo(Math.cos(a)*outer, Math.sin(a)*outer);
+                ctx.stroke();
+            });
+
+            // Roll pointer
+            const rPtrAngle = (-90 + rolDeg) * Math.PI / 180; // Negative due to inverted Y in canvas? Wait, roll rotates canvas clockwise. So pointer moves opposite. Let's try +rolDeg.
+            ctx.fillStyle = "#e88b20";
+            ctx.beginPath();
+            const rpR = R - 12;
+            ctx.moveTo(Math.cos(rPtrAngle)*rpR, Math.sin(rPtrAngle)*rpR);
+            ctx.lineTo(Math.cos(rPtrAngle - 0.08)*(rpR+8), Math.sin(rPtrAngle - 0.08)*(rpR+8));
+            ctx.lineTo(Math.cos(rPtrAngle + 0.08)*(rpR+8), Math.sin(rPtrAngle + 0.08)*(rpR+8));
+            ctx.closePath(); ctx.fill();
+            ctx.restore();
+
+            // Outer bezel
+            ctx.strokeStyle = "#222"; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2); ctx.stroke();
+        }
+
+        // ==========================================
+        // 3D VIEWER LOGIC (Preserved from original)
+        // ==========================================
         function lerp(a, b, t) { return a + (b - a) * t; }
         function lerpVec(a, b, t) {
             return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
@@ -936,52 +987,71 @@
             }
         }
 
+        // ==========================================
+        // MAIN ANIMATION LOOP (60fps)
+        // ==========================================
         function animateViewer() {
             requestAnimationFrame(animateViewer);
-            
+
+            // Interpolate attitude
+            currentFore = lerpVec(currentFore, targetFore, 0.1);
+            currentFore = normalizeVec(currentFore);
+            const dot = currentFore[0]*targetTop[0] + currentFore[1]*targetTop[1] + currentFore[2]*targetTop[2];
+            const orthoTop = [
+                targetTop[0] - dot * currentFore[0],
+                targetTop[1] - dot * currentFore[1],
+                targetTop[2] - dot * currentFore[2]
+            ];
+            currentTop = lerpVec(currentTop, orthoTop, 0.1);
+            currentTop = normalizeVec(currentTop);
+
+            // Draw Navball at 60fps
+            const nbCanvas = document.getElementById('navball-canvas');
+            if (nbCanvas) drawNavball(nbCanvas.getContext('2d'), nbCanvas.width, nbCanvas.height, currentFore, currentTop);
+
+            // Interpolated HUD update at 60fps
+            updateHUD();
+
+            // Interpolated time display
+            if (lastSyncTime > 0) {
+                const currentVal = baseMissionTime + (Date.now() - lastSyncTime) / 1000;
+                document.getElementById('time').innerText = formatTime(currentVal);
+            }
+
+            // Draw Vessel Viewer
             if (!vesselStructure || !vesselStructure.parts) return;
             const canvas = document.getElementById('vessel-canvas');
             if (!canvas) return;
+
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (canvas.width !== Math.floor(rect.width) || canvas.height !== Math.floor(rect.height)) {
+                canvas.width = Math.floor(rect.width);
+                canvas.height = Math.floor(rect.height);
+                calculateScale();
+            }
+
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
+
             const activeUids = new Set(activePartsCache.map(p => p.uid));
-            
-            if (viewerMode === "attitude") {
-                currentFore = lerpVec(currentFore, targetFore, 0.1);
-                currentFore = normalizeVec(currentFore);
-                
-                const dot = currentFore[0]*targetTop[0] + currentFore[1]*targetTop[1] + currentFore[2]*targetTop[2];
-                const orthoTop = [
-                    targetTop[0] - dot * currentFore[0],
-                    targetTop[1] - dot * currentFore[1],
-                    targetTop[2] - dot * currentFore[2]
-                ];
-                currentTop = lerpVec(currentTop, orthoTop, 0.1);
-                currentTop = normalizeVec(currentTop);
-            }
-            
+
             const R_fore = currentFore;
             const R_top = currentTop;
             const R_star = crossProduct(R_fore, R_top);
-            
-            // Grid and ENU Axes (Attitude only)
+
+            // Grid (attitude mode)
             if (viewerMode === "attitude") {
                 ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
                 ctx.lineWidth = 1;
-                
                 const gridZ = -shipSize * 0.7;
                 const gridSize = shipSize * 1.5;
                 const gridDivs = 6;
-                
                 for (let i = 0; i <= gridDivs; i++) {
                     const ratio = i / gridDivs;
                     const coord = -gridSize + ratio * gridSize * 2;
-                    
                     drawLine(ctx, projectHorizon(-gridSize, coord, gridZ), projectHorizon(gridSize, coord, gridZ));
                     drawLine(ctx, projectHorizon(coord, -gridSize, gridZ), projectHorizon(coord, gridSize, gridZ));
                 }
-                
                 // Compass Axes
                 const axesZ = gridZ;
                 const axesLen = shipSize * 0.3;
@@ -989,38 +1059,25 @@
                 const eastPt = projectHorizon(axesLen, 0, axesZ);
                 const northPt = projectHorizon(0, axesLen, axesZ);
                 const upPt = projectHorizon(0, 0, axesZ + axesLen);
-                
-                ctx.strokeStyle = "rgba(239, 68, 68, 0.5)"; // E - Red
-                ctx.lineWidth = 2;
-                drawLine(ctx, origin, eastPt);
-                
-                ctx.strokeStyle = "rgba(16, 185, 129, 0.5)"; // N - Green
-                drawLine(ctx, origin, northPt);
-                
-                ctx.strokeStyle = "rgba(59, 130, 246, 0.5)"; // U - Blue
-                drawLine(ctx, origin, upPt);
-                
-                ctx.fillStyle = "rgba(255,255,255,0.7)";
-                ctx.font = "10px monospace";
+                ctx.strokeStyle = "rgba(239, 68, 68, 0.5)"; ctx.lineWidth = 2; drawLine(ctx, origin, eastPt);
+                ctx.strokeStyle = "rgba(16, 185, 129, 0.5)"; drawLine(ctx, origin, northPt);
+                ctx.strokeStyle = "rgba(0, 174, 239, 0.5)"; drawLine(ctx, origin, upPt);
+                ctx.fillStyle = "rgba(255,255,255,0.7)"; ctx.font = "10px monospace";
                 if (eastPt.visible) ctx.fillText("E", eastPt.x + 4, eastPt.y + 4);
                 if (northPt.visible) ctx.fillText("N", northPt.x + 4, northPt.y + 4);
                 if (upPt.visible) ctx.fillText("U", upPt.x + 4, upPt.y - 4);
             }
-            
-            // Draw skeleton lines
-            ctx.strokeStyle = viewerMode === "attitude" ? "rgba(56, 189, 248, 0.25)" : "rgba(255, 255, 255, 0.15)";
+
+            // Skeleton
+            ctx.strokeStyle = viewerMode === "attitude" ? "rgba(0, 174, 239, 0.25)" : "rgba(255, 255, 255, 0.15)";
             ctx.lineWidth = 1.5;
             vesselStructure.parts.forEach(p => {
-                if (activeUids.has(p.uid)) {
-                    drawPartConnection(ctx, p, R_star, R_top, R_fore, activeUids);
-                }
+                if (activeUids.has(p.uid)) drawPartConnection(ctx, p, R_star, R_top, R_fore, activeUids);
             });
-            
-            // Draw wireframe boxes
+
+            // Parts
             vesselStructure.parts.forEach(p => {
                 if (!activeUids.has(p.uid)) return;
-                
-                // Real mesh drawing if available, else procedural fallback
                 if (vesselMeshes && vesselMeshes[p.uid] && vesselMeshes[p.uid].verts && vesselMeshes[p.uid].verts.length > 0) {
                     drawMeshPart(ctx, p, vesselMeshes[p.uid], R_star, R_top, R_fore);
                 } else {
@@ -1029,54 +1086,47 @@
             });
         }
 
-        // Setup mouse/touch drag controls
+        // ==========================================
+        // CONTROLS (mouse + touch)
+        // ==========================================
         function initControls() {
             const canvas = document.getElementById('vessel-canvas');
             if (!canvas) return;
-            
-            // Zoom (Mouse Wheel)
+
+            // Zoom
             canvas.addEventListener('wheel', (e) => {
                 e.preventDefault();
-                const zoomFactor = 1.1;
-                if (e.deltaY < 0) {
-                    zoomScale *= zoomFactor;
-                } else {
-                    zoomScale /= zoomFactor;
-                }
+                zoomScale *= (e.deltaY < 0) ? 1.1 : (1/1.1);
                 zoomScale = Math.max(0.1, Math.min(10, zoomScale));
             });
-
-            // Prevent context menu on right click for panning
             canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-            // Pan & Rotate
+            let isDragging = false;
+            let previousMousePosition = { x: 0, y: 0 };
+
+            // Mouse
             canvas.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                previousMousePosition = { x: e.clientX, y: e.clientY };
+                isDragging = true; previousMousePosition = { x: e.clientX, y: e.clientY };
                 canvas.style.cursor = 'grabbing';
             });
             window.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
-                const deltaX = e.clientX - previousMousePosition.x;
-                const deltaY = e.clientY - previousMousePosition.y;
-                
-                // Right click (buttons=2), shift key, or blueprint mode forces Pan
+                const dx = e.clientX - previousMousePosition.x;
+                const dy = e.clientY - previousMousePosition.y;
                 if (e.buttons === 2 || e.shiftKey || e.buttons === 4 || viewerMode === 'blueprint') {
-                    panOffset.x += deltaX;
-                    panOffset.y += deltaY;
+                    panOffset.x += dx; panOffset.y += dy;
                 } else if (viewerMode === 'attitude') {
-                    cameraYaw += deltaX * 0.01;
-                    cameraPitch += deltaY * 0.01;
+                    cameraYaw += dx * 0.01; cameraPitch += dy * 0.01;
                     cameraPitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, cameraPitch));
                 }
-                
                 previousMousePosition = { x: e.clientX, y: e.clientY };
             });
             window.addEventListener('mouseup', () => {
                 isDragging = false;
                 if (canvas) canvas.style.cursor = 'grab';
             });
-            
+
+            // Touch
             canvas.addEventListener('touchstart', (e) => {
                 if (e.touches.length === 1) {
                     isDragging = true;
@@ -1085,32 +1135,62 @@
             });
             window.addEventListener('touchmove', (e) => {
                 if (!isDragging || e.touches.length !== 1) return;
-                const deltaX = e.touches[0].clientX - previousMousePosition.x;
-                const deltaY = e.touches[0].clientY - previousMousePosition.y;
-                
+                const dx = e.touches[0].clientX - previousMousePosition.x;
+                const dy = e.touches[0].clientY - previousMousePosition.y;
                 if (viewerMode === 'blueprint') {
-                    panOffset.x += deltaX;
-                    panOffset.y += deltaY;
+                    panOffset.x += dx; panOffset.y += dy;
                 } else {
-                    cameraYaw += deltaX * 0.01;
-                    cameraPitch += deltaY * 0.01;
+                    cameraYaw += dx * 0.01; cameraPitch += dy * 0.01;
                     cameraPitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, cameraPitch));
                 }
-                
                 previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             });
-            window.addEventListener('touchend', () => {
-                isDragging = false;
-            });
+            window.addEventListener('touchend', () => { isDragging = false; });
         }
 
+        // ==========================================
+        // FETCH HELPERS
+        // ==========================================
+        async function fetchStructure() {
+            try {
+                const res = await fetch('vessel_structure.json?t=' + Date.now(), { cache: "no-store" });
+                if (res.ok) { vesselStructure = await res.json(); calculateScale(); }
+            } catch(e) {}
+        }
+        async function fetchMeshes() {
+            try {
+                const res = await fetch('vessel_mesh.json?t=' + Date.now(), { cache: "no-store" });
+                if (res.ok) vesselMeshes = await res.json();
+            } catch(e) {}
+        }
+        function calculateScale() {
+            if (!vesselStructure || !vesselStructure.parts) return;
+            const canvas = document.getElementById('vessel-canvas');
+            if (!canvas) return;
+            let minX=999,maxX=-999,minY=999,maxY=-999,minZ=999,maxZ=-999,count=0;
+            vesselStructure.parts.forEach(p => {
+                count++;
+                const x=p.pos[0],y=p.pos[1],z=p.pos[2];
+                const sx=p.size[0]||0.5,sy=p.size[1]||0.5,sz=p.size[2]||0.5;
+                if(x-sx/2<minX)minX=x-sx/2; if(x+sx/2>maxX)maxX=x+sx/2;
+                if(y-sy/2<minY)minY=y-sy/2; if(y+sy/2>maxY)maxY=y+sy/2;
+                if(z-sz/2<minZ)minZ=z-sz/2; if(z+sz/2>maxZ)maxZ=z+sz/2;
+            });
+            if (!count) return;
+            shipSize = Math.max(maxX-minX, maxY-minY, maxZ-minZ, 0.1);
+            shipCenterX=(minX+maxX)/2; shipCenterY=(minY+maxY)/2; shipCenterZ=(minZ+maxZ)/2;
+            const pad=20;
+            if (viewerMode==="attitude") renderScale=(Math.min(canvas.width-pad*2,canvas.height-pad*2)/shipSize)*1.6;
+            else renderScale=Math.min(canvas.width-pad*2,canvas.height-pad*2)/shipSize;
+        }
+
+        // ==========================================
+        // BOOT
+        // ==========================================
         initControls();
-        setInterval(fetchStructure, 5000);
-        fetchStructure();
-        setInterval(fetchMeshes, 10000);
-        fetchMeshes();
-        setInterval(fetchTelemetry, 1000);
-        fetchTelemetry();
+        setInterval(fetchStructure, 5000); fetchStructure();
+        setInterval(fetchMeshes, 10000); fetchMeshes();
+        setInterval(fetchTelemetry, 200); fetchTelemetry();
         animateViewer();
     </script>
 </body>
