@@ -1,6 +1,10 @@
 @lazyGlobal on.
 set WarpStopTime to 30. //custom value
 
+if not hasnode {
+    print "ExeNode: No maneuver node present. Aborting.".
+    if defined logMsg { logMsg("ExeNode called with no active maneuver node. Skipping."). }
+} else {
 set nd to nextnode.
 if availablethrust = 0 {
     print "Waiting for active engine...".
@@ -96,3 +100,4 @@ wait until vdot(NodedV0, nd:deltav) < 0.
     set running to false.
 	clearscreen.
     set ship:control:pilotmainthrottle to 0.
+}
