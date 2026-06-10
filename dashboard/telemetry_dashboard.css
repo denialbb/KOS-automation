@@ -184,6 +184,16 @@ body::after {
     min-height: 150px;
 }
 
+/* Center Column: wraps vessel viewer + graph drawer as flex column */
+.center-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0;
+    overflow: hidden;
+}
+
 /* Center HUD Area */
 .center-hud {
     flex: 1;
@@ -193,6 +203,7 @@ body::after {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
 }
 .vessel-canvas {
     width: 100%;
@@ -311,33 +322,35 @@ body::after {
     border-top: 1px solid var(--panel-border);
     display: flex;
     flex-direction: column;
-    height: 0px;
+    height: 28px;              /* collapsed = just the toggle bar */
+    flex-shrink: 0;
     transition: height 0.3s ease-in-out;
-    z-index: 100;
+    z-index: 5;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
 }
 .graph-drawer.open {
-    height: 330px;
+    height: 358px;             /* 28px bar + 330px content */
 }
 .graph-drawer-toggle {
-    position: absolute;
-    top: -28px;
-    left: 50%;
-    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 28px;
+    flex-shrink: 0;
     background: var(--panel-bg);
-    border: 1px solid var(--panel-border);
-    border-bottom: none;
-    padding: 4px 16px;
+    border: none;
+    border-bottom: 1px solid var(--panel-border);
+    padding: 0 16px;
     font-size: 0.7rem;
     font-weight: 700;
     letter-spacing: 1.5px;
     color: var(--text-muted);
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: color 0.2s ease, background 0.2s ease;
     user-select: none;
+    font-family: var(--font-mono);
 }
 .graph-drawer-toggle:hover {
     color: var(--text-white);

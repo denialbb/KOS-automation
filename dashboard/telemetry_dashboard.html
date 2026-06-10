@@ -65,24 +65,26 @@
             </div>
         </div>
 
-        <!-- Center HUD Area with Collapsible Drawer -->
-        <div class="center-hud">
-            <div class="hud-controls">
-                <button id="btn-mode-attitude" class="hud-btn active" onclick="setViewerMode('attitude')">Attitude 3D</button>
-                <button id="btn-mode-blueprint" class="hud-btn" onclick="setViewerMode('blueprint')">Blueprint</button>
+        <!-- Center Column: Vessel Viewer + Collapsible Graph Drawer -->
+        <div class="center-column">
+            <div class="center-hud">
+                <div class="hud-controls">
+                    <button id="btn-mode-attitude" class="hud-btn active" onclick="setViewerMode('attitude')">Attitude 3D</button>
+                    <button id="btn-mode-blueprint" class="hud-btn" onclick="setViewerMode('blueprint')">Blueprint</button>
+                </div>
+                <canvas id="vessel-canvas" class="vessel-canvas"></canvas>
+
+                <!-- Floating Part Tooltip -->
+                <div id="part-tooltip"></div>
+
+                <!-- Floating Science Payload Panel -->
+                <div id="science-payload-card" class="science-payload-card" style="display: none;">
+                    <h2 class="panel-title" style="color: var(--crt-green); border-color: rgba(51, 255, 51, 0.2); margin-bottom: 2px;">Vessel Science Payload</h2>
+                    <div id="science-parts-list" class="science-parts-list custom-scrollbar"></div>
+                </div>
             </div>
-            <canvas id="vessel-canvas" class="vessel-canvas"></canvas>
 
-            <!-- Floating Part Tooltip -->
-            <div id="part-tooltip"></div>
-
-            <!-- Floating Science Payload Panel -->
-            <div id="science-payload-card" class="science-payload-card" style="display: none;">
-                <h2 class="panel-title" style="color: var(--crt-green); border-color: rgba(51, 255, 51, 0.2); margin-bottom: 2px;">Vessel Science Payload</h2>
-                <div id="science-parts-list" class="science-parts-list custom-scrollbar"></div>
-            </div>
-
-            <!-- Collapsible Bottom Drawer for Graphs -->
+            <!-- Collapsible Bottom Drawer for Graphs (sibling to vessel viewer) -->
             <div id="graph-drawer" class="graph-drawer">
                 <button onclick="toggleGraphDrawer()" class="graph-drawer-toggle">
                     HISTORICAL GRAPHS <span id="graph-drawer-icon">&#9650;</span>
