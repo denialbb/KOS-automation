@@ -155,6 +155,16 @@
                 zoomScale = 0.6;
                 panOffset = { x: 0, y: 0 };
             }
+            // Trigger layout recalculation and scaling for center viewer canvas
+            setTimeout(() => {
+                const canvas = document.getElementById('vessel-canvas');
+                if (canvas) {
+                    const rect = canvas.parentElement.getBoundingClientRect();
+                    canvas.width = Math.floor(rect.width);
+                    canvas.height = Math.floor(rect.height);
+                }
+                calculateScale();
+            }, 350); // Match CSS height transitions duration
         }
 
         // ==========================================
