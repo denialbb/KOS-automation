@@ -40,9 +40,9 @@ lock throttle to 1.
 
 if maxthrust = 0 {
 	stage.
-    logMsg("Stage " + stage_num + " separation").
+    print "Stage " + stage_num + " separation".
 	set stage_num to stage_num + 1.
-    logMsg("Stage " + stage_num + " ignition").
+    print "Stage " + stage_num + " ignition".
 }
 
 //staging
@@ -56,7 +56,7 @@ when true then {
 	stage.
 		if maxthrust > 0 {
 		print "Stage "+n+" separation. Stage "+(n+1)+" ignition." at(0,1).
-        logMsg("Stage " + n + " separation").
+        print "Stage " + n + " separation.".
 
         local ec is 0.
         local ecMax is 1.

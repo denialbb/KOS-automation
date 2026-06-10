@@ -51,7 +51,7 @@ when true then {
 	wait 1.
 	stage.
 		if maxthrust > 0 {
-        logMsg("Stage separated during node execution").
+        print "Stage separated during node execution.".
         local ec is 0.
         local ecMax is 1.
         for r in ship:resources {
