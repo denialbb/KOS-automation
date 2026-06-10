@@ -51,7 +51,7 @@ function logMsg {
     local line is "[" + tStr + formatTime(tVal) + "] " + msg.
     print line.
     missionMilestones:add(line).
-    
+
     if homeconnection:isconnected {
         // If we have local logs cached from blackout, flush them to archive
         if exists(localLogPath) {
@@ -76,7 +76,7 @@ function updateTelemetry {
             set ecMax to r:capacity.
         }
     }
-    
+
     local currentMass is ship:mass.
     local currentThrust is ship:availablethrust.
     local r_dist is body:radius + ship:altitude.
@@ -86,7 +86,7 @@ function updateTelemetry {
     local currentQ is ship:dynamicpressure.
 
     local dq is char(34).
-    
+
     // Construct parts array
     local partsJson is "[".
     local first is true.
@@ -101,7 +101,7 @@ function updateTelemetry {
         set partsJson to partsJson + "{" + dq + "uid" + dq + ":" + dq + p:uid + dq + "," + dq + "name" + dq + ":" + dq + pName + dq + "," + dq + "title" + dq + ":" + dq + pTitle + dq + "," + dq + "tag" + dq + ":" + dq + pTag + dq + "}".
     }
     set partsJson to partsJson + "]".
-    
+
     // Construct all resources array/object
     local resJson is "{".
     local firstRes is true.
@@ -142,7 +142,7 @@ function updateTelemetry {
         set tgtDist to target:position:mag.
         set tgtRelV to (target:velocity:orbit - ship:velocity:orbit):mag.
     }
-    
+
     // Construct JSON string
     local jsonStr is "{".
     set jsonStr to jsonStr + dq + "time" + dq + ": " + round(missiontime, 1) + ", ".
@@ -161,23 +161,23 @@ function updateTelemetry {
     set jsonStr to jsonStr + dq + "resources" + dq + ": " + resJson + ", ".
     set jsonStr to jsonStr + dq + "closestPoi" + dq + ": {" + dq + "name" + dq + ":" + dq + closestPoiName + dq + "," + dq + "distance" + dq + ":" + round(closestPoiDist) + "}, ".
     set jsonStr to jsonStr + dq + "target" + dq + ": {" + dq + "hasTarget" + dq + ":" + hasTgtStr + "," + dq + "name" + dq + ":" + dq + tgtName + dq + "," + dq + "distance" + dq + ":" + round(tgtDist) + "," + dq + "relVelocity" + dq + ":" + round(tgtRelV, 2) + "}, ".
-    
+
     // Construct Attitude Info
     local upVec is ship:up:vector.
     local northVec is ship:north:vector.
     local eastVec is vcrs(upVec, northVec):normalized.
     local foreVec is ship:facing:forevector.
     local topVec is ship:facing:topvector.
-    
+
     local fx is round(vdot(foreVec, eastVec), 4).
     local fy is round(vdot(foreVec, northVec), 4).
     local fz is round(vdot(foreVec, upVec), 4).
     local tx is round(vdot(topVec, eastVec), 4).
     local ty is round(vdot(topVec, northVec), 4).
     local tz is round(vdot(topVec, upVec), 4).
-    
+
     set jsonStr to jsonStr + dq + "attitude" + dq + ": {" + dq + "fore" + dq + ": [" + fx + "," + fy + "," + fz + "]," + dq + "top" + dq + ": [" + tx + "," + ty + "," + tz + "]}, ".
-    
+
     local bHasNode is hasnode.
     if bHasNode {
         set jsonStr to jsonStr + dq + "maneuver" + dq + ": { " + dq + "hasNode" + dq + ": true, " + dq + "eta" + dq + ": " + round(nextnode:eta, 1) + ", " + dq + "dv" + dq + ": " + round(nextnode:deltav:mag, 1) + " }, ".
@@ -186,7 +186,7 @@ function updateTelemetry {
     }
 
     set jsonStr to jsonStr + dq + "parts" + dq + ": " + partsJson + ", ".
-    
+
     local milestonesJson is "[".
     local firstMilestone is true.
     for ms in missionMilestones {
@@ -195,10 +195,10 @@ function updateTelemetry {
         set milestonesJson to milestonesJson + dq + ms:replace(dq, "") + dq.
     }
     set milestonesJson to milestonesJson + "]".
-    
+
     set jsonStr to jsonStr + dq + "milestones" + dq + ": " + milestonesJson.
     set jsonStr to jsonStr + "}".
-    
+
     // Only write telemetry to archive if KSC connection is active to prevent kOS crash
     if homeconnection:isconnected {
         if exists(telemetryFile) {
@@ -213,13 +213,13 @@ function setStage {
     logMsg("Entered stage: " + newStage).
     set telemetryStage to newStage.
     updateTelemetry(telemetryStage).
-    
+
     if homeconnection:isconnected {
         local histFile is "0:/logs/mission_history.log".
         if not exists(histFile) {
             log "Time,Stage,Body,Alt,Pe,Ap,Inc,EC_pct,Vel" to histFile.
         }
-        
+
         local ec is 0.
         local ecMax is 1.
         for r in ship:resources {
@@ -248,7 +248,7 @@ function setAPUState {
     local stateStr is "OFF".
     if state { set stateStr to "ON". }
     logMsg("Setting Fuel Cells/APUs to " + stateStr).
-    
+
     for p in ship:parts {
         for mName in p:modules {
             local pMod is p:getmodule(mName).
@@ -295,7 +295,7 @@ function checkPower {
                 set apuState to false.
             }
         }
-        
+
         // Turn lights on if in orbit and power is stable (>20%)
         if pct >= 0.20 and (ship:status = "ORBITING" or ship:status = "ESCAPING") {
             if not lights {
@@ -333,12 +333,12 @@ function runAllScience {
 function safeCoast {
     parameter targetTime.
     setStage("Coasting").
-    
+
     until time:seconds >= targetTime - 60 {
         lock steering to sun:position.
         checkPower().
         runAllScience().
-        
+
         local timeLeft is targetTime - time:seconds.
         if timeLeft > 3600 {
             local nextStop is min(time:seconds + 3600, targetTime - 60).
@@ -371,15 +371,15 @@ function createNodeFromVector {
     parameter burnTime, dVVector.
     local r_at is positionat(ship, burnTime) - positionat(ship:body, burnTime).
     local v_at is velocityat(ship, burnTime):orbit.
-    
+
     local pro_dir is v_at:normalized.
     local norm_dir is vcrs(v_at, r_at):normalized.
     local rad_dir is vcrs(pro_dir, norm_dir):normalized.
-    
+
     local dV_pro is vdot(dVVector, pro_dir).
     local dV_norm is vdot(dVVector, norm_dir).
     local dV_rad is vdot(dVVector, rad_dir).
-    
+
     local nd is node(burnTime, dV_rad, dV_norm, dV_pro).
     add nd.
     return nd.
@@ -407,7 +407,7 @@ when time:seconds > lastTelemetryUpdate + 0.2 then {
         }
         set hadConnection to hasConn.
     }
-    
+
     if telemetryStage = "Ascent" and not maxQLogged {
         local currentQ is ship:dynamicpressure.
         if currentQ > maxQVal {
@@ -418,7 +418,7 @@ when time:seconds > lastTelemetryUpdate + 0.2 then {
             logMsg("Max Q reached: " + round(maxQVal * 101.325, 2) + " kPa").
         }
     }
-    
+
     updateTelemetry(telemetryStage).
     set lastTelemetryUpdate to time:seconds.
     preserve.
@@ -434,11 +434,11 @@ if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING
     sas on.
     logMsg("Vessel is pre-launch/flying. Waiting for staging to initiate launch.").
     wait until maxthrust > 0.
-    
+
     logMsg("Launch detected! Ascending to 80km orbit.").
     setStage("Ascent").
     runpath("0:/SpaceCore/Ascent", false, 80, 0, 60). // 80km, 0 inc, fairing at 60km
-    
+
     if ship:periapsis < 75000 {
         logMsg("Circularizing at Apoapsis.").
         setStage("Circularization").
@@ -491,7 +491,7 @@ for p in ship:parts {
     for m in p:modules {
         local mName is m:tostring:tolower.
         local pMod is p:getmodule(m).
-        
+
         // Match panels, antennas, transmitters, animated booms, or deployables
         local isDeployableModule is false.
         if mName:contains("solar") or mName:contains("panel") or mName:contains("antenna")
@@ -499,13 +499,13 @@ for p in ship:parts {
            or mName:contains("deploy") or mName:contains("dish") or mName:contains("boom") {
             set isDeployableModule to true.
         }
-        
+
         // If the part is an antenna/panel, or the module itself is deployable, scan its events
         if isAntennaOrPanelPart or isDeployableModule {
             for ev in pMod:alleventnames {
                 local evLower is ev:tolower.
                 // Trigger extend, deploy, open, toggle, or activate events
-                if evLower:contains("extend") or evLower:contains("deploy") or evLower:contains("open") 
+                if evLower:contains("extend") or evLower:contains("deploy") or evLower:contains("open")
                    or evLower:contains("activate") or evLower:contains("toggle") or evLower:contains("start") {
                     // Ignore retract/close/stop/disable/shutdown/jettison
                     if not (evLower:contains("retract") or evLower:contains("close") or evLower:contains("stop")
@@ -524,47 +524,56 @@ set target to body("Minmus").
 setStage("Hohmann Transfer").
 logMsg("Interrogating Astrogator for transfer window and node information...").
 
+// Clear any existing nodes BEFORE calling Astrogator
+until not hasnode {
+    remove nextnode.
+    wait 0.05.
+}
+
 local bms is addons:astrogator:calculateBurns(target).
 
 if bms:length = 0 {
     logMsg("CRITICAL ERROR: Astrogator failed to calculate transfer burns!").
 } else {
     logMsg("Astrogator provided " + bms:length + " maneuver(s).").
-    
+
     // Log details of all burns
     from {local i is 0.} until i >= bms:length step {set i to i+1.} do {
         local bm is bms[i].
         local tToBurn is bm:atTime - time:seconds.
         logMsg(" - Node " + i + ": T-" + round(tToBurn) + "s | dV: " + round(bm:totalDV, 1) + " m/s").
     }
-    
+
     local bm is bms[0].
     local timeToWindow is bm:atTime - time:seconds.
     local incDiff is abs(target:orbit:inclination - ship:orbit:inclination).
     local dvNeeded is bm:totalDV.
-    local dvAvail is ship:stagedeltav(ship:stagenum):current.
-    if dvAvail = 0 { set dvAvail to ship:deltav:current. }
+    local dvAvail is 0.
+    if addons:available("KER") {
+        set dvAvail to addons:ker:deltav.
+    } else {
+        set dvAvail to ship:deltav:current.
+    }
 
     logMsg("Primary Transfer Node Details:").
     logMsg(" - Relative Inclination: " + round(incDiff, 2) + " deg").
     logMsg(" - Delta-V Available: " + round(dvAvail, 1) + " m/s").
-    
+
     if dvAvail < dvNeeded {
         logMsg("WARNING: Insufficient Delta-V for maneuver!").
     }
-    
-    // Clear any existing nodes to prevent "Node has already been added" exception
-    until not hasnode {
-        remove nextnode.
-        wait 0.05.
-    }
 
-    // Add all nodes generated by Astrogator
-    from {local i is 0.} until i >= bms:length step {set i to i+1.} do {
-        add bms[i]:toNode.
-        wait 0.1.
-    }
-    logMsg("All transfer nodes created.").
+    // Check if Astrogator already created the nodes on the flight plan
+    // if not hasnode {
+        // Add all nodes generated by Astrogator
+    //    from {local i is 0.} until i >= bms:length step {set i to i+1.} do {
+    //        add bms[i]:toNode.
+    //        wait 0.1.
+    //    }
+    //    logMsg("All transfer nodes created.").
+    //} else {
+    //    logMsg("Transfer nodes automatically populated by Astrogator.").
+    //}
 }
 
 // Execute nodes

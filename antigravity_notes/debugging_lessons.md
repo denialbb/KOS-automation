@@ -87,13 +87,15 @@ When declaring local or global variables under `@lazyGlobal off`, avoid using na
 *   **Exclusion Lists:** When programmatically scanning and triggering events containing `"extend"`, `"deploy"`, `"open"`, `"activate"`, or `"toggle"`, ensure retraction, closure, shutdown, or jettison events (e.g. `"retract"`, `"close"`, `"stop"`, `"disable"`, `"shutdown"`, `"jettison"`) are explicitly excluded to prevent accidental deactivation or decoupling of critical parts.
 
 ## 8. Maneuver Node Planning & Astrogator Integration
-*   **Node Accumulation Crash:** Adding a new maneuver node via Astrogator's `addons:astrogator:calculateBurns(target)` when there is already an existing maneuver node on the flight path will raise a runtime exception (e.g., `"Node has already been added"` or engine duplicate node exceptions) and crash the executing KerboScript.
-*   **Node Clearing Sequence:** To safely plan and execute new multi-node maneuvers, all active node objects must be programmatically destroyed before adding calculated burns. In kOS, there is no `while` loop keyword. Instead, you must use an `until` loop (e.g. `until not condition`). Use the following clearing sequence:
+*   **Node Accumulation Crash:** Adding a new maneuver node via Astrogator's `addons:astrogator:calculateBurns(target)` when there is already an existing maneuver node on the flight path will raise a runtime exception (e.g., `"Node has already been added"`) and crash the executing KerboScript. 
+*   **Automatic Node Creation:** In kOS, `addons:astrogator:calculateBurns(target)` not only calculates the nodes, but often *automatically adds them to the flight plan*.
+*   **Node Clearing Sequence:** To safely plan and execute new multi-node maneuvers, all active node objects must be programmatically destroyed **BEFORE** calling `calculateBurns`. Use the following clearing sequence:
     ```kerboscript
     until not hasnode {
         remove nextnode.
         wait 0.05.
     }
+    local bms is addons:astrogator:calculateBurns(target).
     ```
     The `wait 0.05.` inside the loop ensures KSP's physics engine has enough time to register the node removal before the script queries `hasnode` again or executes subsequent instructions.
-
+*   **Safe Node Addition Check:** When attempting to iterate over Astrogator `BurnModel`s and adding them via `add bms[i]:toNode.`, always check `if not hasnode` first. If Astrogator already populated the nodes, executing `add` again will result in a double-add exception.
