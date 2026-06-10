@@ -76,10 +76,12 @@ unlock steering.
 sas on.
 wait 0.1.
 set sasmode to "PROGRADE".
-set warpmode to "rails".
+set warpmode to "physics".
+set warp to 3.
 print "Warping to apoapsis" at (0,0).
 set BurnMoment to time:seconds + eta:apoapsis.
-warpto(BurnMoment-BurnTime/2-WarpStopTime).
+wait until time:seconds >= (BurnMoment-BurnTime/2-WarpStopTime).
+set warp to 0.
 
 sas off.
 lock steering to prograde.

@@ -12,6 +12,16 @@ when true then {
 	print "Periapsis: "+round(periapsis)+" m       " at (0,3).
 	print "Time to periapsis: "+round(eta:periapsis)+"s       " at (0,4).
 	print "Running: uCircToPe" at (0,6).
+
+    local r_dist is body:radius + ship:altitude.
+    local grav is body:mu / (r_dist * r_dist).
+    local twr is 0.
+    if availablethrust > 0 and mass > 0 { set twr to availablethrust / (mass * grav). }
+    print "--- TELEMETRY ----------" at(0,30).
+    print "TWR: " + round(twr, 2) + "        " at(0,31).
+    print "Q:   " + round(ship:dynamicpressure, 4) + " kPa   " at(0,32).
+    print "EC:  " + round(ship:electriccharge) + "       " at(0,33).
+
     preserve.
 	}
 }
@@ -50,10 +60,14 @@ wait 1.
 rcs on.
 unlock steering.
 sas on.
-set warpmode to "rails".
+wait 0.1.
+set sasmode to "RETROGRADE".
+set warpmode to "physics".
+set warp to 3.
 print "Warping to periapsis" at (0,0).
 set BurnMoment to time:seconds + eta:periapsis.
-warpto(BurnMoment-BurnTime/2-WarpStopTime).
+wait until time:seconds >= (BurnMoment-BurnTime/2-WarpStopTime).
+set warp to 0.
 
 sas off.
 lock steering to retrograde.
