@@ -82,7 +82,18 @@ When declaring local or global variables under `@lazyGlobal off`, avoid using na
 
 ## 7. Part Module Scanning & Deployable Subsystems (Mod Support)
 *   **Context-Sensitive Event Shielding:** In KSP, parts enclosed in fairing structures (such as `ModuleSimpleAdjustableFairing` or `ModuleProceduralFairing`) are considered "shielded". Under this state, their deployment/extension events (e.g. `"Extend"`, `"Extend Antenna"`) are disabled in the context menu and will be missing from kOS `:ALLEVENTS` or `:ALLEVENTNAMES`. Fairings must be jettisoned first to unshield components before deployment scripts can discover and trigger their extension events.
-*   **Custom Mod Modules & Case-Insensitive Matching:** Mod components (like those in Bluedog Design Bureau and Near Future Solar/Exploration) frequently use custom-named classes instead of stock animation modules (e.g., `ModuleBdbVHF` or `ModuleDataTransmitterFeedeable`). A robust deployment script must check both the module name and the parent part's name and title for keywords (e.g., `"antenna"`, `"solar"`, `"panel"`, `"comm"`, `"trans"`).
+*   **Custom Mod Modules & Case-Insensitive Matching:** Mod components (like those in Bluedog Design Bureau and Near Future Solar/Exploration) frequently use custom-named classes instead of stock animation modules (e.g., `ModuleBdbVHF` or `ModuleDataTransmitterFeedeable`). A robust deployment script must check both the module name and the parent part's name and title for keywords (e.g., `"antenna"`, `"solar"`, `"panel"`, `"comm"`, `"trans"`, `"dish"`, `"ray"`, `"reflector"`).
 *   **`:ALLEVENTNAMES` over `:ALLEVENTS`:** The `:ALLEVENTS` suffix returns formatted button labels (which may include brackets or context details) that are not always safe to pass directly to `:DOEVENT()`. The `:ALLEVENTNAMES` suffix returns the raw event identifiers, making it the preferred method for querying and triggering events programmatically.
 *   **Exclusion Lists:** When programmatically scanning and triggering events containing `"extend"`, `"deploy"`, `"open"`, `"activate"`, or `"toggle"`, ensure retraction, closure, shutdown, or jettison events (e.g. `"retract"`, `"close"`, `"stop"`, `"disable"`, `"shutdown"`, `"jettison"`) are explicitly excluded to prevent accidental deactivation or decoupling of critical parts.
+
+## 8. Maneuver Node Planning & Astrogator Integration
+*   **Node Accumulation Crash:** Adding a new maneuver node via Astrogator's `addons:astrogator:calculateBurns(target)` when there is already an existing maneuver node on the flight path will raise a runtime exception (e.g., `"Node has already been added"` or engine duplicate node exceptions) and crash the executing KerboScript.
+*   **Node Clearing Sequence:** To safely plan and execute new multi-node maneuvers, all active node objects must be programmatically destroyed before adding calculated burns. Use the following clearing sequence:
+    ```kerboscript
+    while hasnode {
+        remove nextnode.
+        wait 0.05.
+    }
+    ```
+    The `wait 0.05.` inside the loop ensures KSP's physics engine has enough time to register the node removal before the script queries `hasnode` again or executes subsequent instructions.
 

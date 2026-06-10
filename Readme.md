@@ -40,10 +40,13 @@ graph TD
 - Orbital maneuver execution (Hohmann transfers, inclination adjustments, phasing, and intercepts).
 - Docking and landing algorithms using RCS translation and suicide burn controls.
 
-### Real-Time Telemetry Dashboard
-- Pitch, yaw, and roll calculations projected onto the local East-North-Up (ENU) coordinate basis.
-- Telemetry metrics including altitude, orbital velocity, target distance, and time-to-closest-approach.
-- Event logs and status updates streamed to the UI.
+### Real-Time Telemetry Dashboard (v2)
+- **Modular Dashboard Grid Layout**: Uses a responsive CSS grid including CRT typography, styling improvements (e.g. log border fades, science payload details), and error indicators.
+- **Stacked Y-Axes Graph Drawer**: A collapsible history graph drawer featuring distinct stacked Y-axes for each active telemetry measure (Trajectory, Dynamics, and Resources), avoiding axis clutter.
+- **Dynamic Velocity Scaling**: Velocity graphs automatically scale between m/s and km/s (switching at 300 m/s) to display orbital speed changes cleanly.
+- **Interactive Resource Tabs**: Switch between interactive resource metrics with custom history graphs, cached colors to prevent gauge flashing, and abbreviated resource names.
+- **Navball & Interpolation**: 60fps local ENU attitude projections, heading indicators, and smooth linear interpolation between 1 Hz telemetry packets.
+- **Adaptive 3D Vessel Viewer**: Recalculates viewport scale and automatically centers the active vessel render when the graph drawer is toggled open or closed.
 
 ### Offline 3D Vessel Visualizer
 - Offline extraction of KSP .mu binary model meshes from GameData.
@@ -85,6 +88,15 @@ graph TD
 3. Alternately, execute the server wrapper scripts directly:
    - `start_telemetry_server.bat`
    - `./start_telemetry_server.ps1`
+
+### 3. Running Telemetry Diagnostics
+The repository includes a headless diagnostics tool using Puppeteer to run telemetry tests and capture interface renders:
+1. Navigate to the `telemetry_server/` directory.
+2. Run the diagnostics script:
+   ```powershell
+   node telemetry_server/diagnose_dashboard.js
+   ```
+The diagnostics tool checks port availability (port 8080), spawns the Express.js telemetry server, launches a headless browser, monitors the console log for errors or exceptions, expands the historical graphs panel, listens to active telemetry for 20 seconds, captures a timestamped screenshot in `dashboard/.temp_diagnostics/`, and conducts a clean teardown.
 
 ---
 
