@@ -29,6 +29,20 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'dashboard', 'telemetry_dashboard.html'));
 });
 
+// Serve stylesheet
+app.get('/telemetry_dashboard.css', (req, res) => {
+    const filePath = path.join(__dirname, '..', 'dashboard', 'telemetry_dashboard.css');
+    if (fs.existsSync(filePath)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        res.setHeader('Content-Type', 'text/css');
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('Not found');
+    }
+});
+
 // Serve telemetry.json
 app.get('/telemetry.json', (req, res) => {
     const filePath = path.join(__dirname, '..', 'telemetry', 'telemetry.json');

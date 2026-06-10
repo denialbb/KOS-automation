@@ -6,207 +6,108 @@
     <title>DASA Mission Control</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --bg-color: #0F0F0F;
-            --panel-bg: #1A1A1A;
-            --accent: #00AEEF;
-            --text-main: #F5F5F5;
-            --text-muted: #888888;
-            --danger: #ef4444;
-            --success: #10b981;
-            --warning: #f59e0b;
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0; padding: 0;
-            font-family: 'Inter', sans-serif;
-            background: var(--bg-color);
-            color: var(--text-main);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .tabular { font-family: 'Roboto Mono', monospace; font-variant-numeric: tabular-nums; }
-
-        /* Header */
-        .header {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 20px;
-            background: #111;
-            border-bottom: 1px solid #333;
-            height: 46px; flex-shrink: 0;
-        }
-        .header h1 { margin: 0; font-size: 1.1rem; font-weight: 800; letter-spacing: 2px; color: #FFF; }
-        .header-center { display: flex; align-items: center; gap: 16px; }
-        .mission-time { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
-        .status-badge {
-            padding: 3px 10px; border-radius: 4px; font-weight: 600; font-size: 0.8rem;
-            background: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success);
-        }
-
-        /* Grid Layout */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 300px 1fr 300px;
-            grid-template-rows: 1fr 260px;
-            gap: 8px;
-            padding: 8px;
-            flex: 1;
-            height: calc(100vh - 62px);
-        }
-        .panel {
-            background: var(--panel-bg);
-            border: 1px solid #333;
-            border-radius: 6px;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .panel h2 {
-            margin: 0 0 8px 0; font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);
-            border-bottom: 1px solid #333; padding-bottom: 4px; letter-spacing: 1px;
-            flex-shrink: 0;
-        }
-
-        /* Grid Areas */
-        .nav-panel { grid-column: 1; grid-row: 1; overflow-y: auto; }
-        .hud-panel { grid-column: 2; grid-row: 1; position: relative; padding: 0; display: flex; justify-content: center; align-items: center; background: #080808; }
-        .resource-panel { grid-column: 3; grid-row: 1; overflow-y: auto; }
-        .graph-panel { grid-column: 1 / span 2; grid-row: 2; }
-        .milestone-panel { grid-column: 3; grid-row: 2; overflow-y: auto; }
-
-        /* Data Rows */
-        .data-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem; }
-        .data-label { color: var(--text-muted); }
-        .data-value { font-weight: 600; }
-
-        /* Linear Gauges */
-        .gauge-container { margin-bottom: 10px; }
-        .gauge-bar { width: 100%; height: 6px; background: #333; border-radius: 2px; overflow: hidden; margin-top: 3px; }
-        .gauge-fill { height: 100%; transition: width 0.3s; }
-
-        /* Navball Container */
-        .navball-wrap { position: relative; width: 220px; height: 220px; margin: 6px auto 4px; flex-shrink: 0; }
-        #navball-canvas { width: 220px; height: 220px; border-radius: 50%; border: 2px solid #444; background: #111; display: block; }
-        .navball-readout {
-            display: flex; justify-content: space-between; padding: 2px 10px; font-size: 0.75rem; color: var(--text-muted);
-        }
-        .navball-readout span { font-family: 'Roboto Mono', monospace; }
-
-        /* Timelines */
-        .timeline-item { font-size: 0.8rem; padding: 3px 0; border-left: 2px solid var(--accent); padding-left: 8px; margin-bottom: 3px; color: #DDD; }
-
-        /* HUD Controls */
-        .hud-controls { position: absolute; top: 8px; left: 8px; display: flex; gap: 4px; z-index: 10; }
-        .hud-btn { background: rgba(255,255,255,0.1); border: 1px solid #444; color: #FFF; padding: 3px 7px; font-size: 0.7rem; border-radius: 4px; cursor: pointer; }
-        .hud-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
-
-        /* Graph Tabs */
-        .graph-tabs { display: flex; gap: 4px; margin-bottom: 6px; flex-shrink: 0; flex-wrap: wrap; }
-        .graph-tab {
-            display: flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 3px;
-            background: #222; border: 1px solid #444; font-size: 0.7rem; cursor: pointer; user-select: none;
-        }
-        .graph-tab.active { border-color: var(--accent); background: rgba(0,174,239,0.15); }
-        .graph-tab .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
-
-        /* Maneuver node */
-        .mnv-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 3px 0; }
-        .mnv-label { color: var(--accent); font-weight: 600; }
-
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #111; }
-        ::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.0/dist/chartjs-adapter-luxon.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
+    <link rel="stylesheet" href="telemetry_dashboard.css">
 </head>
 <body>
-    <div class="header">
-        <h1>DASA TELEMETRY</h1>
+    <div class="dashboard-header">
+        <h1 class="dashboard-title">DASA TELEMETRY</h1>
         <div class="header-center">
-            <div class="mission-time tabular">T+ <span id="time">00:00:00</span></div>
+            <div class="mission-time font-mono text-crt-green">T+ <span id="time">00:00:00</span></div>
             <div class="status-badge" id="conn-status">LIVE</div>
         </div>
-        <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);" class="tabular">STAGE: <span id="stage" style="color: var(--accent);">--</span></div>
+        <div class="stage-indicator font-mono">STAGE: <span id="stage" class="text-crt-amber">--</span></div>
     </div>
 
     <div class="dashboard-grid">
-        <!-- Left: Nav & Orbital -->
-        <div class="panel nav-panel">
-            <h2>Attitude</h2>
-            <div class="navball-wrap">
-                <canvas id="navball-canvas" width="220" height="220"></canvas>
-            </div>
-            <div class="navball-readout">
-                <span>HDG <span id="nb-hdg">---</span></span>
-                <span>PIT <span id="nb-pit">---</span></span>
-                <span>ROL <span id="nb-rol">---</span></span>
+        <!-- Left Sidebar: Attitude & Orbital -->
+        <div class="left-sidebar custom-scrollbar">
+            <div class="panel">
+                <h2 class="panel-title">Attitude</h2>
+                <div class="navball-wrap">
+                    <canvas id="navball-canvas" width="220" height="220" class="navball-canvas"></canvas>
+                </div>
+                <div class="navball-readout font-mono">
+                    <span>HDG <span id="nb-hdg" class="text-crt-green">---</span></span>
+                    <span>PIT <span id="nb-pit" class="text-crt-green">---</span></span>
+                    <span>ROL <span id="nb-rol" class="text-crt-green">---</span></span>
+                </div>
             </div>
 
-            <h2 style="margin-top: 10px;">Orbital</h2>
-            <div class="data-row"><span class="data-label">Body</span><span class="data-value" id="body">--</span></div>
-            <div class="data-row"><span class="data-label">Altitude</span><span class="data-value tabular" id="alt">--</span></div>
-            <div class="data-row"><span class="data-label">Apoapsis</span><span class="data-value tabular" id="apo">--</span></div>
-            <div class="data-row"><span class="data-label">Periapsis</span><span class="data-value tabular" id="peri">--</span></div>
-            <div class="data-row"><span class="data-label">Inclination</span><span class="data-value tabular" id="inc">--</span></div>
-            <div class="data-row"><span class="data-label">Velocity</span><span class="data-value tabular" id="vel">--</span></div>
-            <div class="data-row"><span class="data-label">TWR</span><span class="data-value tabular" id="twr" style="color: var(--success);">--</span></div>
-            <div class="data-row"><span class="data-label">Q (kPa)</span><span class="data-value tabular" id="q" style="color: var(--warning);">--</span></div>
+            <div class="panel">
+                <h2 class="panel-title">Orbital</h2>
+                <div class="data-row"><span class="data-label">Body</span><span class="data-value" id="body">--</span></div>
+                <div class="data-row"><span class="data-label">Altitude</span><span class="data-value font-mono text-crt-amber" id="alt">--</span></div>
+                <div class="data-row"><span class="data-label">Apoapsis</span><span class="data-value font-mono text-crt-amber" id="apo">--</span></div>
+                <div class="data-row"><span class="data-label">Periapsis</span><span class="data-value font-mono text-crt-amber" id="peri">--</span></div>
+                <div class="data-row"><span class="data-label">Inclination</span><span class="data-value font-mono" id="inc">--</span></div>
+                <div class="data-row"><span class="data-label">Velocity</span><span class="data-value font-mono text-crt-green" id="vel">--</span></div>
+                <div class="data-row"><span class="data-label">TWR</span><span class="data-value font-mono text-crt-green" id="twr">--</span></div>
+                <div class="data-row"><span class="data-label">Q (kPa)</span><span class="data-value font-mono text-orange" id="q">--</span></div>
+            </div>
 
-            <div id="maneuver-block" style="display: none; margin-top: 6px;">
-                <h2>Maneuver Node</h2>
-                <div class="mnv-row"><span class="data-label">ETA</span><span class="mnv-label tabular" id="mnv-eta">--</span></div>
-                <div class="mnv-row"><span class="data-label">Delta-V</span><span class="mnv-label tabular" id="mnv-dv">--</span></div>
+            <div id="maneuver-block" style="display: none;" class="panel maneuver-alert-panel">
+                <h2 class="panel-title" style="color: var(--crt-amber); border-color: rgba(255,176,0,0.3);">Maneuver Node</h2>
+                <div class="data-row"><span class="data-label">ETA</span><span class="data-value font-mono text-crt-amber" id="mnv-eta">--</span></div>
+                <div class="data-row"><span class="data-label">Delta-V</span><span class="data-value font-mono text-crt-amber" id="mnv-dv">--</span></div>
             </div>
         </div>
 
-        <!-- Center: 3D HUD -->
-        <div class="panel hud-panel">
+        <!-- Center HUD Area with Collapsible Drawer -->
+        <div class="center-hud">
             <div class="hud-controls">
                 <button id="btn-mode-attitude" class="hud-btn active" onclick="setViewerMode('attitude')">Attitude 3D</button>
                 <button id="btn-mode-blueprint" class="hud-btn" onclick="setViewerMode('blueprint')">Blueprint</button>
             </div>
-            <canvas id="vessel-canvas" width="800" height="600" style="width: 100%; height: 100%; cursor: grab;"></canvas>
-        </div>
+            <canvas id="vessel-canvas" class="vessel-canvas"></canvas>
 
-        <!-- Right: Resources -->
-        <div class="panel resource-panel">
-            <h2>Resources</h2>
-            <div id="resources-container">
-                <div class="data-row"><span class="data-label">No resource data</span></div>
-            </div>
-
-                        <h2 style="margin-top: 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="const c = document.getElementById('resource-graph-container'); const i = document.getElementById('res-graph-icon'); if(c.style.display==='none'){c.style.display='block';i.innerText='▼';}else{c.style.display='none';i.innerText='▶';}">
-                <span>Resource History</span>
-                <span id="res-graph-icon">▶</span>
-            </h2>
-            <div id="resource-graph-container" style="display: none; height: 150px; position: relative;">
-                <canvas id="resource-chart"></canvas>
-            </div>
-
-            <h2 style="margin-top: 12px;">Target</h2>
-            <div id="target-block">
-                <div class="data-row"><span class="data-label">Target</span><span class="data-value" id="tgt-name">None</span></div>
-                <div class="data-row"><span class="data-label">Distance</span><span class="data-value tabular" id="tgt-dist">--</span></div>
-                <div class="data-row"><span class="data-label">Rel Vel</span><span class="data-value tabular" id="tgt-speed">--</span></div>
+            <!-- Collapsible Bottom Drawer for Graphs -->
+            <div id="graph-drawer" class="graph-drawer">
+                <button onclick="toggleGraphDrawer()" class="graph-drawer-toggle">
+                    HISTORICAL GRAPHS <span id="graph-drawer-icon">▲</span>
+                </button>
+                <div class="graph-drawer-content">
+                    <div class="graph-container-left">
+                        <div class="graph-tabs" id="graph-tabs"></div>
+                        <div class="graph-canvas-wrapper">
+                            <canvas id="telemetry-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="graph-container-right">
+                        <h2 class="panel-title">Resource History</h2>
+                        <div class="graph-canvas-wrapper">
+                            <canvas id="resource-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Bottom Left/Center: Graphs -->
-        <div class="panel graph-panel">
-            <div class="graph-tabs" id="graph-tabs"></div>
-            <div style="position: relative; flex: 1; min-height: 0;">
-                <canvas id="telemetry-chart"></canvas>
+        <!-- Right Sidebar: Resources & Target & Log -->
+        <div class="right-sidebar custom-scrollbar">
+            <div class="panel">
+                <h2 class="panel-title">Resources</h2>
+                <div id="resources-container">
+                    <div class="data-row"><span class="data-label">No resource data</span></div>
+                </div>
             </div>
-        </div>
 
-        <!-- Bottom Right: Milestones -->
-        <div class="panel milestone-panel">
-            <h2>Mission Log</h2>
-            <div id="milestones-container">
-                <div class="timeline-item">Waiting for data...</div>
+            <div class="panel">
+                <h2 class="panel-title">Target</h2>
+                <div id="target-block">
+                    <div class="data-row"><span class="data-label">Target</span><span class="data-value" id="tgt-name">None</span></div>
+                    <div class="data-row"><span class="data-label">Distance</span><span class="data-value font-mono text-crt-amber" id="tgt-dist">--</span></div>
+                    <div class="data-row"><span class="data-label">Rel Vel</span><span class="data-value font-mono text-crt-amber" id="tgt-speed">--</span></div>
+                </div>
+            </div>
+
+            <div class="panel flex-grow-panel">
+                <h2 class="panel-title">Mission Log</h2>
+                <div id="milestones-container" class="custom-scrollbar font-mono text-crt-green" style="overflow-y: auto; flex: 1; min-height: 120px;">
+                    <div class="timeline-item">Waiting for data...</div>
+                </div>
             </div>
         </div>
     </div>
@@ -224,6 +125,20 @@
         function formatTime(t) {
             let h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = Math.floor(t % 60);
             return (h<10?'0':'')+h+':'+(m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+        }
+        // ==========================================
+        // UI INTERACTIONS
+        // ==========================================
+        function toggleGraphDrawer() {
+            const drawer = document.getElementById('graph-drawer');
+            const icon = document.getElementById('graph-drawer-icon');
+            if (drawer.classList.contains('open')) {
+                drawer.classList.remove('open');
+                icon.innerText = '▲';
+            } else {
+                drawer.classList.add('open');
+                icon.innerText = '▼';
+            }
         }
 
         // ==========================================
@@ -255,7 +170,6 @@
         // ==========================================
         // CHART SETUP — 3 logical groups, toggleable
         // ==========================================
-        const maxDataPoints = 300;
         const datasets = [
             { key: 'alt',  label: 'Altitude (km)',   color: '#00AEEF', group: 'trajectory', yAxis: 'y1', active: true },
             { key: 'vel',  label: 'Velocity (m/s)',  color: '#a78bfa', group: 'trajectory', yAxis: 'y1', active: true },
@@ -275,23 +189,33 @@
                 data: [],
                 borderColor: d.color,
                 yAxisID: d.yAxis,
-                tension: 0.2,
+                tension: 0.4, // Smooth curve
                 hidden: !d.active,
+                borderWidth: 1.5,
+                pointRadius: 0
             }));
         }
 
         const ctxChart = document.getElementById('telemetry-chart').getContext('2d');
         const telemetryChart = new Chart(ctxChart, {
             type: 'line',
-            data: { labels: [], datasets: buildChartDatasets() },
+            data: { datasets: buildChartDatasets() },
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false,
-                elements: { point: { radius: 0 }, line: { borderWidth: 1.5 } },
+                responsive: true, maintainAspectRatio: false,
                 scales: {
-                    x: { display: false },
-                    y1: { type: 'linear', position: 'left',  display: 'auto', grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { family: 'Roboto Mono', size: 10 } }, title: { display: false } },
-                    y2: { type: 'linear', position: 'right', display: 'auto', grid: { drawOnChartArea: false }, ticks: { color: '#888', font: { family: 'Roboto Mono', size: 10 } }, title: { display: false } },
-                    
+                    x: {
+                        type: 'realtime',
+                        realtime: {
+                            duration: 600000, // 10 minutes
+                            delay: 2000,
+                            frameRate: 30,
+                            refresh: 1000
+                        },
+                        grid: { color: 'rgba(51, 255, 51, 0.08)' },
+                        ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } }
+                    },
+                    y1: { type: 'linear', position: 'left', display: 'auto', grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } },
+                    y2: { type: 'linear', position: 'right', display: 'auto', grid: { drawOnChartArea: false }, ticks: { color: '#ffb000', font: { family: 'Roboto Mono', size: 10 } } },
                 },
                 plugins: { legend: { display: false } }
             }
@@ -304,7 +228,7 @@
             datasets.forEach((d, i) => {
                 const tab = document.createElement('div');
                 tab.className = 'graph-tab' + (d.active ? ' active' : '');
-                tab.innerHTML = '<div class="swatch" style="background:' + d.color + ';"></div>' + d.label;
+                tab.innerHTML = '<div class="graph-tab-swatch" style="background:' + d.color + ';"></div>' + d.label;
                 tab.onclick = () => {
                     d.active = !d.active;
                     tab.classList.toggle('active');
@@ -319,15 +243,24 @@
         const ctxResChart = document.getElementById('resource-chart').getContext('2d');
         const resourceChart = new Chart(ctxResChart, {
             type: 'line',
-            data: { labels: [], datasets: resDatasets.map(d => ({ label: d.label, data: [], borderColor: d.color, tension: 0.2 })) },
+            data: { datasets: resDatasets.map(d => ({ label: d.label, data: [], borderColor: d.color, tension: 0.4, borderWidth: 1.5, pointRadius: 0 })) },
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false,
-                elements: { point: { radius: 0 }, line: { borderWidth: 1.5 } },
+                responsive: true, maintainAspectRatio: false,
                 scales: {
-                    x: { display: false },
-                    y: { type: 'linear', min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { family: 'Roboto Mono', size: 10 } } }
+                    x: {
+                        type: 'realtime',
+                        realtime: {
+                            duration: 600000, // 10 minutes
+                            delay: 2000,
+                            frameRate: 30,
+                            refresh: 1000
+                        },
+                        grid: { color: 'rgba(51, 255, 51, 0.08)' },
+                        ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } }
+                    },
+                    y: { type: 'linear', min: 0, max: 100, grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } }
                 },
-                plugins: { legend: { display: true, labels: { color: '#888', font: { size: 10 } } } }
+                plugins: { legend: { display: true, labels: { color: '#888', font: { size: 10, family: 'Roboto Mono' } } } }
             }
         });
 
@@ -403,20 +336,22 @@
                     ec: ecPct,
                     fuel: fuelPct,
                 };
+                const now = Date.now();
                 datasets.forEach((d, i) => {
-                    telemetryChart.data.datasets[i].data.push(vals[d.key] || 0);
+                    telemetryChart.data.datasets[i].data.push({
+                        x: now,
+                        y: vals[d.key] || 0
+                    });
                 });
-                telemetryChart.update();
+                telemetryChart.update('quiet');
                 
-                if (resourceChart.data.labels.length > maxDataPoints) {
-                    resourceChart.data.labels.shift();
-                    resourceChart.data.datasets.forEach(ds => ds.data.shift());
-                }
-                resourceChart.data.labels.push(formatTime(data.time || 0));
                 resDatasets.forEach((d, i) => {
-                    resourceChart.data.datasets[i].data.push(vals[d.key] || 0);
+                    resourceChart.data.datasets[i].data.push({
+                        x: now,
+                        y: vals[d.key] || 0
+                    });
                 });
-                resourceChart.update();
+                resourceChart.update('quiet');
 
                 // --- Milestones ---
                 if (data.milestones && data.milestones.length > 0) {

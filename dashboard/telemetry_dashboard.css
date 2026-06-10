@@ -1,0 +1,427 @@
+/* ==========================================================================
+   DASA TELEMETRY STYLESHEET (VANILLA CSS)
+   Aesthetic: Classic Retro NASA (CRT Phosphor Green & Amber)
+   ========================================================================== */
+
+:root {
+    --bg-color: #080808;
+    --panel-bg: #121212;
+    --panel-border: #333333;
+    --crt-green: #33ff33;
+    --crt-green-dim: rgba(51, 255, 51, 0.15);
+    --crt-amber: #ffb000;
+    --crt-amber-dim: rgba(255, 176, 0, 0.15);
+    --safety-orange: #ff6600;
+    --text-main: #d4d4d8;
+    --text-muted: #71717a;
+    --text-white: #ffffff;
+    --font-mono: 'Roboto Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background: var(--bg-color);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* CRT Scanline effect */
+body::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(
+        to bottom,
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.15) 50%
+    );
+    background-size: 100% 4px;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+/* Scrollbar Customization */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--panel-border);
+    border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Typography Utilities */
+.font-mono {
+    font-family: var(--font-mono);
+}
+.font-sans {
+    font-family: var(--font-sans);
+}
+.text-crt-green {
+    color: var(--crt-green);
+    text-shadow: 0 0 8px rgba(51, 255, 51, 0.5);
+}
+.text-crt-amber {
+    color: var(--crt-amber);
+    text-shadow: 0 0 8px rgba(255, 176, 0, 0.5);
+}
+.text-orange {
+    color: var(--safety-orange);
+    text-shadow: 0 0 8px rgba(255, 102, 0, 0.4);
+}
+
+/* Header */
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    background: #0c0c0c;
+    border-bottom: 2px solid var(--panel-border);
+    height: 56px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+}
+.dashboard-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: var(--text-white);
+}
+.header-center {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+.mission-time {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 0.75rem;
+    background: var(--crt-green-dim);
+    color: var(--crt-green);
+    border: 1px solid var(--crt-green);
+    box-shadow: 0 0 10px rgba(51, 255, 51, 0.2);
+    letter-spacing: 1px;
+}
+.stage-indicator {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+}
+
+/* Layout Grid */
+.dashboard-grid {
+    display: flex;
+    flex: 1;
+    height: calc(100vh - 56px);
+    padding: 8px;
+    gap: 8px;
+    overflow: hidden;
+}
+
+/* Panels */
+.panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.panel-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+    letter-spacing: 1.5px;
+    flex-shrink: 0;
+}
+
+/* Sidebars */
+.left-sidebar {
+    width: 320px;
+    display: flex;
+    flex-col: column;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+.right-sidebar {
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    overflow-y: auto;
+}
+.flex-grow-panel {
+    flex: 1;
+    min-height: 200px;
+}
+
+/* Center HUD Area */
+.center-hud {
+    flex: 1;
+    position: relative;
+    background: #050505;
+    border: 1px solid var(--panel-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.vessel-canvas {
+    width: 100%;
+    flex: 1;
+    cursor: grab;
+}
+.vessel-canvas:active {
+    cursor: grabbing;
+}
+
+/* HUD Overlay Controls */
+.hud-controls {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: flex;
+    gap: 6px;
+    z-index: 10;
+}
+.hud-btn {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--panel-border);
+    color: var(--text-main);
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.hud-btn:hover {
+    background: #222;
+    color: var(--text-white);
+}
+.hud-btn.active {
+    background: var(--crt-green-dim);
+    color: var(--crt-green);
+    border-color: var(--crt-green);
+    font-weight: 700;
+    box-shadow: 0 0 8px rgba(51, 255, 51, 0.2);
+}
+
+/* Data Rows */
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 0.85rem;
+}
+.data-label {
+    color: var(--text-muted);
+}
+.data-value {
+    font-weight: 700;
+    color: var(--text-white);
+}
+
+/* Linear Gauges */
+.gauge-container {
+    margin-bottom: 8px;
+}
+.gauge-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    margin-bottom: 2px;
+}
+.gauge-bar {
+    width: 100%;
+    height: 6px;
+    background: #1c1c1e;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.gauge-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* Navball Wrapper */
+.navball-wrap {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin: 8px auto 4px;
+    flex-shrink: 0;
+}
+.navball-canvas {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: 3px solid #333;
+    background: #0c0c0c;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8) inset;
+    display: block;
+}
+.navball-readout {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 8px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Maneuver node alert panel */
+.maneuver-alert-panel {
+    background: #1a1400;
+    border: 1px solid var(--crt-amber);
+}
+
+/* Collapsible Graph Drawer */
+.graph-drawer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(18, 18, 18, 0.95);
+    backdrop-filter: blur(4px);
+    border-t: 1px solid var(--panel-border);
+    display: flex;
+    flex-direction: column;
+    height: 270px;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(100%);
+    z-index: 100;
+}
+.graph-drawer.open {
+    transform: translateY(0);
+}
+.graph-drawer-toggle {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-bottom: none;
+    padding: 4px 16px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    user-select: none;
+}
+.graph-drawer-toggle:hover {
+    color: var(--text-white);
+}
+.graph-drawer-content {
+    display: flex;
+    flex: 1;
+    padding: 8px;
+    gap: 8px;
+    height: 100%;
+}
+.graph-container-left {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--panel-border);
+    background: #050505;
+    padding: 8px;
+    min-width: 0;
+}
+.graph-container-right {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--panel-border);
+    background: #050505;
+    padding: 8px;
+    flex-shrink: 0;
+}
+.graph-canvas-wrapper {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+}
+
+/* Graph Tabs */
+.graph-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+.graph-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    background: #222;
+    border: 1px solid #444;
+    font-size: 0.7rem;
+    color: var(--text-main);
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+.graph-tab:hover {
+    border-color: #666;
+}
+.graph-tab.active {
+    border-color: var(--crt-green);
+    background: var(--crt-green-dim);
+    color: var(--crt-green);
+}
+.graph-tab-swatch {
+    width: 8px;
+    height: 8px;
+    border-radius: 1px;
+    flex-shrink: 0;
+}
+
+/* Mission Log / Milestones list */
+.timeline-item {
+    font-size: 0.75rem;
+    padding: 4px 0;
+    border-left: 2px solid var(--crt-green);
+    padding-left: 8px;
+    margin-bottom: 4px;
+}

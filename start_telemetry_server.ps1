@@ -108,6 +108,38 @@ while ($listener.IsListening) {
                     $response.ContentLength64 = $buffer.Length
                     $response.OutputStream.Write($buffer, 0, $buffer.Length)
                 }
+            } elseif ($request.Url.LocalPath -eq "/telemetry_dashboard.css") {
+                if (Test-Path "dashboard/telemetry_dashboard.css") {
+                    $content = Get-Content -Path "dashboard/telemetry_dashboard.css" -Raw
+                    $buffer = [System.Text.Encoding]::UTF8.GetBytes($content)
+                    $response.ContentType = "text/css"
+                    $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
+                    $response.Headers.Add("Pragma", "no-cache")
+                    $response.Headers.Add("Expires", "0")
+                    $response.ContentLength64 = $buffer.Length
+                    $response.OutputStream.Write($buffer, 0, $buffer.Length)
+                } else {
+                    $response.StatusCode = 404
+                }
+            } elseif ($request.Url.LocalPath -eq "/vessel_mesh.json") {
+                if (Test-Path "telemetry/vessel_mesh.json") {
+                    $content = Get-Content -Path "telemetry/vessel_mesh.json" -Raw
+                    $buffer = [System.Text.Encoding]::UTF8.GetBytes($content)
+                    $response.ContentType = "application/json"
+                    $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
+                    $response.Headers.Add("Pragma", "no-cache")
+                    $response.Headers.Add("Expires", "0")
+                    $response.ContentLength64 = $buffer.Length
+                    $response.OutputStream.Write($buffer, 0, $buffer.Length)
+                } else {
+                    $buffer = [System.Text.Encoding]::UTF8.GetBytes("{}")
+                    $response.ContentType = "application/json"
+                    $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
+                    $response.Headers.Add("Pragma", "no-cache")
+                    $response.Headers.Add("Expires", "0")
+                    $response.ContentLength64 = $buffer.Length
+                    $response.OutputStream.Write($buffer, 0, $buffer.Length)
+                }
             } else {
                 $response.StatusCode = 404
             }
