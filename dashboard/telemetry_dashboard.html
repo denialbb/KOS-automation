@@ -265,6 +265,7 @@
         let currTelemetry = null;
         let telemetryRecvTime = 0;
         const TELEM_INTERVAL = 200; // expected ms between fetches
+        let isVelKmS = false;
 
         // ==========================================
         // CHART SETUP — 3 logical groups, toggleable
@@ -481,10 +482,14 @@
 
         function resetDashboardState() {
             console.log("Mission reset detected. Resetting dashboard state...");
+            isVelKmS = false;
+            datasets[1].label = 'Velocity (m/s)';
             if (telemetryChart) {
+                telemetryChart.data.datasets[1].label = 'Velocity (m/s)';
                 telemetryChart.data.datasets.forEach(ds => ds.data = []);
                 telemetryChart.update();
             }
+            buildGraphTabs();
             if (resourceChart) {
                 resourceChart.data.datasets = [];
                 resourceChart.update();
@@ -582,9 +587,34 @@
                 // --- Graph data ---
                 if (!isPaused) {
                     const now = Date.now();
+                    const rawVel = data.velocity || 0;
+                    
+                    // Transition velocity scale if threshold is crossed (300 m/s)
+                    if (!isVelKmS && rawVel >= 300) {
+                        isVelKmS = true;
+                        datasets[1].label = 'Velocity (km/s)';
+                        if (telemetryChart && telemetryChart.data.datasets[1]) {
+                            telemetryChart.data.datasets[1].label = 'Velocity (km/s)';
+                            telemetryChart.data.datasets[1].data.forEach(pt => {
+                                pt.y = pt.y / 1000;
+                            });
+                        }
+                        buildGraphTabs();
+                    } else if (isVelKmS && rawVel < 300) {
+                        isVelKmS = false;
+                        datasets[1].label = 'Velocity (m/s)';
+                        if (telemetryChart && telemetryChart.data.datasets[1]) {
+                            telemetryChart.data.datasets[1].label = 'Velocity (m/s)';
+                            telemetryChart.data.datasets[1].data.forEach(pt => {
+                                pt.y = pt.y * 1000;
+                            });
+                        }
+                        buildGraphTabs();
+                    }
+
                     const vals = {
                         alt: (data.altitude || 0) / 1000,
-                        vel: data.velocity || 0,
+                        vel: isVelKmS ? (rawVel / 1000) : rawVel,
                         twr: data.twr || 0,
                         q: data.q || 0,
                     };
