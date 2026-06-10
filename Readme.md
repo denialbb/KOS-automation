@@ -69,6 +69,7 @@ graph TD
 
 ### 1. Prerequisites
 - **Kerbal Space Program** (v1.12.x) with the **kOS** mod.
+- **Astrogator** and **kOS-Astrogator** mods (for maneuver node planning).
 - **Node.js** (LTS) and **NPM**.
 - **Python 3.x**.
 
@@ -97,6 +98,7 @@ The project components and their licenses are audited below:
 | **SpaceCore** | MIT | Reusable autopilot library. |
 | **io_object_mu** | GNU GPL v2 | Mesh parser library (external dependency). |
 | **kOS Mod** | GNU GPL v3 | Runtime environment. |
+| **Astrogator & kOS-Astrogator** | GNU GPL v3 | Transfer calculation and node planning addon. |
 
 To ensure repository compliance with the permissive MIT license, the GPL-licensed `io_object_mu` dependency is excluded from repository distribution via `.gitignore` and is cloned dynamically at runtime by `launch_dashboard.py`.
 
