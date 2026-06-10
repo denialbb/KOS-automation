@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DASA Mission Control</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.0/dist/chartjs-adapter-luxon.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-streaming@2.0.0/dist/chartjs-plugin-streaming.min.js"></script>
@@ -271,10 +271,10 @@
         // CHART SETUP — 3 logical groups, toggleable
         // ==========================================
         const datasets = [
-            { key: 'alt',  label: 'Altitude (km)',   color: '#00AEEF', group: 'trajectory', yAxis: 'y1', active: true },
-            { key: 'vel',  label: 'Velocity (m/s)',  color: '#a78bfa', group: 'trajectory', yAxis: 'y1', active: true },
-            { key: 'twr',  label: 'TWR',             color: '#10b981', group: 'dynamics',   yAxis: 'y2', active: true },
-            { key: 'q',    label: 'Q (kPa)',         color: '#ef4444', group: 'dynamics',   yAxis: 'y2', active: true },
+            { key: 'alt',  label: 'Altitude (km)',   color: '#00AEEF', group: 'trajectory', yAxis: 'y_alt', active: true },
+            { key: 'vel',  label: 'Velocity (m/s)',  color: '#a78bfa', group: 'trajectory', yAxis: 'y_vel', active: true },
+            { key: 'twr',  label: 'TWR',             color: '#10b981', group: 'dynamics',   yAxis: 'y_twr', active: true },
+            { key: 'q',    label: 'Q (kPa)',         color: '#ef4444', group: 'dynamics',   yAxis: 'y_q',   active: true },
         ];
         
         // Resource names and colors formatter
@@ -353,8 +353,66 @@
                         grid: { color: 'rgba(51, 255, 51, 0.08)' },
                         ticks: { display: false }
                     },
-                    y1: { type: 'linear', position: 'left', display: 'auto', grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } },
-                    y2: { type: 'linear', position: 'right', display: 'auto', grid: { drawOnChartArea: false }, ticks: { color: '#ffb000', font: { family: 'Roboto Mono', size: 10 } } },
+                    y_alt: {
+                        type: 'linear',
+                        position: 'left',
+                        stack: 'telemetry',
+                        stackWeight: 1,
+                        display: 'auto',
+                        title: {
+                            display: true,
+                            text: 'Alt (km)',
+                            color: '#00AEEF',
+                            font: { family: 'Roboto Mono', size: 9, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(51, 255, 51, 0.08)' },
+                        ticks: { color: '#00AEEF', font: { family: 'Roboto Mono', size: 9 } }
+                    },
+                    y_vel: {
+                        type: 'linear',
+                        position: 'left',
+                        stack: 'telemetry',
+                        stackWeight: 1,
+                        display: 'auto',
+                        title: {
+                            display: true,
+                            text: 'Vel (m/s)',
+                            color: '#a78bfa',
+                            font: { family: 'Roboto Mono', size: 9, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(51, 255, 51, 0.08)' },
+                        ticks: { color: '#a78bfa', font: { family: 'Roboto Mono', size: 9 } }
+                    },
+                    y_twr: {
+                        type: 'linear',
+                        position: 'left',
+                        stack: 'telemetry',
+                        stackWeight: 1,
+                        display: 'auto',
+                        title: {
+                            display: true,
+                            text: 'TWR',
+                            color: '#10b981',
+                            font: { family: 'Roboto Mono', size: 9, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(51, 255, 51, 0.08)' },
+                        ticks: { color: '#10b981', font: { family: 'Roboto Mono', size: 9 } }
+                    },
+                    y_q: {
+                        type: 'linear',
+                        position: 'left',
+                        stack: 'telemetry',
+                        stackWeight: 1,
+                        display: 'auto',
+                        title: {
+                            display: true,
+                            text: 'Q (kPa)',
+                            color: '#ef4444',
+                            font: { family: 'Roboto Mono', size: 9, weight: 'bold' }
+                        },
+                        grid: { color: 'rgba(51, 255, 51, 0.08)' },
+                        ticks: { color: '#ef4444', font: { family: 'Roboto Mono', size: 9 } }
+                    }
                 },
                 plugins: { legend: { display: false } }
             }
@@ -486,6 +544,9 @@
             datasets[1].label = 'Velocity (m/s)';
             if (telemetryChart) {
                 telemetryChart.data.datasets[1].label = 'Velocity (m/s)';
+                if (telemetryChart.options.scales.y_vel && telemetryChart.options.scales.y_vel.title) {
+                    telemetryChart.options.scales.y_vel.title.text = 'Vel (m/s)';
+                }
                 telemetryChart.data.datasets.forEach(ds => ds.data = []);
                 telemetryChart.update();
             }
@@ -599,6 +660,9 @@
                                 pt.y = pt.y / 1000;
                             });
                         }
+                        if (telemetryChart && telemetryChart.options.scales.y_vel && telemetryChart.options.scales.y_vel.title) {
+                            telemetryChart.options.scales.y_vel.title.text = 'Vel (km/s)';
+                        }
                         buildGraphTabs();
                     } else if (isVelKmS && rawVel < 300) {
                         isVelKmS = false;
@@ -608,6 +672,9 @@
                             telemetryChart.data.datasets[1].data.forEach(pt => {
                                 pt.y = pt.y * 1000;
                             });
+                        }
+                        if (telemetryChart && telemetryChart.options.scales.y_vel && telemetryChart.options.scales.y_vel.title) {
+                            telemetryChart.options.scales.y_vel.title.text = 'Vel (m/s)';
                         }
                         buildGraphTabs();
                     }
