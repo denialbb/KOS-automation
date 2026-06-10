@@ -77,7 +77,7 @@ sas on.
 wait 0.1.
 set sasmode to "PROGRADE".
 set warpmode to "physics".
-set warp to 3.
+set warp to 1.
 print "Warping to apoapsis" at (0,0).
 set BurnMoment to time:seconds + eta:apoapsis.
 wait until time:seconds >= (BurnMoment-BurnTime/2-WarpStopTime).

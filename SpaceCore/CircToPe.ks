@@ -63,7 +63,7 @@ sas on.
 wait 0.1.
 set sasmode to "RETROGRADE".
 set warpmode to "physics".
-set warp to 3.
+set warp to 1.
 print "Warping to periapsis" at (0,0).
 set BurnMoment to time:seconds + eta:periapsis.
 wait until time:seconds >= (BurnMoment-BurnTime/2-WarpStopTime).
