@@ -44,4 +44,8 @@
   - `DASA/` - Mission-specific scripts
   - `SpaceCore/` - Reusable autopilot libraries
   - `telemetry_server/` - Web server files
-  - `antigravity_notes/` - AI decision notes and research
+  - `antigravity_notes/` - AI decision notes and research
+
+## Dependency Licensing and Distribution
+- **Permissive MIT Licensing:** The core project codebase is licensed under the permissive MIT license.
+- **GPL Dependency Handling (Option B):** To avoid GPL copyleft contamination, copyleft-licensed dependencies (such as the GPL v2 `io_object_mu` parser) must never be committed to or distributed within the git repository. Instead, they must be ignored via `.gitignore` and downloaded/extracted dynamically at runtime or install-time from their official source repository.
