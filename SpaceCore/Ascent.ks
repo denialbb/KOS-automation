@@ -20,6 +20,16 @@ when true then {
 	print "Pitch: "+round(90-vang(ship:up:forevector,ship:facing:forevector))+" degrees       " at(0,5).
 	print "Orbital velocity: "+round(ship:velocity:orbit:mag)+" m/s       " at (0,6).
 	print "Running: uAscent" at (0,8).
+    
+    local r_dist is body:radius + ship:altitude.
+    local grav is body:mu / (r_dist * r_dist).
+    local twr is 0.
+    if availablethrust > 0 and mass > 0 { set twr to availablethrust / (mass * grav). }
+    print "--- TELEMETRY ----------" at(0,30).
+    print "TWR: " + round(twr, 2) + "        " at(0,31).
+    print "Q:   " + round(ship:dynamicpressure, 4) + " kPa   " at(0,32).
+    print "EC:  " + round(ship:electriccharge) + "       " at(0,33).
+    
     preserve.
 	}
 }
@@ -87,9 +97,11 @@ wait until ship:apoapsis > TargetAltitude.
 	lock throttle to 0.
 	unlock steering.
 	sas on.
+	wait 0.1.
+	set sasmode to "PROGRADE".
 
 	set warpmode to "physics".
-	set warp to 3.
+	set warp to 1.
 
 
 //fairing
@@ -105,6 +117,8 @@ wait until ship:q = 0.
 	set warp to 0.
 	unlock steering.
 	sas on. // ADDITION: Turn on SAS when coasting to prevent uncontrolled rotation
+	wait 0.1.
+	set sasmode to "PROGRADE".
 	lock throttle to 0. unlock throttle.
 	set running to false.
 	clearscreen.
