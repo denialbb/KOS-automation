@@ -40,30 +40,35 @@ while ($listener.IsListening) {
                 $response.Headers.Add("Expires", "0")
                 $response.ContentLength64 = $buffer.Length
                 $response.OutputStream.Write($buffer, 0, $buffer.Length)
+            } elseif ($request.Url.LocalPath -eq "/favicon.ico") {
+                $response.StatusCode = 204
             } elseif ($request.Url.LocalPath -eq "/telemetry.json") {
-                if (Test-Path "telemetry/telemetry.json") {
-                    $content = Get-Content -Path "telemetry/telemetry.json" -Raw
-                    $fileItem = Get-Item "telemetry/telemetry.json"
-                    $age = (Get-Date) - $fileItem.LastWriteTime
-                    if ($age.TotalSeconds -gt 3.0) {
-                        if ($global:wasConnected) {
-                            $global:wasConnected = $false
-                            Log-Event "$(Format-Time $global:lastKnownTime) SIGNAL LOST: Connection to KOS computer lost."
-                        }
-                        try {
-                            $data = ConvertFrom-Json $content
+                $content = "{`"signalLost`": true}"
+                try {
+                    if (Test-Path "telemetry/telemetry.json") {
+                        # Use FileShare safe read to avoid lock violations on Windows
+                        $fileStream = New-Object System.IO.FileStream("telemetry/telemetry.json", [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                        $reader = New-Object System.IO.StreamReader($fileStream)
+                        $rawContent = $reader.ReadToEnd()
+                        $reader.Close()
+                        $fileStream.Close()
+
+                        $fileItem = Get-Item "telemetry/telemetry.json"
+                        $age = (Get-Date) - $fileItem.LastWriteTime
+                        if ($age.TotalSeconds -gt 3.0) {
+                            if ($global:wasConnected) {
+                                $global:wasConnected = $false
+                                Log-Event "$(Format-Time $global:lastKnownTime) SIGNAL LOST: Connection to KOS computer lost."
+                            }
+                            $data = ConvertFrom-Json $rawContent
                             if ($data -ne $null) {
                                 $data | Add-Member -MemberType NoteProperty -Name "signalLost" -Value $true -Force
                                 $content = ConvertTo-Json $data
                             } else {
                                 $content = "{`"signalLost`": true}"
                             }
-                        } catch {
-                            $content = "{`"signalLost`": true}"
-                        }
-                    } else {
-                        try {
-                            $data = ConvertFrom-Json $content
+                        } else {
+                            $data = ConvertFrom-Json $rawContent
                             if ($data -ne $null -and $data.time -ne $null) {
                                 $global:lastKnownTime = $data.time
                             }
@@ -71,24 +76,19 @@ while ($listener.IsListening) {
                                 $global:wasConnected = $true
                                 Log-Event "$(Format-Time $global:lastKnownTime) Signal restored. Reconnected to KOS computer."
                             }
-                        } catch { }
+                            $content = $rawContent
+                        }
                     }
-                    $buffer = [System.Text.Encoding]::UTF8.GetBytes($content)
-                    $response.ContentType = "application/json"
-                    $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
-                    $response.Headers.Add("Pragma", "no-cache")
-                    $response.Headers.Add("Expires", "0")
-                    $response.ContentLength64 = $buffer.Length
-                    $response.OutputStream.Write($buffer, 0, $buffer.Length)
-                } else {
-                    $buffer = [System.Text.Encoding]::UTF8.GetBytes("{`"signalLost`": true}")
-                    $response.ContentType = "application/json"
-                    $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
-                    $response.Headers.Add("Pragma", "no-cache")
-                    $response.Headers.Add("Expires", "0")
-                    $response.ContentLength64 = $buffer.Length
-                    $response.OutputStream.Write($buffer, 0, $buffer.Length)
+                } catch {
+                    $content = "{`"signalLost`": true}"
                 }
+                $buffer = [System.Text.Encoding]::UTF8.GetBytes($content)
+                $response.ContentType = "application/json"
+                $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
+                $response.Headers.Add("Pragma", "no-cache")
+                $response.Headers.Add("Expires", "0")
+                $response.ContentLength64 = $buffer.Length
+                $response.OutputStream.Write($buffer, 0, $buffer.Length)
             } elseif ($request.Url.LocalPath -eq "/vessel_structure.json") {
                 if (Test-Path "telemetry/vessel_structure.json") {
                     $content = Get-Content -Path "telemetry/vessel_structure.json" -Raw

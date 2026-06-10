@@ -29,6 +29,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'dashboard', 'telemetry_dashboard.html'));
 });
 
+// Serve favicon
+app.get('/favicon.ico', (req, res) => {
+    res.status(204).end();
+});
+
 // Serve stylesheet
 app.get('/telemetry_dashboard.css', (req, res) => {
     const filePath = path.join(__dirname, '..', 'dashboard', 'telemetry_dashboard.css');

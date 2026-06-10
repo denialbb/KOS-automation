@@ -692,7 +692,7 @@
                             y: vals[d.key] || 0
                         });
                     });
-                    telemetryChart.update('quiet');
+                    telemetryChart.update('none');
                     
                     // Dynamic resource datasets
                     if (data.resources) {
@@ -734,7 +734,7 @@
                             }
                         });
                         
-                        resourceChart.update('quiet');
+                        resourceChart.update('none');
                         updateResourceTabs();
                     }
                 }
