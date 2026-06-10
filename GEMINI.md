@@ -48,4 +48,8 @@
 
 ## Dependency Licensing and Distribution
 - **Permissive MIT Licensing:** The core project codebase is licensed under the permissive MIT license.
-- **GPL Dependency Handling (Option B):** To avoid GPL copyleft contamination, copyleft-licensed dependencies (such as the GPL v2 `io_object_mu` parser) must never be committed to or distributed within the git repository. Instead, they must be ignored via `.gitignore` and downloaded/extracted dynamically at runtime or install-time from their official source repository.
+- **GPL Dependency Handling (Option B):** To avoid GPL copyleft contamination, copyleft-licensed dependencies (such as the GPL v2 `io_object_mu` parser) must never be committed to or distributed within the git repository. Instead, they must be ignored via `.gitignore` and downloaded/extracted dynamically at runtime or install-time from their official source repository.
+
+## Documentation Style Conventions
+- **Writing Style:** Technical documentation must be written in a clear and technical style, using an impersonal voice and avoiding emojis.
+- **Modularity:** Information must be organized into separate documents when diving deeper into a specific argument, keeping files focused and modular.
