@@ -175,6 +175,7 @@
         let mousePos = { x: 0, y: 0 };
         window.projectedParts = [];
         let currentDrawingHovered = false;
+        let lastScienceListStateStr = "";
 
         const scienceKeywords = [
             "science", "sensor", "experiment", "scanner", "thermometer", "barometer",
@@ -210,10 +211,19 @@
 
             if (!vesselStructure || !vesselStructure.parts || viewerMode !== 'blueprint') {
                 card.style.display = 'none';
+                lastScienceListStateStr = "";
                 return;
             }
 
+            const activeUids = new Set(activePartsCache.map(p => p.uid));
             const scienceParts = vesselStructure.parts.filter(p => isSciencePart(p.name));
+            const stateStr = scienceParts.map(p => `${p.uid}:${activeUids.has(p.uid)}`).join(',');
+            
+            if (stateStr === lastScienceListStateStr) {
+                card.style.display = 'block';
+                return;
+            }
+            lastScienceListStateStr = stateStr;
 
             if (scienceParts.length === 0) {
                 listContainer.innerHTML = '<div style="font-size:10px;color:var(--text-muted);padding:4px;">No science parts detected.</div>';
@@ -224,8 +234,6 @@
             card.style.display = 'block';
             listContainer.innerHTML = '';
             
-            const activeUids = new Set(activePartsCache.map(p => p.uid));
-
             scienceParts.forEach(p => {
                 const el = document.createElement('div');
                 el.className = 'science-part-item';
@@ -317,17 +325,7 @@
                             refresh: 1000
                         },
                         grid: { color: 'rgba(51, 255, 51, 0.08)' },
-                        ticks: {
-                            color: '#33ff33',
-                            font: { family: 'Roboto Mono', size: 10 },
-                            callback: function(value) {
-                                if (lastSyncTime > 0) {
-                                    const secs = baseMissionTime + (value - lastSyncTime) / 1000;
-                                    return secs >= 0 ? "T+ " + formatTime(secs) : "";
-                                }
-                                return "";
-                            }
-                        }
+                        ticks: { display: false }
                     },
                     y1: { type: 'linear', position: 'left', display: 'auto', grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } },
                     y2: { type: 'linear', position: 'right', display: 'auto', grid: { drawOnChartArea: false }, ticks: { color: '#ffb000', font: { family: 'Roboto Mono', size: 10 } } },
@@ -371,17 +369,7 @@
                             refresh: 1000
                         },
                         grid: { color: 'rgba(51, 255, 51, 0.08)' },
-                        ticks: {
-                            color: '#33ff33',
-                            font: { family: 'Roboto Mono', size: 10 },
-                            callback: function(value) {
-                                if (lastSyncTime > 0) {
-                                    const secs = baseMissionTime + (value - lastSyncTime) / 1000;
-                                    return secs >= 0 ? "T+ " + formatTime(secs) : "";
-                                }
-                                return "";
-                            }
-                        }
+                        ticks: { display: false }
                     },
                     y: { type: 'linear', min: 0, max: 100, grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } }
                 },
@@ -466,6 +454,27 @@
             }
         }
 
+        function resetDashboardState() {
+            console.log("Mission reset detected. Resetting dashboard state...");
+            if (telemetryChart) {
+                telemetryChart.data.datasets.forEach(ds => ds.data = []);
+                telemetryChart.update();
+            }
+            if (resourceChart) {
+                resourceChart.data.datasets = [];
+                resourceChart.update();
+            }
+            const mCont = document.getElementById('milestones-container');
+            if (mCont) mCont.innerHTML = '<div class="timeline-item">Waiting for data...</div>';
+            const resContainer = document.getElementById('resources-container');
+            if (resContainer) resContainer.innerHTML = '<div class="data-row"><span class="data-label">No resource data</span></div>';
+            hoveredPart = null;
+            activePartsCache = [];
+            lastScienceListStateStr = "";
+            prevTelemetry = null;
+            currTelemetry = null;
+        }
+
         // ==========================================
         // TELEMETRY FETCH (1 Hz)
         // ==========================================
@@ -474,6 +483,11 @@
                 const response = await fetch('telemetry.json?t=' + Date.now(), { cache: "no-store" });
                 if (!response.ok) return;
                 const data = await response.json();
+
+                // Check for mission reset (time running backwards)
+                if (currTelemetry && data.time < currTelemetry.time) {
+                    resetDashboardState();
+                }
 
                 // Interpolation buffer: shift current to previous
                 prevTelemetry = currTelemetry;

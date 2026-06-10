@@ -15,6 +15,9 @@ local lastPowerCheck is 0.
 global telemetryStage is "Booting".
 global missionMilestones is list().
 local lastTelemetryUpdate is 0.
+global maxQVal is 0.
+global maxQTime is 0.
+global maxQLogged is false.
 
 if exists("0:/logs/mission_history.log") {
     deletepath("0:/logs/mission_history.log").
@@ -402,6 +405,17 @@ when time:seconds > lastTelemetryUpdate + 0.2 then {
             logMsg("SIGNAL LOST: Connection to KSC lost.").
         }
         set hadConnection to hasConn.
+    }
+    
+    if telemetryStage = "Ascent" and not maxQLogged {
+        local currentQ is ship:dynamicpressure.
+        if currentQ > maxQVal {
+            set maxQVal to currentQ.
+            set maxQTime to missiontime.
+        } else if currentQ < maxQVal - 0.01 and maxQVal > 0.05 and missiontime > maxQTime + 2 {
+            set maxQLogged to true.
+            logMsg("Max Q reached: " + round(maxQVal * 101.325, 2) + " kPa").
+        }
     }
     
     updateTelemetry(telemetryStage).
