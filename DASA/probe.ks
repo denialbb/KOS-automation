@@ -34,15 +34,73 @@ if ship:apoapsis < targetAp {
     logMsg("Apoapsis target reached. Coasting.").
 }
 
-logMsg("Deploying equipment (solar panels/science).").
+logMsg("Deploying equipment (solar panels/science/antennas).").
+// 1. Deploy any fairings on the vessel first to unshield parts
+logMsg("Jettisoning all fairings...").
+for p in ship:parts {
+    for m in p:modules {
+        local mName is m:tostring:tolower.
+        if mName:contains("fairing") or mName:contains("jettison") or mName:contains("shroud") {
+            local pMod is p:getmodule(m).
+            for ev in pMod:alleventnames {
+                local evLower is ev:tolower.
+                if evLower:contains("deploy") or evLower:contains("jettison") or evLower:contains("open") or evLower:contains("release") {
+                    pMod:doevent(ev).
+                    logMsg("Jettisoned fairing: " + ev + " on " + p:title).
+                }
+            }
+        }
+    }
+}
+wait 1. // Wait for fairing separation physics
+
 panels on.
+
+// Deploy science
 for p in ship:modulesNamed("ModuleScienceExperiment") {
     p:deploy().
 }
-// Activate any antennas
-for p in ship:modulesNamed("ModuleDataTransmitter") {
-    if p:hasevent("extend antenna") {
-        p:doevent("extend antenna").
+
+// Deploy antennas and solar panels robustly
+for p in ship:parts {
+    local pName is p:name:tolower.
+    local pTitle is p:title:tolower.
+    local isAntennaOrPanelPart is false.
+    if pName:contains("solar") or pName:contains("panel") or pName:contains("antenna")
+       or pName:contains("dish") or pName:contains("comm") or pName:contains("trans")
+       or pName:contains("ray") or pName:contains("reflector") {
+        set isAntennaOrPanelPart to true.
+    }
+    if pTitle:contains("solar") or pTitle:contains("panel") or pTitle:contains("antenna")
+       or pTitle:contains("dish") or pTitle:contains("comm") or pTitle:contains("trans")
+       or pTitle:contains("ray") or pTitle:contains("reflector") {
+        set isAntennaOrPanelPart to true.
+    }
+
+    for m in p:modules {
+        local mName is m:tostring:tolower.
+        local pMod is p:getmodule(m).
+        
+        local isDeployableModule is false.
+        if mName:contains("solar") or mName:contains("panel") or mName:contains("antenna")
+           or mName:contains("transmit") or mName:contains("comm") or mName:contains("animate")
+           or mName:contains("deploy") or mName:contains("dish") or mName:contains("boom") {
+            set isDeployableModule to true.
+        }
+        
+        if isAntennaOrPanelPart or isDeployableModule {
+            for ev in pMod:alleventnames {
+                local evLower is ev:tolower.
+                if evLower:contains("extend") or evLower:contains("deploy") or evLower:contains("open") 
+                   or evLower:contains("activate") or evLower:contains("toggle") or evLower:contains("start") {
+                    if not (evLower:contains("retract") or evLower:contains("close") or evLower:contains("stop")
+                            or evLower:contains("disable") or evLower:contains("shutdown") or evLower:contains("jettison")) {
+                        pMod:doevent(ev).
+                        logMsg("Deploying: " + ev + " on " + p:title).
+                    }
+                }
+            }
+        }
     }
 }
 
