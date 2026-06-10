@@ -317,7 +317,17 @@
                             refresh: 1000
                         },
                         grid: { color: 'rgba(51, 255, 51, 0.08)' },
-                        ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } }
+                        ticks: {
+                            color: '#33ff33',
+                            font: { family: 'Roboto Mono', size: 10 },
+                            callback: function(value) {
+                                if (lastSyncTime > 0) {
+                                    const secs = baseMissionTime + (value - lastSyncTime) / 1000;
+                                    return secs >= 0 ? "T+ " + formatTime(secs) : "";
+                                }
+                                return "";
+                            }
+                        }
                     },
                     y1: { type: 'linear', position: 'left', display: 'auto', grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } },
                     y2: { type: 'linear', position: 'right', display: 'auto', grid: { drawOnChartArea: false }, ticks: { color: '#ffb000', font: { family: 'Roboto Mono', size: 10 } } },
@@ -361,7 +371,17 @@
                             refresh: 1000
                         },
                         grid: { color: 'rgba(51, 255, 51, 0.08)' },
-                        ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } }
+                        ticks: {
+                            color: '#33ff33',
+                            font: { family: 'Roboto Mono', size: 10 },
+                            callback: function(value) {
+                                if (lastSyncTime > 0) {
+                                    const secs = baseMissionTime + (value - lastSyncTime) / 1000;
+                                    return secs >= 0 ? "T+ " + formatTime(secs) : "";
+                                }
+                                return "";
+                            }
+                        }
                     },
                     y: { type: 'linear', min: 0, max: 100, grid: { color: 'rgba(51, 255, 51, 0.08)' }, ticks: { color: '#33ff33', font: { family: 'Roboto Mono', size: 10 } } }
                 },
@@ -394,12 +414,16 @@
 
         function updateHoveredPart() {
             if (!window.projectedParts || window.projectedParts.length === 0) {
-                hoveredPart = null;
+                if (hoveredPart !== null) {
+                    hoveredPart = null;
+                    const tooltip = document.getElementById('part-tooltip');
+                    if (tooltip) tooltip.style.display = 'none';
+                }
                 return;
             }
             
             let closest = null;
-            let minD = 20;
+            let minD = 25; // slightly larger hit-test range is nicer
             
             window.projectedParts.forEach(entry => {
                 const dx = mousePos.x - entry.x;
@@ -412,25 +436,33 @@
                 }
             });
             
-            hoveredPart = closest ? closest.part : null;
-            
+            const newHoveredPart = closest ? closest.part : null;
             const tooltip = document.getElementById('part-tooltip');
-            if (tooltip) {
-                if (closest && viewerMode === 'blueprint') {
-                    const p = closest.part;
-                    const cat = getPartCategory(p.name);
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = (mousePos.x + 15) + 'px';
-                    tooltip.style.top = (mousePos.y + 15) + 'px';
-                    tooltip.innerHTML = `
-                        <div style="font-weight:bold;color:var(--crt-green);margin-bottom:4px;font-family:var(--font-mono);">${p.title || p.name}</div>
-                        <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">UID: ${p.uid}</div>
-                        <div style="font-size:11px;margin-bottom:2px;"><span style="color:var(--text-muted);">Type:</span> ${cat}</div>
-                        <div style="font-size:11px;"><span style="color:var(--text-muted);">Size:</span> ${p.size[0].toFixed(2)}m × ${p.size[1].toFixed(2)}m × ${p.size[2].toFixed(2)}m</div>
-                    `;
-                } else {
-                    tooltip.style.display = 'none';
+            
+            if (newHoveredPart !== hoveredPart) {
+                hoveredPart = newHoveredPart;
+                if (tooltip) {
+                    if (hoveredPart && viewerMode === 'blueprint') {
+                        const p = hoveredPart;
+                        const title = p.title || p.name;
+                        const cat = getPartCategory(p.name);
+                        tooltip.style.display = 'block';
+                        tooltip.innerHTML = `
+                            <div style="font-weight:bold;color:var(--crt-green);margin-bottom:4px;font-family:var(--font-mono);">${title}</div>
+                            <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">UID: ${p.uid}</div>
+                            <div style="font-size:11px;margin-bottom:2px;"><span style="color:var(--text-muted);">Type:</span> ${cat}</div>
+                            <div style="font-size:11px;"><span style="color:var(--text-muted);">Size:</span> ${p.size[0].toFixed(2)}m × ${p.size[1].toFixed(2)}m × ${p.size[2].toFixed(2)}m</div>
+                        `;
+                    } else {
+                        tooltip.style.display = 'none';
+                    }
                 }
+            }
+            
+            // Always update tooltip position relative to mousePos if tooltip is active
+            if (tooltip && hoveredPart && viewerMode === 'blueprint') {
+                tooltip.style.left = (mousePos.x + 15) + 'px';
+                tooltip.style.top = (mousePos.y + 15) + 'px';
             }
         }
 
@@ -454,7 +486,15 @@
                     targetTop = data.attitude.top;
                 }
 
-                if (data.parts && data.parts.length > 0) activePartsCache = data.parts;
+                if (data.parts && data.parts.length > 0) {
+                    activePartsCache = data.parts;
+                    if (vesselStructure && vesselStructure.parts) {
+                        vesselStructure.parts.forEach(p => {
+                            const ap = activePartsCache.find(x => x.uid === p.uid);
+                            if (ap) p.title = ap.title;
+                        });
+                    }
+                }
 
                 // --- Graph data ---
                 const now = Date.now();
@@ -1362,6 +1402,12 @@
                 const res = await fetch('vessel_structure.json?t=' + Date.now(), { cache: "no-store" });
                 if (res.ok) { 
                     vesselStructure = await res.json(); 
+                    if (vesselStructure.parts && activePartsCache.length > 0) {
+                        vesselStructure.parts.forEach(p => {
+                            const ap = activePartsCache.find(x => x.uid === p.uid);
+                            if (ap) p.title = ap.title;
+                        });
+                    }
                     calculateScale(); 
                     updateSciencePayloadList();
                 }
