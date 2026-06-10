@@ -452,13 +452,33 @@ if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING
 logMsg("Deploying solar panels, bays, and antennas.").
 panels on.
 bays on.
+
 for p in ship:parts {
     for m in p:modules {
         local mName is m:tostring:tolower.
-        if mName:contains("antenna") or mName:contains("data") or mName:contains("comm") {
-            local pMod is p:getmodule(m).
-            if pMod:hasevent("extend antenna") {
-                pMod:doevent("extend antenna").
+        local pMod is p:getmodule(m).
+        
+        // Match panels, antennas, transmitters, animated booms, or deployables
+        local isDeployable is false.
+        if mName:contains("solar") or mName:contains("panel") or mName:contains("antenna")
+           or mName:contains("transmit") or mName:contains("comm") or mName:contains("animate")
+           or mName:contains("deploy") or mName:contains("dish") or mName:contains("boom") {
+            set isDeployable to true.
+        }
+        
+        if isDeployable {
+            // Loop through all events to find extension/toggle actions
+            for ev in pMod:allevents {
+                local evLower is ev:tolower.
+                // Trigger extend, deploy, open, toggle, or activate events, while ignoring retract/stop/close
+                if evLower:contains("extend") or evLower:contains("deploy") or evLower:contains("open") 
+                   or evLower:contains("activate") or evLower:contains("toggle") or evLower:contains("start") {
+                    if not (evLower:contains("retract") or evLower:contains("close") or evLower:contains("stop")
+                            or evLower:contains("disable") or evLower:contains("shutdown")) {
+                        pMod:doevent(ev).
+                        logMsg("Deploying: " + ev + " on " + p:title).
+                    }
+                }
             }
         }
     }
