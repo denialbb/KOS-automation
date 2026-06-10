@@ -315,6 +315,7 @@ body::after {
     transition: height 0.3s ease-in-out;
     z-index: 100;
     position: relative;
+    overflow: visible;
 }
 .graph-drawer.open {
     height: 330px;
@@ -347,6 +348,7 @@ body::after {
     padding: 8px;
     gap: 8px;
     height: 100%;
+    overflow: hidden;
 }
 .graph-container-left {
     flex: 1;
@@ -449,7 +451,7 @@ body::after {
     top: 50px;
     right: 12px;
     width: 250px;
-    max-height: 320px;
+    max-height: 80vh;
     background: rgba(12, 12, 12, 0.9);
     border: 1px solid var(--panel-border);
     padding: 12px;
