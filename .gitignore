@@ -9,6 +9,13 @@ logs/
 # Node.js dependencies
 telemetry_server/node_modules/
 
+# Ignore GPL dependency downloaded at runtime
+telemetry_server/io_object_mu/
+
+# Python cache files
+__pycache__/
+*.pyc
+
 # OS files
 .DS_Store
 Thumbs.db
