@@ -554,7 +554,7 @@ if bms:length = 0 {
     }
     
     // Clear any existing nodes to prevent "Node has already been added" exception
-    while hasnode {
+    until not hasnode {
         remove nextnode.
         wait 0.05.
     }

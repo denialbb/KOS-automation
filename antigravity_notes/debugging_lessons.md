@@ -88,9 +88,9 @@ When declaring local or global variables under `@lazyGlobal off`, avoid using na
 
 ## 8. Maneuver Node Planning & Astrogator Integration
 *   **Node Accumulation Crash:** Adding a new maneuver node via Astrogator's `addons:astrogator:calculateBurns(target)` when there is already an existing maneuver node on the flight path will raise a runtime exception (e.g., `"Node has already been added"` or engine duplicate node exceptions) and crash the executing KerboScript.
-*   **Node Clearing Sequence:** To safely plan and execute new multi-node maneuvers, all active node objects must be programmatically destroyed before adding calculated burns. Use the following clearing sequence:
+*   **Node Clearing Sequence:** To safely plan and execute new multi-node maneuvers, all active node objects must be programmatically destroyed before adding calculated burns. In kOS, there is no `while` loop keyword. Instead, you must use an `until` loop (e.g. `until not condition`). Use the following clearing sequence:
     ```kerboscript
-    while hasnode {
+    until not hasnode {
         remove nextnode.
         wait 0.05.
     }
