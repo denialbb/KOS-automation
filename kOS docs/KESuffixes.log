@@ -1,3 +1,9 @@
 addons:ke:suffixnames
 
-actualTWR, AVAILABLE, criticalPartName, criticalSkinTemperature, criticalSkinTemperatureMax, criticalTemperature, criticalTemperatureMax, criticalThermalPercentage, HASSUFFIX, help, INHERITANCE, ISSERIALIZABLE, ISTYPE, nodeBurnTime, nodeHalfBurnTime, SUFFIXNAMES, suicideBurnAltitude, suicideBurnCountdown, suicideBurnDeltaV, suicideBurnDistance, suicideBurnLength, TOSTRING, totalTWR, TYPENAME, version
+actualTWR, AVAILABLE,
+criticalPartName, criticalSkinTemperature, criticalSkinTemperatureMax, criticalTemperature,
+criticalTemperatureMax, criticalThermalPercentage,
+HASSUFFIX, help, INHERITANCE, ISSERIALIZABLE, ISTYPE,
+nodeBurnTime, nodeHalfBurnTime, SUFFIXNAMES,
+suicideBurnAltitude, suicideBurnCountdown, suicideBurnDeltaV, suicideBurnDistance, suicideBurnLength,
+TOSTRING, totalTWR, TYPENAME, version
