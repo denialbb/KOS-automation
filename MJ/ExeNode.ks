@@ -11,6 +11,7 @@ LOCAL initial_dv_mag IS nd:DELTAV:MAG.
 CLEARSCREEN.
 LOCAL running IS TRUE.
 RUNONCEPATH("0:/DASA/HUD.ks").
+RUNONCEPATH("0:/MJ/MJ.ks").
 
 // UI update loop removed from background trigger.
 
@@ -42,10 +43,12 @@ LOCAL burn_time IS 0.
 LOCAL t_half_dv IS 0.
 
 IF ADDONS:AVAILABLE("KE") AND ADDONS:KE:HASSUFFIX("NODEBURNTIME") {
+    logMsg("Kerbal Engineer available").
     SET burn_time TO ADDONS:KE:NODEBURNTIME.
     SET t_half_dv TO ADDONS:KE:NODEHALFBURNTIME.
 } ELSE {
     // Tsiolkovsky Burn Time Calculation
+    logMsg("Tsiolkovsky calculating burn time...").
     LOCAL g0 IS 9.80665.
     LOCAL totalThrust IS 0.
     LOCAL totalFlow IS 0.
@@ -78,7 +81,7 @@ IF ADDONS:AVAILABLE("KE") AND ADDONS:KE:HASSUFFIX("NODEBURNTIME") {
     LOCAL massRatio IS e_val^(dv / ve).
     LOCAL m1 IS m0 / massRatio.
     LOCAL dm IS m0 - m1.
-    
+
     IF totalFlow > 0 {
         SET burn_time TO dm / totalFlow.
     } ELSE {
@@ -88,7 +91,7 @@ IF ADDONS:AVAILABLE("KE") AND ADDONS:KE:HASSUFFIX("NODEBURNTIME") {
     LOCAL massRatioHalf IS e_val^((dv / 2) / ve).
     LOCAL m1Half IS m0 / massRatioHalf.
     LOCAL dmHalf IS m0 - m1Half.
-    
+
     IF totalFlow > 0 {
         SET t_half_dv TO dmHalf / totalFlow.
     } ELSE {
@@ -96,7 +99,7 @@ IF ADDONS:AVAILABLE("KE") AND ADDONS:KE:HASSUFFIX("NODEBURNTIME") {
     }
 }
 
-PRINT "[ExeNode] Est. burn duration: " + ROUND(burn_time, 2) + "s".
+logMsg("Est. burn duration: " + ROUND(burn_time, 2) + "s").
 
 // Orient ship to burn direction
 LOCAL burn_dir IS nd:DELTAV.
@@ -105,93 +108,118 @@ LOCK STEERING TO burn_dir.
 // Warp to the burn start time if eta is long
 LOCAL burnStartEta IS nd:ETA - t_half_dv.
 IF burnStartEta > 40 {
-    PRINT "[ExeNode] Warping to burn window...".
     SET WARPMODE TO "rails".
     WARPTO(TIME:SECONDS + burnStartEta - 30).
     UNTIL (nd:ETA - t_half_dv) <= 35 {
         HUD_print_header("MANEUVER NODE INFO").
-        HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+        HUD_print_node(nd:ETA, initial_dv_mag, nd:DELTAV:MAG, SHIP:DELTAV:CURRENT).
         WAIT 0.1.
     }
 }
 
-PRINT "[ExeNode] Aligning vessel...".
-UNTIL VANG(SHIP:FACING:FOREVECTOR, nd:DELTAV) < 1.0 AND nd:ETA <= t_half_dv {
-    HUD_print_header("MANEUVER NODE INFO").
-    HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
-    WAIT 0.1.
-}
+// Execute burn
+IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------------- MJ
+    LOCAL nodeExecutor IS ADDONS:MJ:NODE.
+    logMsg("MechJeb available").
+    mjReleaseControl().
+    mjLog("Node planned. Executing via MechJeb...").
+    SET nodeExecutor:ENABLED TO TRUE.
+    mjLog("Executing Node - dV: " + ROUND(NEXTNODE:DELTAV:MAG, 2)).
 
-PRINT "[ExeNode] Beginning burn...".
-LOCAL tVal IS 0.
-LOCK THROTTLE TO tVal.
-LOCAL initial_dv IS nd:DELTAV.
-LOCAL done IS FALSE.
-
-UNTIL done {
-    HUD_print_header("MANEUVER NODE INFO").
-    HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
-    
-    // Handle staging during burn
-    IF SHIP:AVAILABLETHRUST < 0.1 AND tVal > 0 {
-        PRINT "[ExeNode] Flameout detected. Staging...".
-        WAIT UNTIL STAGE:READY.
-        STAGE.
+    LOCAL nd IS NEXTNODE.
+    UNTIL NOT HASNODE {
+        UNTIL HASNODE AND NEXTNODE:DELTAV:MAG < 1  {
+            HUD_print_header("MANEUVER NODE INFO").
+            HUD_print_node(nd:ETA, initial_dv_mag, nd:DELTAV:MAG, SHIP:DELTAV:CURRENT).
+            WAIT 0.1.
+        }
         WAIT 0.5.
     }
-
-    LOCAL rem_dv IS nd:DELTAV:MAG.
-    LOCAL cur_acc IS 0.
-    IF SHIP:MASS > 0 { SET cur_acc TO SHIP:AVAILABLETHRUST / SHIP:MASS. }
-
-    // Freeze steering vector when delta-V is very low to prevent spin
-    IF rem_dv > 1.0 {
-        SET burn_dir TO nd:DELTAV.
-    }
-
-    // Overshoot protection
-    IF VDOT(initial_dv, nd:DELTAV) < 0 {
-        PRINT "[ExeNode] Overshoot detected (dot product negative).".
-        SET done TO TRUE.
-    } ELSE IF rem_dv < 0.1 {
-        // Precision RCS finish
-        SET done TO TRUE.
-    } ELSE {
-        IF cur_acc > 0 {
-            // throttle down when burn time < 1s
-            SET tVal TO MIN(1, rem_dv / cur_acc).
-        } ELSE {
-            SET tVal TO 1.
-        }
-    }
-    WAIT 0.
-}
-
-LOCK THROTTLE TO 0.
-UNLOCK THROTTLE.
-
-// RCS finish for < 0.1 m/s remaining
-LOCAL rem_dv_after IS nd:DELTAV:MAG.
-IF rem_dv_after > 0.01 AND VDOT(initial_dv, nd:DELTAV) > 0 {
-    PRINT "[ExeNode] Fine-tuning with RCS...".
-    RCS ON.
-    LOCAL rcs_done IS FALSE.
-    UNTIL rcs_done {
+    SET nodeExecutor:ENABLED TO FALSE.
+    mjLog("Burn complete.").
+} ELSE { // ----------------------------------------------------------------------------
+    PRINT "[ExeNode] Aligning vessel...".
+    UNTIL VANG(SHIP:FACING:FOREVECTOR, nd:DELTAV) < 1.0 AND nd:ETA <= t_half_dv {
+        PRINT SHIP:FACING:FOREVECTOR.
+        PRINT nd:DELTAV.
         HUD_print_header("MANEUVER NODE INFO").
         HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
-        
-        LOCAL current_rem IS nd:DELTAV:MAG.
-        IF current_rem < 0.02 OR VDOT(initial_dv, nd:DELTAV) < 0 {
-            SET rcs_done TO TRUE.
+        WAIT 0.1.
+    }
+
+    PRINT "[ExeNode] Beginning burn...".
+    LOCAL tVal IS 0.
+    LOCK THROTTLE TO tVal.
+    LOCAL initial_dv IS nd:DELTAV.
+    LOCAL done IS FALSE.
+
+    UNTIL done {
+        HUD_print_header("MANEUVER NODE INFO").
+        HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+
+        // Handle staging during burn
+        IF SHIP:AVAILABLETHRUST < 0.1 AND tVal > 0 {
+            PRINT "[ExeNode] Flameout detected. Staging...".
+            WAIT UNTIL STAGE:READY.
+            STAGE.
+            WAIT 0.5.
+        }
+
+        LOCAL rem_dv IS nd:DELTAV:MAG.
+        LOCAL cur_acc IS 0.
+        IF SHIP:MASS > 0 { SET cur_acc TO SHIP:AVAILABLETHRUST / SHIP:MASS. }
+
+        // Freeze steering vector when delta-V is very low to prevent spin
+        IF rem_dv > 1.0 {
+            SET burn_dir TO nd:DELTAV.
+        }
+
+        // Overshoot protection
+        IF VDOT(initial_dv, nd:DELTAV) < 0 {
+            PRINT "[ExeNode] Overshoot detected (dot product negative).".
+            SET done TO TRUE.
+        } ELSE IF rem_dv < 0.1 {
+        // Precision RCS finish
+            SET done TO TRUE.
         } ELSE {
-            // apply forward translation
-            SET SHIP:CONTROL:FORE TO 1.
+            IF cur_acc > 0 {
+                // throttle down when burn time < 1s
+                SET tVal TO MIN(1, rem_dv / cur_acc).
+            } ELSE {
+                SET tVal TO 1.
+            }
         }
         WAIT 0.
     }
-    SET SHIP:CONTROL:FORE TO 0.
-    RCS OFF.
+
+    LOCK THROTTLE TO 0.
+    UNLOCK THROTTLE.
+
+    // RCS finish for < 0.1 m/s remaining
+    LOCAL rem_dv_after IS nd:DELTAV:MAG.
+    IF rem_dv_after > 0.01 AND VDOT(initial_dv, nd:DELTAV) > 0 {
+        PRINT "[ExeNode] Fine-tuning with RCS...".
+        RCS ON.
+        LOCAL rcs_done IS FALSE.
+        UNTIL rcs_done {
+            HUD_print_header("MANEUVER NODE INFO").
+            HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+
+            LOCAL current_rem IS nd:DELTAV:MAG.
+            IF current_rem < 0.02 OR VDOT(initial_dv, nd:DELTAV) < 0 {
+                SET rcs_done TO TRUE.
+            } ELSE {
+                // apply forward translation
+                SET SHIP:CONTROL:FORE TO 1.
+            }
+            WAIT 0.
+        }
+        SET SHIP:CONTROL:FORE TO 0.
+        RCS OFF.
+    }
 }
+
+
 
 UNLOCK STEERING.
 PRINT "[ExeNode] Burn complete. Removing node.".

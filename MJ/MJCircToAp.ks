@@ -40,10 +40,9 @@ IF NOT mjAvailable() OR NOT ADDONS:MJ:HASSUFFIX("PLANNER") OR NOT ADDONS:MJ:HASS
                 LOCAL sStr IS "" + s. IF s < 10 { SET sStr TO "0" + s. }
                 PRINT "--- Maneuver ----------" AT(0,30).
                 PRINT "dV: " + ROUND(NEXTNODE:DELTAV:MAG, 2)) AT (0,31).
-                PRINT "Time to maneuver: T-" + hStr + ":" + mStr + ":" + sStr + "       " AT (0,4).
                 PRINT "twr: " + ROUND(twr, 2) + "        " AT(0,32).
                 PRINT "stage fuel: " + ROUND(SHIP:fuel) + "        " AT(0,33).
-                PRINT "EC:  " + ROUND(SHIP:ELECTRICCHARGE) + "       " AT(0,34).
+                PRINT "Time to maneuver: T-" + hStr + ":" + mStr + ":" + sStr + "       " AT (0,34).
             }
             WAIT 0.5.
         }

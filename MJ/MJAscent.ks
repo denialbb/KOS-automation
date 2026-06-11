@@ -17,14 +17,6 @@ IF NOT mjAvailable() {
 
     //display info is now handled explicitly in the main loop
 
-
-    // Print diagnostic block for available suffixes
-    IF ADDONS:MJ:HASSUFFIX("ASCENT") {
-        LOCAL suffixes IS ADDONS:MJ:ASCENT:SUFFIXNAMES:JOIN(", ").
-        LOG suffixes TO "0:/logs/MJAscentSuffixes.log".
-        mjLog("Ascent Suffixes available logged to MJAscentSuffixes.log").
-    }
-
     // Configure MechJeb Ascent Autopilot
     LOCAL asc IS ADDONS:MJ:ASCENT.
 
@@ -66,6 +58,9 @@ IF NOT mjAvailable() {
     SET asc:ENABLED TO TRUE.
 
     LOCAL isCoasting IS FALSE.
+    LOCAL circularizing IS FALSE.
+    LOCAL tmo_min IS FALSE.
+    LOCAL vessel IS ADDONS:MJ:VESSEL.
 
     UNTIL SHIP:STATUS = "ORBITING" AND SHIP:ALTITUDE > SHIP:BODY:ATM:HEIGHT {
         LOCAL apo TO SHIP:APOAPSIS.
@@ -83,10 +78,23 @@ IF NOT mjAvailable() {
             SET isCoasting TO TRUE.
         }
 
+        IF NOT two_min AND vessel:ORBITTIMETOAP < 120 {
+            mjLog("Approaching circularization burn.").
+            logMsg("2 minutes to apoapsis.").
+            SET two_min TO TRUE.
+        }
+
+        IF NOT circularizing AND SHIP:THRUST > 0 {
+            mjLog("Circularizing...").
+            logMsg("Circularization Burn start.").
+            SET circularizing TO TRUE.
+        }
+
         WAIT 0.5.
     }
     SET running TO FALSE.
 
     mjLog("Ascent complete. Disabling Ascent Autopilot").
+    logMsg("Circularization Burn complete.").
     SET asc:ENABLED TO FALSE.
 }
