@@ -452,12 +452,12 @@ if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING
 
     logMsg("Launch detected! Ascending to 80km orbit.").
     setStage("Ascent").
-    runpath("0:/SpaceCore/Ascent", false, 80, 0, 60). // 80km, 0 inc, fairing at 60km
+    runpath("0:/MJ/MJAscent", false, 80, 0, 60). // 80km, 0 inc, fairing at 60km
 
     if ship:periapsis < 75000 {
         logMsg("Circularizing at Apoapsis.").
         setStage("Circularization").
-        runpath("0:/SpaceCore/CircToAp").
+        runpath("0:/MJ/MJCircToAp").
     }
 } else {
     if panels {
@@ -612,7 +612,9 @@ if bms:length = 0 {
         until not hasnode { remove nextnode. wait 0.1. }
 
         // Manually add this burn model as a maneuver node
+        print "[DEBUG] Adding node " + i + " to flight plan. At time: " + bm:atTime + ", dV: " + bm:totalDV.
         add bm:toNode.
+        print "[DEBUG] Node " + i + " added. Waiting for hasnode...".
 
         // Wait up to 5 seconds for the node to appear on the flight plan
         local waitStart is time:seconds.
@@ -622,9 +624,12 @@ if bms:length = 0 {
 
         if not hasnode {
             logMsg("WARNING: Node " + i + " did not appear on flight plan after 5s. Skipping.").
+            print "[DEBUG] hasnode timeout for node " + i + ".".
         } else {
+            print "[DEBUG] hasnode confirmed for node " + i + ".".
             logMsg("Executing node " + i + "...").
             runpath("0:/SpaceCore/ExeNode.ks").
+            print "[DEBUG] Execution of node " + i + " returned.".
         }
     }
 }
@@ -659,14 +664,209 @@ runpath("0:/SpaceCore/ExeNode.ks").
 // 6. Polar Inclination Change
 setStage("Inclination Change").
 logMsg("Adjusting to polar orbit (90 deg inclination).").
-runpath("0:/SpaceCore/ChangeInc.ks", 90).
+local st is pMod:getfield("state"):tolower.
+                    if st:contains("extend") {
+                        set skipDeployment to true.
+                    }
+                }
+            }
+        }
+    }
+    if skipDeployment {
+        logMsg("Vessel already in orbit with panels active. Skipping jettison & deployment.").
+    } else {
+        logMsg("Vessel already in orbit. Proceeding with mission.").
+    }
+}
 
-// 7. Final Circularization
-setStage("Circularization").
-logMsg("Finalizing low 20km orbit.").
-runpath("0:/SpaceCore/CircToAp").
-runpath("0:/SpaceCore/ChangeAp.ks", 20).
-runpath("0:/SpaceCore/ChangePe.ks", 20).
+// ADDITION: Deploy all bays, solar panels, and antennas once in orbit
+if not skipDeployment {
+    // 1. Deploy any fairings on the vessel first to unshield parts
+    logMsg("Jettisoning all fairings...").
+    for p in ship:parts {
+        for m in p:modules {
+            local mName is m:tostring:tolower.
+            if mName:contains("fairing") or mName:contains("jettison") or mName:contains("shroud") {
+                local pMod is p:getmodule(m).
+                for ev in pMod:alleventnames {
+                    local evLower is ev:tolower.
+                    if evLower:contains("deploy") or evLower:contains("jettison") or evLower:contains("open") or evLower:contains("release") {
+                        pMod:doevent(ev).
+                        logMsg("Jettisoned fairing: " + ev + " on " + p:title).
+                    }
+                }
+            }
+        }
+    }
+    wait 1. // Wait for fairing separation physics
+
+    logMsg("Deploying solar panels, bays, and antennas.").
+    panels on.
+    bays on.
+
+    for p in ship:parts {
+        // Check if the part itself is likely an antenna or solar panel
+        local pName is p:name:tolower.
+        local pTitle is p:title:tolower.
+        local isAntennaOrPanelPart is false.
+        if pName:contains("solar") or pName:contains("panel") or pName:contains("antenna")
+           or pName:contains("dish") or pName:contains("comm") or pName:contains("trans")
+           or pName:contains("ray") or pName:contains("reflector") {
+            set isAntennaOrPanelPart to true.
+        }
+        if pTitle:contains("solar") or pTitle:contains("panel") or pTitle:contains("antenna")
+           or pTitle:contains("dish") or pTitle:contains("comm") or pTitle:contains("trans")
+           or pTitle:contains("ray") or pTitle:contains("reflector") {
+            set isAntennaOrPanelPart to true.
+        }
+
+        for m in p:modules {
+            local mName is m:tostring:tolower.
+            local pMod is p:getmodule(m).
+
+            // Match panels, antennas, transmitters, animated booms, or deployables
+            local isDeployableModule is false.
+            if mName:contains("solar") or mName:contains("panel") or mName:contains("antenna")
+               or mName:contains("transmit") or mName:contains("comm") or mName:contains("animate")
+               or mName:contains("deploy") or mName:contains("dish") or mName:contains("boom") {
+                set isDeployableModule to true.
+            }
+
+            // If the part is an antenna/panel, or the module itself is deployable, scan its events
+            if isAntennaOrPanelPart or isDeployableModule {
+                for ev in pMod:alleventnames {
+                    local evLower is ev:tolower.
+                    // Trigger extend, deploy, open, toggle, or activate events
+                    if evLower:contains("extend") or evLower:contains("deploy") or evLower:contains("open")
+                       or evLower:contains("activate") or evLower:contains("toggle") or evLower:contains("start") {
+                        // Ignore retract/close/stop/disable/shutdown/jettison
+                        if not (evLower:contains("retract") or evLower:contains("close") or evLower:contains("stop")
+                                or evLower:contains("disable") or evLower:contains("shutdown") or evLower:contains("jettison")) {
+                            pMod:doevent(ev).
+                            logMsg("Deploying: " + ev + " on " + p:title).
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// 2. Interrogate Astrogator
+set target to body("Minmus").
+setStage("Hohmann Transfer").
+logMsg("Interrogating Astrogator for transfer window and node information...").
+
+// Clear any existing nodes BEFORE calling Astrogator
+until not hasnode {
+    remove nextnode.
+    wait 0.05.
+}
+
+local bms is addons:astrogator:calculateBurns(target).
+
+if bms:length = 0 {
+    logMsg("CRITICAL ERROR: Astrogator failed to calculate transfer burns!").
+    logMsg("Switching to basic probe survival routine.").
+    runpath("0:/DASA/basic_probe_routine.ks").
+} else {
+    logMsg("Astrogator provided " + bms:length + " maneuver(s).").
+
+    // Log details of all burns
+    from {local i is 0.} until i >= bms:length step {set i to i+1.} do {
+        local bm is bms[i].
+        local tToBurn is bm:atTime - time:seconds.
+        logMsg(" - Node " + i + ": T-" + round(tToBurn) + "s | dV: " + round(bm:totalDV, 1) + " m/s").
+    }
+
+    local bm is bms[0].
+    local timeToWindow is bm:atTime - time:seconds.
+    local incDiff is abs(target:orbit:inclination - ship:orbit:inclination).
+    local dvNeeded is bm:totalDV.
+    local dvAvail is 0.
+    if addons:available("KER") {
+        set dvAvail to addons:ker:deltav.
+    } else {
+        set dvAvail to ship:deltav:current.
+    }
+
+    logMsg("Primary Transfer Node Details:").
+    logMsg(" - Relative Inclination: " + round(incDiff, 2) + " deg").
+    logMsg(" - Delta-V Available: " + round(dvAvail, 1) + " m/s").
+
+    if dvAvail < dvNeeded {
+        logMsg("WARNING: Insufficient Delta-V for maneuver!").
+    }
+
+    // Execute each burn model sequentially: add node manually, wait for it, execute, then clear.
+    from {local i is 0.} until i >= bms:length step {set i to i+1.} do {
+        local bm is bms[i].
+        logMsg("Adding node " + i + " to flight plan: dV=" + round(bm:totalDV,1) + " m/s in T-" + round(bm:atTime - time:seconds) + "s.").
+
+        // Clear any leftover nodes first
+        until not hasnode { remove nextnode. wait 0.1. }
+
+        // Manually add this burn model as a maneuver node
+        print "[DEBUG] Adding node " + i + " to flight plan. At time: " + bm:atTime + ", dV: " + bm:totalDV.
+        add bm:toNode.
+        print "[DEBUG] Node " + i + " added. Waiting for hasnode...".
+
+        // Wait up to 5 seconds for the node to appear on the flight plan
+        local waitStart is time:seconds.
+        until hasnode or (time:seconds - waitStart > 5) {
+            wait 0.1.
+        }
+
+        if not hasnode {
+            logMsg("WARNING: Node " + i + " did not appear on flight plan after 5s. Skipping.").
+            print "[DEBUG] hasnode timeout for node " + i + ".".
+        } else {
+            print "[DEBUG] hasnode confirmed for node " + i + ".".
+            logMsg("Executing node " + i + "...").
+            runpath("0:/MJ/ExeNode.ks").
+            print "[DEBUG] Execution of node " + i + " returned.".
+        }
+    }
+}
+
+// 4. Coast to Minmus
+setStage("Coasting").
+logMsg("Transfer burn complete. Coasting to Minmus SOI.").
+wait until orbit:hasnextpatch and orbit:nextpatch:body:name = "Minmus".
+local timeToSOI is orbit:nextpatch:eta.
+safeCoast(time:seconds + timeToSOI + 10).
+
+wait until ship:body:name = "Minmus".
+logMsg("Entered Minmus SOI!").
+
+// 5. Capture Burn
+setStage("Capture").
+logMsg("Waiting for Minmus periapsis to capture.").
+safeCoast(time:seconds + eta:periapsis - 60).
+
+logMsg("Calculating capture burn for 20km orbit.").
+local r_peri is ship:periapsis + body:radius.
+local r_apo_tgt is targetPe + body:radius. // 20km
+local a_tgt is (r_peri + r_apo_tgt) / 2.
+local v_tgt is sqrt(body:mu * (2/r_peri - 1/a_tgt)).
+local v_peri_pred is sqrt(body:mu * (2/r_peri - 1/orbit:semimajoraxis)).
+local dV_cap is v_peri_pred - v_tgt.
+
+local nd_cap is node(time:seconds + eta:periapsis, 0, 0, -dV_cap).
+add nd_cap.
+runpath("0:/MJ/ExeNode.ks").
+
+// 6. Polar Inclination Change
+setStage("Inclination Change").
+logMsg("Adjusting to polar orbit (90 deg inclination).").
+runpath("0:/MJ/MJChangeInc.ks", 90).
+
+// 6. Circularize
+setStage("Circularize").
+logMsg("Circularizing at Minmus Apoapsis.").
+runpath("0:/MJ/MJCircToAp").
+runpath("0:/MJ/MJChangeAp.ks", 20).
+runpath("0:/MJ/MJChangePe.ks", 20).
 
 setStage("Mission Complete").
 logMsg("Minmus automation mission completed successfully! Orbit is polar 20km.").
