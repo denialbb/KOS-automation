@@ -39,6 +39,7 @@
 ## Project Directory Conventions
 - Keep scripts, logs, and telemetry separated:
   - `dashboard/` - HTML5/JS dashboards
+  - `kOS docs/` - Technical documentation on kOS addons
   - `logs/` - CSV/text log files
   - `telemetry/` - JSON telemetry payloads
   - `DASA/` - Mission-specific scripts
@@ -52,4 +53,4 @@
 
 ## Documentation Style Conventions
 - **Writing Style:** Technical documentation must be written in a clear and technical style, using an impersonal voice and avoiding emojis.
-- **Modularity:** Information must be organized into separate documents when diving deeper into a specific argument, keeping files focused and modular.
+- **Modularity:** Information must be organized into separate documents when diving deeper into a specific argument, keeping files focused and modular.

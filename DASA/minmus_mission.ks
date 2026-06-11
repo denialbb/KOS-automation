@@ -214,6 +214,7 @@ function setStage {
     print("==================================================").
     logMsg("          Entered stage: " + newStage).
     print("==================================================").
+    print("    ").
     set telemetryStage to newStage.
     updateTelemetry(telemetryStage).
 
@@ -239,7 +240,7 @@ function setStage {
 
 when abort then {
     setStage("Aborted").
-    logMsg("MISSION ABORTED!").
+    logMsg("--- MISSION ABORTED ---").
     preserve.
 }
 
@@ -428,7 +429,7 @@ when time:seconds > lastTelemetryUpdate + 0.2 then {
 }
 
 setStage("Booting").
-logMsg("Minmus Autonomous Mission Initialized.").
+logMsg("Minmus Mission Initialized.").
 
 
 if not exists("0:/telemetry/vessel_structure.json") {
@@ -461,7 +462,7 @@ if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING
     setStage("Ascent").
     runpath("0:/MJ/MJAscent.ks", false, 80, 0, 60).
 
-    if ship:periapsis < 75000 {
+    if ship:periapsis < 70000 {
         logMsg("Circularizing at Apoapsis.").
         setStage("Circularization").
         runpath("0:/MJ/MJCircToAp.ks").
