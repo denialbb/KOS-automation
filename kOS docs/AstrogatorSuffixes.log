@@ -1,0 +1,3 @@
+addons:astrogator:suffixnames
+
+astrogation, AVAILABLE, calculateBurns, create, deltaVToOrbit, HASSUFFIX, help, INHERITANCE, ISSERIALIZABLE, ISTYPE, shipSpeedAtApoapsis, shipSpeedAtPeriapsis, speedAtApoapsis, speedAtPeriapsis, SUFFIXNAMES, timeOfAN, timeOfDN, timeOfShipAN, timeOfShipDN, TOSTRING, TYPENAME, version
