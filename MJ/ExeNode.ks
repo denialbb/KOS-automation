@@ -7,27 +7,12 @@ IF NOT HASNODE {
 }
 
 LOCAL nd IS NEXTNODE.
+LOCAL initial_dv_mag IS nd:DELTAV:MAG.
 CLEARSCREEN.
 LOCAL running IS TRUE.
+RUNONCEPATH("0:/DASA/HUD.ks").
 
-WHEN TRUE THEN {
-    IF NOT running {
-        // cleanup
-    } ELSE {
-        PRINT "--- MANEUVER NODE INFO ---" AT (0,30).
-        PRINT "Total maneuver delta-V: "+ ROUND(nd:DELTAV:MAG,1)+" m/s       " AT (0,31).
-        LOCAL tLeft IS MAX(0, nd:ETA).
-        LOCAL h IS FLOOR(tLeft / 3600).
-        LOCAL m IS FLOOR(MOD(tLeft, 3600) / 60).
-        LOCAL s IS FLOOR(MOD(tLeft, 60)).
-        LOCAL hStr IS "" + h. IF h < 10 { SET hStr TO "0" + h. }
-        LOCAL mStr IS "" + m. IF m < 10 { SET mStr TO "0" + m. }
-        LOCAL sStr IS "" + s. IF s < 10 { SET sStr TO "0" + s. }
-        PRINT "Time to maneuver: T-" + hStr + ":" + mStr + ":" + sStr + "       " AT (0,32).
-        PRINT "Remaining delta-V: "+ROUND(nd:DELTAV:MAG,1)+" m/s       " AT (0,33).
-        PRESERVE.
-    }
-}
+// UI update loop removed from background trigger.
 
 // Release kOS steering/throttle to prepare for autopilot handoff
 UNLOCK STEERING.
@@ -42,9 +27,13 @@ IF SHIP:MASS > 0 { SET max_acc TO SHIP:AVAILABLETHRUST / SHIP:MASS. }
 IF max_acc = 0 {
     PRINT "WARNING: No thrust available. Waiting for active engine or staging...".
     UNTIL SHIP:AVAILABLETHRUST > 0 {
-        WAIT UNTIL STAGE:READY.
-        STAGE.
-        WAIT 0.5.
+        HUD_print_header("MANEUVER NODE INFO").
+        HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+        IF STAGE:READY {
+            STAGE.
+            WAIT 0.5.
+        }
+        WAIT 0.1.
         IF STAGE:NUMBER = 0 { BREAK. }
     }
 }
@@ -117,11 +106,19 @@ IF burnStartEta > 40 {
     PRINT "[ExeNode] Warping to burn window...".
     SET WARPMODE TO "rails".
     WARPTO(TIME:SECONDS + burnStartEta - 30).
-    WAIT UNTIL nd:ETA - t_half_dv <= 35.
+    UNTIL (nd:ETA - t_half_dv) <= 35 {
+        HUD_print_header("MANEUVER NODE INFO").
+        HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+        WAIT 0.1.
+    }
 }
 
 PRINT "[ExeNode] Aligning vessel...".
-WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR, nd:DELTAV) < 1.0 AND nd:ETA <= t_half_dv.
+UNTIL VANG(SHIP:FACING:FOREVECTOR, nd:DELTAV) < 1.0 AND nd:ETA <= t_half_dv {
+    HUD_print_header("MANEUVER NODE INFO").
+    HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+    WAIT 0.1.
+}
 
 PRINT "[ExeNode] Beginning burn...".
 LOCAL tVal IS 0.
@@ -130,6 +127,9 @@ LOCAL initial_dv IS nd:DELTAV.
 LOCAL done IS FALSE.
 
 UNTIL done {
+    HUD_print_header("MANEUVER NODE INFO").
+    HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+    
     // Handle staging during burn
     IF SHIP:AVAILABLETHRUST < 0.1 AND tVal > 0 {
         PRINT "[ExeNode] Flameout detected. Staging...".
@@ -175,6 +175,9 @@ IF rem_dv_after > 0.01 AND VDOT(initial_dv, nd:DELTAV) > 0 {
     RCS ON.
     LOCAL rcs_done IS FALSE.
     UNTIL rcs_done {
+        HUD_print_header("MANEUVER NODE INFO").
+        HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
+        
         LOCAL current_rem IS nd:DELTAV:MAG.
         IF current_rem < 0.02 OR VDOT(initial_dv, nd:DELTAV) < 0 {
             SET rcs_done TO TRUE.

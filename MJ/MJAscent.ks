@@ -7,6 +7,7 @@ PARAMETER FairingDeploymentAltitudeKm IS 60.
 PARAMETER running IS TRUE.
 
 RUNONCEPATH("0:/MJ/MJ.ks").
+RUNONCEPATH("0:/DASA/HUD.ks").
 
 IF NOT mjAvailable() {
     PRINT "[MJ] MechJeb not available! Falling back to SpaceCore/Ascent.ks".
@@ -14,28 +15,8 @@ IF NOT mjAvailable() {
 } ELSE {
     mjLog("Starting MechJeb Ascent...").
 
-    //display info
-    when TRUE then {
-	    if not running {
-		    // cleanup
-	    } else {
-        local r_dist is body:radius + ship:altitude.
-        local grav is body:mu / (r_dist * r_dist).
-        local twr is 0.
+    //display info is now handled explicitly in the main loop
 
-        if availablethrust > 0 and mass > 0 { set twr to availablethrust / (mass * grav). }
-
-        print "----------- TELEMETRY ---" at(0,30).
-        print "TWR: " + round(twr, 2) + "        " at(0,31).
-        print "Q:   " + round(ship:dynamicpressure, 4) + " kPa   " at(0,32).
-	    print "Velocity: "+round(ship:velocity:orbit:mag)+" m/s       " at (0,33).
-	    print "Altitude: "+round(altitude)+" m       " at(0,34).
-	    print "Apoapsis: "+round(apoapsis)+" m       " at (0,35).
-
-        preserve.
-        wait 0.1.
-	    }
-    }
 
     // Print diagnostic block for available suffixes
     IF ADDONS:MJ:HASSUFFIX("ASCENT") {
@@ -77,6 +58,14 @@ IF NOT mjAvailable() {
 
     UNTIL SHIP:STATUS = "ORBITING" AND SHIP:ALTITUDE > SHIP:BODY:ATM:HEIGHT {
         LOCAL apo TO SHIP:APOAPSIS.
+        LOCAL r_dist IS BODY:RADIUS + SHIP:ALTITUDE.
+        LOCAL grav IS BODY:MU / (r_dist * r_dist).
+        LOCAL twr IS 0.
+        IF AVAILABLETHRUST > 0 AND MASS > 0 { SET twr TO AVAILABLETHRUST / (MASS * grav). }
+
+        HUD_print_header("TELEMETRY").
+        HUD_print_ascent(twr, SHIP:DYNAMICPRESSURE, SHIP:VELOCITY:ORBIT:MAG, SHIP:ALTITUDE, apo).
+
 
         IF NOT isCoasting AND apo >= TargetAltitudeKm * 1000 * 0.99 {
             mjLog("Apoapsis reached, coasting...").
