@@ -38,60 +38,62 @@ IF max_acc = 0 {
     }
 }
 
-// Tsiolkovsky Burn Time Calculation
-LOCAL g0 IS 9.80665.
-LOCAL totalThrust IS 0.
-LOCAL totalFlow IS 0.
-LOCAL effIsp IS 0.
-
-LOCAL engList IS LIST().
-LIST ENGINES IN engList.
-PRINT engList.
-WAIT 1.
-FOR eng IN engList {
-    // PRINT eng:SUFFIXNAMES:JOIN(", ").
-    IF NOT eng:SHUTDOWN AND eng:ISP > 0 {
-        SET totalThrust TO totalThrust + eng:AVAILABLETHRUST.
-        SET totalFlow TO totalFlow + (eng:AVAILABLETHRUST / (eng:ISP * g0)).
-    }
-}
-
-IF totalFlow > 0 {
-    SET effIsp TO totalThrust / (totalFlow * g0).
-} ELSE {
-    FOR eng IN engList {
-        IF eng:ISP > 0 { SET effIsp TO eng:ISP. BREAK. }
-    }
-    IF effIsp = 0 { SET effIsp TO 300. }
-}
-
-LOCAL ve IS effIsp * g0.
-LOCAL dv IS nd:DELTAV:MAG.
-LOCAL m0 IS SHIP:MASS.
-
-// m1 = m0 / e^(dv / ve)
-// burn_time = (m0 - m1) / totalFlow
-LOCAL e_val IS CONSTANT:E.
-LOCAL massRatio IS e_val^(dv / ve).
-LOCAL m1 IS m0 / massRatio.
-LOCAL dm IS m0 - m1.
 LOCAL burn_time IS 0.
-IF totalFlow > 0 {
-    SET burn_time TO dm / totalFlow.
-} ELSE {
-    // fallback if totalFlow is somehow 0
-    SET burn_time TO (dv * SHIP:MASS / MAX(1, SHIP:AVAILABLETHRUST)) * (1 - dv / (2 * ve)).
-}
-
-// Calculate time to reach half delta-V
-LOCAL massRatioHalf IS e_val^((dv / 2) / ve).
-LOCAL m1Half IS m0 / massRatioHalf.
-LOCAL dmHalf IS m0 - m1Half.
 LOCAL t_half_dv IS 0.
-IF totalFlow > 0 {
-    SET t_half_dv TO dmHalf / totalFlow.
+
+IF ADDONS:AVAILABLE("KE") AND ADDONS:KE:HASSUFFIX("NODEBURNTIME") {
+    SET burn_time TO ADDONS:KE:NODEBURNTIME.
+    SET t_half_dv TO ADDONS:KE:NODEHALFBURNTIME.
 } ELSE {
-    SET t_half_dv TO burn_time / 2.
+    // Tsiolkovsky Burn Time Calculation
+    LOCAL g0 IS 9.80665.
+    LOCAL totalThrust IS 0.
+    LOCAL totalFlow IS 0.
+    LOCAL effIsp IS 0.
+
+    LOCAL engList IS LIST().
+    LIST ENGINES IN engList.
+    WAIT 1.
+    FOR eng IN engList {
+        IF NOT eng:SHUTDOWN AND eng:ISP > 0 {
+            SET totalThrust TO totalThrust + eng:AVAILABLETHRUST.
+            SET totalFlow TO totalFlow + (eng:AVAILABLETHRUST / (eng:ISP * g0)).
+        }
+    }
+
+    IF totalFlow > 0 {
+        SET effIsp TO totalThrust / (totalFlow * g0).
+    } ELSE {
+        FOR eng IN engList {
+            IF eng:ISP > 0 { SET effIsp TO eng:ISP. BREAK. }
+        }
+        IF effIsp = 0 { SET effIsp TO 300. }
+    }
+
+    LOCAL ve IS effIsp * g0.
+    LOCAL dv IS nd:DELTAV:MAG.
+    LOCAL m0 IS SHIP:MASS.
+
+    LOCAL e_val IS CONSTANT:E.
+    LOCAL massRatio IS e_val^(dv / ve).
+    LOCAL m1 IS m0 / massRatio.
+    LOCAL dm IS m0 - m1.
+    
+    IF totalFlow > 0 {
+        SET burn_time TO dm / totalFlow.
+    } ELSE {
+        SET burn_time TO (dv * SHIP:MASS / MAX(1, SHIP:AVAILABLETHRUST)) * (1 - dv / (2 * ve)).
+    }
+
+    LOCAL massRatioHalf IS e_val^((dv / 2) / ve).
+    LOCAL m1Half IS m0 / massRatioHalf.
+    LOCAL dmHalf IS m0 - m1Half.
+    
+    IF totalFlow > 0 {
+        SET t_half_dv TO dmHalf / totalFlow.
+    } ELSE {
+        SET t_half_dv TO burn_time / 2.
+    }
 }
 
 PRINT "[ExeNode] Est. burn duration: " + ROUND(burn_time, 2) + "s".

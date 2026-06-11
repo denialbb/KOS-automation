@@ -48,12 +48,23 @@ IF NOT mjAvailable() {
         SET asc:AUTOSTAGE TO TRUE.
     }
 
+    IF FairingDeployment {
+        IF asc:HASSUFFIX("FAIRINGMINALTITUDE") {
+            SET asc:FAIRINGMINALTITUDE TO FairingDeploymentAltitudeKm * 1000.
+        }
+        IF asc:HASSUFFIX("AUTODEPLOYANTENNAS") {
+            SET asc:AUTODEPLOYANTENNAS TO TRUE.
+        }
+        IF asc:HASSUFFIX("AUTODEPLOYSOLARPANELS") {
+            SET asc:AUTODEPLOYSOLARPANELS TO TRUE.
+        }
+    }
+
     mjReleaseControl().
 
     mjLog("Engaging Ascent Autopilot").
     SET asc:ENABLED TO TRUE.
 
-    LOCAL fairingDeployed IS FALSE.
     LOCAL isCoasting IS FALSE.
 
     UNTIL SHIP:STATUS = "ORBITING" AND SHIP:ALTITUDE > SHIP:BODY:ATM:HEIGHT {
@@ -70,13 +81,6 @@ IF NOT mjAvailable() {
         IF NOT isCoasting AND apo >= TargetAltitudeKm * 1000 * 0.99 {
             mjLog("Apoapsis reached, coasting...").
             SET isCoasting TO TRUE.
-        }
-
-        IF FairingDeployment AND NOT fairingDeployed AND SHIP:ALTITUDE > FairingDeploymentAltitudeKm * 1000 {
-            mjLog("Deploying Fairing").
-            STAGE.
-            SET fairingDeployed TO TRUE.
-            LOG "T+" + ROUND(MISSIONTIME) + " - Fairing deployed at " + ROUND(SHIP:ALTITUDE/1000,1) + "km" TO "0:/mission_history.log".
         }
 
         WAIT 0.5.
