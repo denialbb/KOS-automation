@@ -20,6 +20,7 @@ RUNONCEPATH("0:/DASA/utils/power.ks").
 RUNONCEPATH("0:/DASA/utils/science.ks").
 RUNONCEPATH("0:/DASA/utils/math.ks").
 RUNONCEPATH("0:/DASA/utils/coasting.ks").
+RUNONCEPATH("0:/DASA/utils/cache.ks").
 
 // Define Mission Configuration
 SET TARGET TO BODY("Minmus").
