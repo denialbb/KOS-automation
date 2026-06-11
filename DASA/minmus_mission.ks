@@ -347,11 +347,9 @@ FUNCTION safeCoast { // STOPS ONE MINUTE BEFORE TARGET T
     PARAMETER targetTime.
     setStage("Coasting").
 
-    // TODO: point to normal direction in respect to the sun to
-    //       have the side of the ship facing the sun
-
+    // Point the right/starboard side at the sun by facing 90 degrees away in yaw
     UNTIL TIME:SECONDS >= targetTime - 60 {
-        LOCK STEERING TO SUN:POSITION.
+        LOCK STEERING TO LOOKDIRUP(SUN:POSITION, SHIP:FACING:UPVECTOR) * R(0, -90, 0).
         checkPower().
         runAllScience().
 
@@ -511,36 +509,12 @@ IF SHIP:STATUS = "PRELAUNCH" OR SHIP:STATUS = "LANDED" OR (SHIP:STATUS = "FLYING
 
 // ADDITION: Deploy all bays, solar panels, and antennas once in orbit
 IF NOT skipDeployment {
-    // 1. Deploy any fairings on the vessel first to unshield parts
-    logMsg("Jettisoning all fairings...").
+    LOCAL fairingModules IS LIST().
+    LOCAL deployableModules IS LIST().
+
+    // Walk the parts tree once to categorize all modules
     FOR p IN SHIP:parts {
         HUD_loading().
-        FOR m IN p:modules { // TODO OPTIMIZATION: save a list of solar panels, bays and antennas to deploy later.
-            LOCAL mName IS m:tostring:tolower.
-            IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
-                LOCAL pMod IS p:getmodule(m).
-                FOR ev IN pMod:alleventnames {
-                    LOCAL evLower IS ev:tolower.
-                    IF evLower:contains("deploy") OR evLower:contains("jettison") OR evLower:contains("open") OR evLower:contains("release") {
-                        pMod:doevent(ev).
-                        logMsg("Jettisoned fairing: " + ev + " on " + p:title).
-                        HUD_loading().
-                    }
-                }
-            }
-        }
-    }
-    spinload(10). // Wait for fairing separation physics
-
-    logMsg("Deploying solar panels, bays, and antennas.").
-    PANELS ON.
-    bays ON.
-
-    // TODO have a list ready to avoid re-walking the tree
-
-    FOR p IN SHIP:parts {
-        HUD_loading().
-        // Check if the part itself is likely an antenna or solar panel
         LOCAL pName IS p:NAME:tolower.
         LOCAL pTitle IS p:title:tolower.
         LOCAL isAntennaOrPanelPart IS FALSE.
@@ -558,30 +532,53 @@ IF NOT skipDeployment {
         FOR m IN p:modules {
             LOCAL mName IS m:tostring:tolower.
             LOCAL pMod IS p:getmodule(m).
+            
+            // Fairings
+            IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
+                fairingModules:ADD(pMod).
+            }
 
-            // Match panels, antennas, transmitters, animated booms, or deployables
+            // Deployables
             LOCAL isDeployableModule IS FALSE.
             IF mName:contains("solar") OR mName:contains("panel") OR mName:contains("antenna")
                OR mName:contains("transmit") OR mName:contains("comm") OR mName:contains("animate")
                OR mName:contains("deploy") OR mName:contains("dish") OR mName:contains("boom") {
                 SET isDeployableModule TO TRUE.
             }
-
-            // If the part is an antenna/panel, or the module itself is deployable, scan its events
             IF isAntennaOrPanelPart OR isDeployableModule {
-                FOR ev IN pMod:alleventnames {
-                    LOCAL evLower IS ev:tolower.
-                    // Trigger extend, deploy, open, toggle, or activate events
-                    IF evLower:contains("extend") OR evLower:contains("deploy") OR evLower:contains("open")
-                       OR evLower:contains("activate") OR evLower:contains("toggle") OR evLower:contains("start") {
-                        // Ignore retract/close/stop/disable/shutdown/jettison
-                        IF NOT (evLower:contains("retract") OR evLower:contains("close") OR evLower:contains("stop")
-                                OR evLower:contains("disable") OR evLower:contains("shutdown") OR evLower:contains("jettison")) {
-                            pMod:doevent(ev).
-                            logMsg(p:title + ": " + ev).
-                            HUD_loading().
-                        }
-                    }
+                deployableModules:ADD(pMod).
+            }
+        }
+    }
+
+    logMsg("Jettisoning all fairings...").
+    FOR pMod IN fairingModules {
+        FOR ev IN pMod:alleventnames {
+            LOCAL evLower IS ev:tolower.
+            IF evLower:contains("deploy") OR evLower:contains("jettison") OR evLower:contains("open") OR evLower:contains("release") {
+                pMod:doevent(ev).
+                logMsg("Jettisoned fairing: " + ev + " on " + pMod:part:title).
+                HUD_loading().
+            }
+        }
+    }
+    
+    spinload(10). // Wait for fairing separation physics
+
+    logMsg("Deploying solar panels, bays, and antennas.").
+    PANELS ON.
+    bays ON.
+
+    FOR pMod IN deployableModules {
+        FOR ev IN pMod:alleventnames {
+            LOCAL evLower IS ev:tolower.
+            IF evLower:contains("extend") OR evLower:contains("deploy") OR evLower:contains("open")
+               OR evLower:contains("activate") OR evLower:contains("toggle") OR evLower:contains("start") {
+                IF NOT (evLower:contains("retract") OR evLower:contains("close") OR evLower:contains("stop")
+                        OR evLower:contains("disable") OR evLower:contains("shutdown") OR evLower:contains("jettison")) {
+                    pMod:doevent(ev).
+                    logMsg(pMod:part:title + ": " + ev).
+                    HUD_loading().
                 }
             }
         }
