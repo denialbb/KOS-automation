@@ -1,7 +1,7 @@
 @LAZYGLOBAL OFF.
 
 IF NOT HASNODE {
-    IF DEFINED debugLog { debugLog("ExeNode: No maneuver node present. Aborting."). } ELSE { PRINT "ExeNode: No maneuver node present. Aborting.". }
+    IF DEFINED mjDebugLog { mjDebugLog("ExeNode: No maneuver node present. Aborting."). } ELSE { PRINT "ExeNode: No maneuver node present. Aborting.". }
     IF DEFINED logMsg { logMsg("ExeNode called with no active maneuver node. Abort."). }
     ABORT.
 }
@@ -28,7 +28,7 @@ SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 LOCAL max_acc IS 0.
 IF SHIP:MASS > 0 { SET max_acc TO SHIP:AVAILABLETHRUST / SHIP:MASS. }
 IF max_acc = 0 {
-    IF DEFINED debugLog { debugLog("WARNING: No thrust available. Waiting for active engine or staging..."). } ELSE { PRINT "WARNING: No thrust available. Waiting for active engine or staging...". }
+    IF DEFINED mjDebugLog { mjDebugLog("WARNING: No thrust available. Waiting for active engine or staging..."). } ELSE { PRINT "WARNING: No thrust available. Waiting for active engine or staging...". }
     UNTIL SHIP:AVAILABLETHRUST > 0 {
         HUD_print_header("MANEUVER NODE INFO").
         HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
@@ -140,14 +140,14 @@ IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------
     SET nodeExecutor:ENABLED TO FALSE.
     mjLog("Burn complete.").
 } ELSE { // ----------------------------------------------------------------------------
-    debugLog("[ExeNode] Aligning vessel...").
+    mjDebugLog("[ExeNode] Aligning vessel...").
     UNTIL VANG(SHIP:FACING:FOREVECTOR, nd:DELTAV) < 1.0 AND nd:ETA <= t_half_dv {
         HUD_print_header("MANEUVER NODE INFO").
         HUD_print_node(initial_dv_mag, nd:DELTAV:MAG, nd:ETA).
         WAIT 0.1.
     }
 
-    debugLog("[ExeNode] Beginning burn...").
+    mjDebugLog("[ExeNode] Beginning burn...").
     LOCAL tVal IS 0.
     LOCK THROTTLE TO tVal.
     LOCAL initial_dv IS nd:DELTAV.
@@ -159,7 +159,7 @@ IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------
 
         // Handle staging during burn
         IF SHIP:AVAILABLETHRUST < 0.1 AND tVal > 0 {
-            debugLog("[ExeNode] Flameout detected. Staging...").
+            mjDebugLog("[ExeNode] Flameout detected. Staging...").
             WAIT UNTIL STAGE:READY.
             STAGE.
             WAIT 0.5.
@@ -176,7 +176,7 @@ IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------
 
         // Overshoot protection
         IF VDOT(initial_dv, nd:DELTAV) < 0 {
-            debugLog("[ExeNode] Overshoot detected (dot product negative).").
+            mjDebugLog("[ExeNode] Overshoot detected (dot product negative).").
             SET done TO TRUE.
         } ELSE IF rem_dv < 0.1 {
         // Precision RCS finish
@@ -198,7 +198,7 @@ IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------
     // RCS finish for < 0.1 m/s remaining
     LOCAL rem_dv_after IS nd:DELTAV:MAG.
     IF rem_dv_after > 0.01 AND VDOT(initial_dv, nd:DELTAV) > 0 {
-        debugLog("[ExeNode] Fine-tuning with RCS...").
+        mjDebugLog("[ExeNode] Fine-tuning with RCS...").
         RCS ON.
         LOCAL rcs_done IS FALSE.
         UNTIL rcs_done {

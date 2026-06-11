@@ -11,7 +11,7 @@ LOCAL missionLogPath IS "0:/logs/log.txt".
 GLOBAL hadConnection IS TRUE.
 GLOBAL localLogPath IS "1:/local_log.txt".
 LOCAL apuState IS FALSE.
-LOCAL lastPowerCheck IS 0.
+LOCAL lastPowerCheck IS TIME:SECONDS + 60.
 GLOBAL telemetryStage IS "Booting".
 GLOBAL missionMilestones IS LIST().
 LOCAL lastTelemetryUpdate IS 0.
@@ -27,22 +27,30 @@ IF exists(missionLogPath) {
 }
 
 RUNONCEPATH("0:/DASA/HUD.ks").
+RUNONCEPATH("0:/MJ/MJ.ks").
 
 // ------------------------------------------------------------------------
 // Helpers: Logging and Telemetry
 // ------------------------------------------------------------------------
-FUNCTION formatTime {
+GLOBAL FUNCTION formatTime {
     PARAMETER t.
     LOCAL h IS FLOOR(t / 3600).
     LOCAL m IS FLOOR(MOD(t, 3600) / 60).
     LOCAL s IS FLOOR(MOD(t, 60)).
-    LOCAL hStr IS "" + h. IF h < 10 { SET hStr TO "0" + h. }
-    LOCAL mStr IS "" + m. IF m < 10 { SET mStr TO "0" + m. }
-    LOCAL sStr IS "" + s. IF s < 10 { SET sStr TO "0" + s. }
+    
+    LOCAL hStr IS h:TOSTRING.
+    IF h < 10 { SET hStr TO "0" + hStr. }
+    
+    LOCAL mStr IS m:TOSTRING.
+    IF m < 10 { SET mStr TO "0" + mStr. }
+    
+    LOCAL sStr IS s:TOSTRING.
+    IF s < 10 { SET sStr TO "0" + sStr. }
+    
     RETURN hStr + ":" + mStr + ":" + sStr.
 }
 
-FUNCTION logMsg {
+GLOBAL FUNCTION logMsg {
     PARAMETER msg.
     LOCAL tStr IS "T+".
     LOCAL tVal IS MISSIONTIME.
@@ -292,6 +300,7 @@ FUNCTION checkPower {
     IF ecMax > 0 {
         LOCAL pct IS ec / ecMax.
         IF pct < 0.20 {
+            logMsg("LOW POWER.").
             IF NOT apuState {
                 logMsg("CRITICAL POWER: Starting APUs.").
                 setAPUState(TRUE).
@@ -311,6 +320,8 @@ FUNCTION checkPower {
 
         // Turn lights on if in orbit and power is stable (>20%)
         IF pct >= 0.20 AND (SHIP:STATUS = "ORBITING" OR SHIP:STATUS = "ESCAPING") {
+            spinload(10).
+            spinload_clear().
             IF NOT LIGHTS {
                 LIGHTS ON.
                 logMsg("Vessel in orbit with stable power. Turning lights on.").
@@ -357,15 +368,17 @@ FUNCTION safeCoast { // STOPS ONE MINUTE BEFORE TARGET T
         IF timeLeft > 3600 {
             LOCAL nextStop IS MIN(TIME:SECONDS + 3600, targetTime - 60).
             SET WARPMODE TO "rails".
+            logMsg("Warping to next stop.").
             WARPTO(nextStop).
             WAIT UNTIL TIME:SECONDS >= nextStop - 5.
         } ELSE IF timeLeft > 300 {
             LOCAL nextStop IS targetTime - 60.
             SET WARPMODE TO "rails".
+            logMsg("Warping to next stop.").
             WARPTO(nextStop).
             WAIT UNTIL TIME:SECONDS >= nextStop - 5.
         } ELSE {
-            WAIT 10.
+            WAIT 1.
         }
     }
     logMsg("Ending Coasting Phase.").
@@ -406,6 +419,7 @@ FUNCTION createNodeFromVector {
 // Main Mission Sequence
 // ------------------------------------------------------------------------
 // Start background power and subsystem monitor trigger (runs every 5 seconds)
+
 WHEN TIME:SECONDS > lastPowerCheck + 5 THEN {
     SET lastPowerCheck TO TIME:SECONDS.
     checkPower().
@@ -532,7 +546,7 @@ IF NOT skipDeployment {
         FOR m IN p:modules {
             LOCAL mName IS m:tostring:tolower.
             LOCAL pMod IS p:getmodule(m).
-            
+
             // Fairings
             IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
                 fairingModules:ADD(pMod).
@@ -562,7 +576,7 @@ IF NOT skipDeployment {
             }
         }
     }
-    
+
     spinload(10). // Wait for fairing separation physics
 
     logMsg("Deploying solar panels, bays, and antennas.").
@@ -667,7 +681,7 @@ IF bms:length = 0 {
         } ELSE {
             // Coast safely to node
             IF myNode:ETA > 120 {
-                safeCoast(TIME:SECONDS + myNode:ETA). // BUG doesn't return to execution here
+                safeCoast(TIME:SECONDS + myNode:ETA).
             }
 
             logMsg("Executing node " + i + "...").

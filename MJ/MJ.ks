@@ -21,16 +21,18 @@ GLOBAL FUNCTION mjWaitForModule {
     RETURN ADDONS:MJ:HASMODULE(modName).
 }
 
-GLOBAL FUNCTION debugLog {
+GLOBAL FUNCTION mjDebugLog {
     PARAMETER msg.
+    LOCAL str is "[DEBUG] " + msg.
     IF DEFINED logMsg {
-        logMsg("[DEBUG] " + msg).
+        logMsg(str).
     } ELSE {
-        PRINT "[DEBUG] " + msg.
+        PRINT str.
     }
 }
 
 GLOBAL FUNCTION mjLog {
     PARAMETER msg.
-    debugLog("[MJ] " + msg).
+    LOCAL str IS "[MJ] " + msg.
+    mjDebugLog(str).
 }
