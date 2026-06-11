@@ -211,7 +211,9 @@ function updateTelemetry {
 function setStage {
     parameter newStage.
     clearscreen.
-    logMsg("Entered stage: " + newStage).
+    print("==================================================").
+    logMsg("          Entered stage: " + newStage).
+    print("==================================================").
     set telemetryStage to newStage.
     updateTelemetry(telemetryStage).
 
@@ -402,9 +404,9 @@ when time:seconds > lastTelemetryUpdate + 0.2 then {
     local hasConn is homeconnection:isconnected.
     if hasConn <> hadConnection {
         if hasConn {
-            logMsg("Signal restored. Reconnected to KSC.").
+            logMsg("--- SIGNAL RESTORED: Reconnected to KSC. ---").
         } else {
-            logMsg("SIGNAL LOST: Connection to KSC lost.").
+            logMsg("--- SIGNAL LOST: Connection to KSC lost. ---").
         }
         set hadConnection to hasConn.
     }
@@ -426,7 +428,15 @@ when time:seconds > lastTelemetryUpdate + 0.2 then {
 }
 
 setStage("Booting").
-logMsg("Minmus Automation Mission Initialized.").
+logMsg("Minmus Autonomous Mission Initialized.").
+
+
+if not exists("0:/telemetry/vessel_structure.json") {
+    logMsg("No existing vessel structure found. Forcing scan...").
+    wait 1.
+    runpath("0:/DASA/VesselScan.ks").
+}
+
 print "Scan vessel structure? (y/n)".
 local scanChoice is "".
 until scanChoice = "y" or scanChoice = "n" {
@@ -435,12 +445,8 @@ until scanChoice = "y" or scanChoice = "n" {
 if scanChoice = "y" {
     runpath("0:/DASA/VesselScan.ks").
 } else {
-    if exists("0:/telemetry/vessel_structure.json") {
-        logMsg("Skipping vessel scan. Dashboard will use existing vessel structure.").
-    } else {
-        logMsg("No existing vessel structure found. Forcing scan...").
-        runpath("0:/DASA/VesselScan.ks").
-    }
+    logMsg("Skipping vessel scan. Dashboard will use existing vessel structure.").
+    wait 1.
 }
 
 local skipDeployment is false.
