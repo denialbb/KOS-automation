@@ -26,6 +26,8 @@ IF exists(missionLogPath) {
     deletepath(missionLogPath).
 }
 
+RUNONCEPATH("0:/DASA/HUD.ks").
+
 // ------------------------------------------------------------------------
 // Helpers: Logging and Telemetry
 // ------------------------------------------------------------------------
@@ -45,8 +47,13 @@ FUNCTION logMsg {
     LOCAL tStr IS "T+".
     LOCAL tVal IS MISSIONTIME.
     IF HASNODE {
-        SET tStr TO "T-".
         SET tVal TO NEXTNODE:ETA.
+        IF tVal < 0 {
+            SET tStr TO "T-".
+            SET tVal TO 0-tVal.
+        } ELSE {
+            SET tStr TO "T+".
+        }
     }
     LOCAL line IS "[" + tStr + formatTime(tVal) + "] " + msg.
     PRINT line.
@@ -212,7 +219,7 @@ FUNCTION setStage {
     PARAMETER newStage.
     CLEARSCREEN.
     PRINT("==================================================").
-    logMsg("          Entered stage: " + newStage).
+    logMsg("       Stage: " + newStage).
     PRINT("==================================================").
     PRINT("    ").
     SET telemetryStage TO newStage.
@@ -238,9 +245,16 @@ FUNCTION setStage {
     }
 }
 
+LOCAL aborted IS FALSE.
+
 WHEN ABORT THEN {
-    setStage("Aborted").
-    logMsg("--- MISSION ABORTED ---").
+    IF aborted {
+        PRESERVE.
+    } ELSE {
+        SET aborted TO TRUE.
+        setStage("Aborted").
+        logMsg("--- MISSION ABORTED ---").
+    }
     PRESERVE.
 }
 
@@ -447,7 +461,7 @@ IF scanChoice = "y" {
     RUNPATH("0:/DASA/VesselScan.ks").
 } ELSE {
     logMsg("Skipping vessel scan. Dashboard will use existing vessel structure.").
-    WAIT 1.
+    WAIT 0.2.
 }
 
 LOCAL skipDeployment IS FALSE.
@@ -473,6 +487,7 @@ IF SHIP:STATUS = "PRELAUNCH" OR SHIP:STATUS = "LANDED" OR (SHIP:STATUS = "FLYING
     }
     FOR p IN SHIP:parts {
         FOR m IN p:modules {
+            HUD_loading().
             LOCAL mName IS m:tostring:tolower.
             IF mName:contains("solar") OR mName:contains("panel") {
                 LOCAL pMod IS p:getmodule(m).
@@ -497,7 +512,8 @@ IF NOT skipDeployment {
     // 1. Deploy any fairings on the vessel first to unshield parts
     logMsg("Jettisoning all fairings...").
     FOR p IN SHIP:parts {
-        FOR m IN p:modules {
+        FOR m IN p:modules { // TODO OPTIMIZATION: save a list of solar panels, bays and antennas to deploy later.
+            HUD_loading().
             LOCAL mName IS m:tostring:tolower.
             IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
                 LOCAL pMod IS p:getmodule(m).
@@ -506,16 +522,19 @@ IF NOT skipDeployment {
                     IF evLower:contains("deploy") OR evLower:contains("jettison") OR evLower:contains("open") OR evLower:contains("release") {
                         pMod:doevent(ev).
                         logMsg("Jettisoned fairing: " + ev + " on " + p:title).
+                        HUD_loading().
                     }
                 }
             }
         }
     }
-    WAIT 1. // Wait for fairing separation physics
+    spinload(10). // Wait for fairing separation physics
 
     logMsg("Deploying solar panels, bays, and antennas.").
     PANELS ON.
     bays ON.
+
+    // TODO have a list ready to avoid re-walking the tree
 
     FOR p IN SHIP:parts {
         // Check if the part itself is likely an antenna or solar panel
@@ -534,6 +553,7 @@ IF NOT skipDeployment {
         }
 
         FOR m IN p:modules {
+            HUD_loading().
             LOCAL mName IS m:tostring:tolower.
             LOCAL pMod IS p:getmodule(m).
 
@@ -556,7 +576,7 @@ IF NOT skipDeployment {
                         IF NOT (evLower:contains("retract") OR evLower:contains("close") OR evLower:contains("stop")
                                 OR evLower:contains("disable") OR evLower:contains("shutdown") OR evLower:contains("jettison")) {
                             pMod:doevent(ev).
-                            logMsg("Deploying: " + ev + " on " + p:title).
+                            logMsg(p:title + ": " + ev).
                         }
                     }
                 }
@@ -564,11 +584,14 @@ IF NOT skipDeployment {
         }
     }
 }
+spinload_clear().
 
 // 2. Interrogate Astrogator
 SET TARGET TO BODY("Minmus").
 setStage("Hohmann Transfer").
 logMsg("Interrogating Astrogator for transfer window and node information...").
+spinload(5).
+spinload_clear().
 
 // Clear any existing nodes BEFORE calling Astrogator
 UNTIL NOT HASNODE {
@@ -606,6 +629,7 @@ IF bms:length = 0 {
     logMsg("Primary Transfer Node Details:").
     logMsg(" - Relative Inclination: " + ROUND(incDiff, 2) + " deg").
     logMsg(" - Delta-V Available: " + ROUND(dvAvail, 1) + " m/s").
+    wait 1.
 
     IF dvAvail < dvNeeded {
         logMsg("WARNING: Insufficient Delta-V for maneuver!").
@@ -624,7 +648,8 @@ IF bms:length = 0 {
         // Manually add this burn model as a maneuver node
         PRINT "[DEBUG] Instantiating node " + i + " from Astrogator.".
         LOCAL myNode IS bm:toNode.
-        WAIT 1. // NEEDED for the NODE
+        spinload(10). // NEEDED for the NODE
+        spinload_clear().
         IF NOT HASNODE {
             PRINT "[DEBUG] Node not automatically added by toNode. Adding it manually...".
             ADD myNode.
@@ -636,6 +661,7 @@ IF bms:length = 0 {
         // Wait up to 5 seconds for the node to appear on the flight plan
         LOCAL waitStart IS TIME:SECONDS.
         UNTIL HASNODE OR (TIME:SECONDS - waitStart > 5) {
+            HUD_loading().
             WAIT 0.1.
         }
 
@@ -645,6 +671,8 @@ IF bms:length = 0 {
         } ELSE {
             PRINT "[DEBUG] hasnode confirmed for node " + i + ".".
             logMsg("Executing node " + i + "...").
+            spinload(10).
+            spinload_clear().
             RUNPATH("0:/MJ/ExeNode.ks").
             PRINT "[DEBUG] Execution of node " + i + " returned.".
         }
@@ -653,6 +681,8 @@ IF bms:length = 0 {
 
 // 4. Coast to Minmus
 setStage("Coasting").
+spinload(10).
+spinload_clear().
 logMsg("Transfer burn complete. Coasting to Minmus SOI.").
 WAIT UNTIL ORBIT:hasnextpatch AND ORBIT:nextpatch:BODY:NAME = "Minmus".
 LOCAL timeToSOI IS ORBIT:nextpatch:ETA.

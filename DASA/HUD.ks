@@ -1,25 +1,30 @@
 @LAZYGLOBAL OFF.
+GLOBAL loading_tick IS 0.
+LOCAL lx IS 48.
+LOCAL ly IS 35.
+LOCAL padding IS "                      ".
 
 GLOBAL FUNCTION HUD_print_header {
-    PARAMETER title.
-    PRINT "--- " + title + " ---                             " AT(0,30).
+    PARAMETER sec_title.
+    PRINT "--- " + sec_title + " ---" AT(0,30).
 }
 
 GLOBAL FUNCTION HUD_print_ascent {
-    PARAMETER twr, dynPress, vel, alt, apo.
-    
-    PRINT "TWR: " + ROUND(twr, 2) + "        " AT(0,31).
-    PRINT "Q:   " + ROUND(dynPress, 4) + " kPa   " AT(0,32).
-    PRINT "Velocity: " + ROUND(vel) + " m/s       " AT(0,33).
-    PRINT "Altitude: " + ROUND(alt) + " m       " AT(0,34).
-    PRINT "Apoapsis: " + ROUND(apo) + " m       " AT(0,35).
+    PARAMETER twr, dynPress, vel, cur_alt, apo.
+
+    PRINT "TWR:     " + padding + ROUND(twr, 2) AT(0,31).
+    PRINT "Q:       " + padding + ROUND(dynPress, 4) + " kPa" AT(0,32).
+    PRINT "Velocity:" + padding + ROUND(vel) + " m/s" AT(0,33).
+    PRINT "Altitude:" + padding + ROUND(cur_alt) + " m" AT(0,34).
+    PRINT "Apoapsis:" + padding + ROUND(apo) + " m" AT(0,35).
 }
 
 GLOBAL FUNCTION HUD_print_node {
+    PARAMETER eta_secs.
     PARAMETER initial_dv.
     PARAMETER current_dv.
-    PARAMETER eta_secs.
-    
+    PARAMETER vessel_dv.
+
     LOCAL tLeft IS MAX(0, eta_secs).
     LOCAL h IS FLOOR(tLeft / 3600).
     LOCAL m IS FLOOR(MOD(tLeft, 3600) / 60).
@@ -27,8 +32,39 @@ GLOBAL FUNCTION HUD_print_node {
     LOCAL hStr IS "" + h. IF h < 10 { SET hStr TO "0" + h. }
     LOCAL mStr IS "" + m. IF m < 10 { SET mStr TO "0" + m. }
     LOCAL sStr IS "" + s. IF s < 10 { SET sStr TO "0" + s. }
-    
-    PRINT "Total maneuver delta-V: " + ROUND(initial_dv, 1) + " m/s       " AT (0,31).
-    PRINT "Time to maneuver: T-" + hStr + ":" + mStr + ":" + sStr + "       " AT (0,32).
-    PRINT "Remaining delta-V: " + ROUND(current_dv, 1) + " m/s       " AT (0,33).
+
+    PRINT "Time to Node:     " + padding + "T-" + hStr + ":" + mStr + ":" + sStr AT (0,32).
+    PRINT "Maneuver delta-V: " + padding + ROUND(initial_dv, 1) + " m/s" AT (0,31).
+    PRINT "Remaining delta-V:" + padding + ROUND(current_dv, 1) + " m/s" AT (0,33).
+    PRINT "Vessel delta-V:   " + padding + ROUND(vessel_dv, 1) + " m/s" AT (0,34).
+}
+
+
+GLOBAL FUNCTION HUD_loading {
+    IF loading_tick = 0 {
+        PRINT "/" AT (lx,ly).
+    } ELSE IF loading_tick = 1 {
+        PRINT "-" AT (lx,ly).
+    } ELSE IF loading_tick = 2 {
+        PRINT "\" AT (lx,ly).
+    } ELSE IF loading_tick = 3 {
+        PRINT "|" AT (lx,ly).
+    }
+
+    SET loading_tick TO MOD((loading_tick + 1), 4).
+    wait 0.
+}
+
+GLOBAL FUNCTION spinload {
+    PARAMETER n.
+    LOCAL i IS n.
+    UNTIL i = 0 {
+        HUD_loading().
+        wait 0.1.
+        SET i TO i-1.
+    }
+}
+
+GLOBAL FUNCTION spinload_clear {
+    PRINT " " AT (lx,ly).
 }
