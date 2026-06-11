@@ -767,15 +767,17 @@
                     // If it was "Waiting for data..." or count matches 1 placeholder
                     const isPlaceholder = currentCount === 1 && mCont.querySelector('.timeline-item').innerText.includes('Waiting for data');
                     
-                    if (isPlaceholder || data.milestones.length !== currentCount) {
+                    const filteredMilestones = data.milestones.filter(m => !m.includes("[DEBUG]"));
+                    
+                    if (isPlaceholder || filteredMilestones.length !== currentCount) {
                         mCont.innerHTML = '';
-                        data.milestones.forEach((m, idx) => {
+                        filteredMilestones.forEach((m, idx) => {
                             const d = document.createElement('div');
                             d.className = 'timeline-item';
                             d.innerText = m;
                             
                             // If this is a new log item (the last index in chronologically ordered list)
-                            if (!isPlaceholder && idx === data.milestones.length - 1) {
+                            if (!isPlaceholder && idx === filteredMilestones.length - 1) {
                                 d.style.color = '#ef4444';
                                 d.style.transition = 'color 5.0s ease, border-left-color 5.0s ease';
                                 setTimeout(() => {

@@ -670,7 +670,7 @@ IF bms:length = 0 {
         } ELSE {
             // Coast safely to node
             IF myNode:ETA > 120 {
-                safeCoast(TIME:SECONDS + myNode:ETA).
+                safeCoast(TIME:SECONDS + myNode:ETA). // BUG doesn't return to execution here
             }
 
             logMsg("Executing node " + i + "...").
@@ -688,7 +688,7 @@ spinload(10).
 spinload_clear().
 logMsg("Transfer burn complete. Coasting to Minmus SOI.").
 WAIT UNTIL ORBIT:hasnextpatch AND ORBIT:nextpatch:BODY:NAME = "Minmus".
-LOCAL timeToSOI IS ORBIT:nextpatch:ETA.
+LOCAL timeToSOI IS ETA:TRANSITION.
 safeCoast(TIME:SECONDS + timeToSOI).
 
 WAIT UNTIL SHIP:BODY:NAME = "Minmus".
