@@ -48,3 +48,23 @@ The ascent autopilot is interfaced via `ADDONS:MJ:ASCENT`.
 
 ---
 *Note: This documentation should be expanded as more modules (e.g., Rendezvous Planner, Landing Autopilot) are integrated.*
+
+## 6. Integration Test Suite
+To verify the compatibility and functionality of the kOS MechJeb2 Addon bindings, a dedicated test suite is located in the `Tests/` directory:
+- `TestRunner.ks`: A menu-driven interface to run all or specific wrappers.
+- `CoreWrapperTest.ks`: Verifies top-level addon connectivity and status.
+- `VesselWrapperTest.ks`: Asserts that basic vessel telemetry and attitude are exposed.
+- `InfoWrapperTest.ks`: Asserts that MechJeb telemetry calculations (TWR, vac delta-V, target details) are correct.
+- `AscentWrapperTest.ks`: Tests Classic Ascent autopilot parameters (inclination, turn heights, autostage parameters).
+- `ManeuverPlannerWrapperTest.ks`: Verifies planner bindings and node generation methods.
+- `ManeuverPlannerBasicTest.ks`: Plans changes to Pe, Ap, and SMA, validating node construction.
+- `NodeExecutorWrapperTest.ks`: Tests MechJeb node executor toggles (autowarp, active status).
+
+### How to Run the Tests
+1. Load a vessel with a kOS CPU and MechJeb unit.
+2. Open the kOS terminal and run:
+   ```kerboscript
+   cd("Tests").
+   run TestRunner.
+   ```
+3. Use the menu choices to run the desired test suite. Note that while Core, Vessel, and Info tests can be run safely anywhere (even on the launchpad), maneuver planner and ascent tests are best run in space or during active flight scenarios to satisfy KSP physics/orbital constraints.

@@ -19,20 +19,32 @@ IF NOT mjAvailable() {
     }
     
     // Configure MechJeb Ascent Autopilot
-    IF ADDONS:MJ:ASCENT:HASSUFFIX("ORBITALT") {
-        SET ADDONS:MJ:ASCENT:ORBITALT TO TargetAltitudeKm * 1000.
+    LOCAL asc IS ADDONS:MJ:ASCENT.
+    
+    IF asc:HASSUFFIX("DESIREDALTITUDE") {
+        SET asc:DESIREDALTITUDE TO TargetAltitudeKm * 1000.
+    } ELSE IF asc:HASSUFFIX("DSRALT") {
+        SET asc:DSRALT TO TargetAltitudeKm * 1000.
+    } ELSE IF asc:HASSUFFIX("ORBITALT") {
+        SET asc:ORBITALT TO TargetAltitudeKm * 1000.
     }
-    IF ADDONS:MJ:ASCENT:HASSUFFIX("INCLINATION") {
-        SET ADDONS:MJ:ASCENT:INCLINATION TO RelativeInclinationDegr.
+    
+    IF asc:HASSUFFIX("DESIREDINCLINATION") {
+        SET asc:DESIREDINCLINATION TO RelativeInclinationDegr.
+    } ELSE IF asc:HASSUFFIX("INC") {
+        SET asc:INC TO RelativeInclinationDegr.
+    } ELSE IF asc:HASSUFFIX("INCLINATION") {
+        SET asc:INCLINATION TO RelativeInclinationDegr.
     }
-    IF ADDONS:MJ:ASCENT:HASSUFFIX("AUTOSTAGE") {
-        SET ADDONS:MJ:ASCENT:AUTOSTAGE TO TRUE.
+    
+    IF asc:HASSUFFIX("AUTOSTAGE") {
+        SET asc:AUTOSTAGE TO TRUE.
     }
     
     mjReleaseControl().
     
     mjLog("Engaging Ascent Autopilot").
-    SET ADDONS:MJ:ASCENT:ENABLED TO TRUE.
+    SET asc:ENABLED TO TRUE.
     
     LOCAL fairingDeployed IS FALSE.
     LOCAL isCoasting IS FALSE.
@@ -56,5 +68,5 @@ IF NOT mjAvailable() {
     }
     
     mjLog("Ascent complete. Disabling Ascent Autopilot").
-    SET ADDONS:MJ:ASCENT:ENABLED TO FALSE.
+    SET asc:ENABLED TO FALSE.
 }

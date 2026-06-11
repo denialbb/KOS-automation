@@ -6,32 +6,37 @@ IF NOT mjAvailable() OR NOT ADDONS:MJ:HASSUFFIX("PLANNER") OR NOT ADDONS:MJ:HASS
     PRINT "[MJ] MechJeb Planner or Node Executor not supported by this addon version! Falling back to SpaceCore/CircToAp.ks".
     RUNPATH("0:/SpaceCore/CircToAp.ks").
 } ELSE {
-    mjLog("Planner Suffixes: " + ADDONS:MJ:PLANNER:SUFFIXNAMES:JOIN(", ")).
+    LOCAL planner IS ADDONS:MJ:PLANNER.
+    LOCAL nodeExecutor IS ADDONS:MJ:NODE.
+    LOCAL success IS FALSE.
+    
     mjLog("Planning Circularization at Apoapsis").
     
-    // According to kOS.MechJeb2.Addon, ADDONS:MJ:PLANNER has CIRCULARIZEAPOAPSIS or similar.
-    IF ADDONS:MJ:PLANNER:HASSUFFIX("CIRCULARIZEAPOAPSIS") {
-        ADDONS:MJ:PLANNER:CIRCULARIZEAPOAPSIS().
-    } ELSE IF ADDONS:MJ:PLANNER:HASSUFFIX("CIRCULARIZE") {
-        // Fallback or other possible name
-        ADDONS:MJ:PLANNER:CIRCULARIZE("AP").
-    } ELSE {
-        mjLog("Could not find circularize suffix!").
+    IF planner:HASSUFFIX("CIRCULARIZE") {
+        SET success TO planner:CIRCULARIZE("APOAPSIS").
+    } ELSE IF planner:HASSUFFIX("CIRCULARIZEAPOAPSIS") {
+        planner:CIRCULARIZEAPOAPSIS().
+        SET success TO TRUE.
     }
     
-    WAIT UNTIL HASNODE.
-    mjLog("Node planned. Executing via MechJeb...").
-    
-    mjReleaseControl().
-    SET ADDONS:MJ:NODE:ENABLED TO TRUE.
-    
-    UNTIL NOT HASNODE {
-        IF NEXTNODE:ETA < 10 {
-            mjLog("Executing Node - dV: " + ROUND(NEXTNODE:DELTAV:MAG, 2)).
+    IF success {
+        WAIT UNTIL HASNODE.
+        mjLog("Node planned. Executing via MechJeb...").
+        
+        mjReleaseControl().
+        SET nodeExecutor:ENABLED TO TRUE.
+        
+        UNTIL NOT HASNODE {
+            IF NEXTNODE:ETA < 10 {
+                mjLog("Executing Node - dV: " + ROUND(NEXTNODE:DELTAV:MAG, 2)).
+            }
+            WAIT 0.5.
         }
-        WAIT 0.5.
+        
+        SET nodeExecutor:ENABLED TO FALSE.
+        mjLog("Circularization complete.").
+    } ELSE {
+        mjLog("Could not plan circularization via MechJeb! Falling back to SpaceCore/CircToAp.ks").
+        RUNPATH("0:/SpaceCore/CircToAp.ks").
     }
-    
-    SET ADDONS:MJ:NODE:ENABLED TO FALSE.
-    mjLog("Circularization complete.").
 }
