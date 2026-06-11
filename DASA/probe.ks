@@ -1,50 +1,50 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
 // ------------------------------------------------------------------------
 // Probe Mission Script: Orbit, Rendezvous, and Dock
 // ------------------------------------------------------------------------
 
-local logFile is "0:/probe_log.txt".
+LOCAL logFile IS "0:/probe_log.txt".
 
-function logMsg {
-    parameter msg.
-    local line is "[" + round(time:seconds, 1) + "] " + msg.
-    log line to logFile.
-    print line.
+FUNCTION logMsg {
+    PARAMETER msg.
+    LOCAL line IS "[" + ROUND(TIME:SECONDS, 1) + "] " + msg.
+    LOG line TO logFile.
+    PRINT line.
 }
 
 logMsg("Probe control initialized. Waiting for staging/deployment.").
 
 // 1. Wait for deployment (staging from plane/rocket)
-local initMass is ship:mass.
+LOCAL initMass IS SHIP:MASS.
 // We consider it deployed if mass drops significantly or if engines are activated and we are flying
-wait until (ship:mass < initMass - 0.5) or (maxthrust > 0 and ship:status <> "PRELAUNCH").
+WAIT UNTIL (SHIP:MASS < initMass - 0.5) OR (MAXTHRUST > 0 AND SHIP:STATUS <> "PRELAUNCH").
 logMsg("Deployment detected. Activating flight systems.").
 
 // 2. Reach Orbit
-sas off.
-local targetAp is 85000.
-if ship:apoapsis < targetAp {
+SAS OFF.
+LOCAL targetAp IS 85000.
+IF SHIP:APOAPSIS < targetAp {
     logMsg("Beginning ascent burn.").
-    lock throttle to 1.0.
+    LOCK THROTTLE TO 1.0.
     // If dropped from plane, we might be horizontal, pitch up to 45
-    lock steering to heading(90, 45).
-    wait until ship:apoapsis >= targetAp.
-    lock throttle to 0.0.
+    LOCK STEERING TO HEADING(90, 45).
+    WAIT UNTIL SHIP:APOAPSIS >= targetAp.
+    LOCK THROTTLE TO 0.0.
     logMsg("Apoapsis target reached. Coasting.").
 }
 
 logMsg("Deploying equipment (solar panels/science/antennas).").
 // 1. Deploy any fairings on the vessel first to unshield parts
 logMsg("Jettisoning all fairings...").
-for p in ship:parts {
-    for m in p:modules {
-        local mName is m:tostring:tolower.
-        if mName:contains("fairing") or mName:contains("jettison") or mName:contains("shroud") {
-            local pMod is p:getmodule(m).
-            for ev in pMod:alleventnames {
-                local evLower is ev:tolower.
-                if evLower:contains("deploy") or evLower:contains("jettison") or evLower:contains("open") or evLower:contains("release") {
+FOR p IN SHIP:parts {
+    FOR m IN p:modules {
+        LOCAL mName IS m:tostring:tolower.
+        IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
+            LOCAL pMod IS p:getmodule(m).
+            FOR ev IN pMod:alleventnames {
+                LOCAL evLower IS ev:tolower.
+                IF evLower:contains("deploy") OR evLower:contains("jettison") OR evLower:contains("open") OR evLower:contains("release") {
                     pMod:doevent(ev).
                     logMsg("Jettisoned fairing: " + ev + " on " + p:title).
                 }
@@ -52,49 +52,49 @@ for p in ship:parts {
         }
     }
 }
-wait 1. // Wait for fairing separation physics
+WAIT 1. // Wait for fairing separation physics
 
-panels on.
+PANELS ON.
 
 // Deploy science
-for p in ship:modulesNamed("ModuleScienceExperiment") {
+FOR p IN SHIP:modulesNamed("ModuleScienceExperiment") {
     p:deploy().
 }
 
 // Deploy antennas and solar panels robustly
-for p in ship:parts {
-    local pName is p:name:tolower.
-    local pTitle is p:title:tolower.
-    local isAntennaOrPanelPart is false.
-    if pName:contains("solar") or pName:contains("panel") or pName:contains("antenna")
-       or pName:contains("dish") or pName:contains("comm") or pName:contains("trans")
-       or pName:contains("ray") or pName:contains("reflector") {
-        set isAntennaOrPanelPart to true.
+FOR p IN SHIP:parts {
+    LOCAL pName IS p:NAME:tolower.
+    LOCAL pTitle IS p:title:tolower.
+    LOCAL isAntennaOrPanelPart IS FALSE.
+    IF pName:contains("solar") OR pName:contains("panel") OR pName:contains("antenna")
+       OR pName:contains("dish") OR pName:contains("comm") OR pName:contains("trans")
+       OR pName:contains("ray") OR pName:contains("reflector") {
+        SET isAntennaOrPanelPart TO TRUE.
     }
-    if pTitle:contains("solar") or pTitle:contains("panel") or pTitle:contains("antenna")
-       or pTitle:contains("dish") or pTitle:contains("comm") or pTitle:contains("trans")
-       or pTitle:contains("ray") or pTitle:contains("reflector") {
-        set isAntennaOrPanelPart to true.
+    IF pTitle:contains("solar") OR pTitle:contains("panel") OR pTitle:contains("antenna")
+       OR pTitle:contains("dish") OR pTitle:contains("comm") OR pTitle:contains("trans")
+       OR pTitle:contains("ray") OR pTitle:contains("reflector") {
+        SET isAntennaOrPanelPart TO TRUE.
     }
 
-    for m in p:modules {
-        local mName is m:tostring:tolower.
-        local pMod is p:getmodule(m).
+    FOR m IN p:modules {
+        LOCAL mName IS m:tostring:tolower.
+        LOCAL pMod IS p:getmodule(m).
         
-        local isDeployableModule is false.
-        if mName:contains("solar") or mName:contains("panel") or mName:contains("antenna")
-           or mName:contains("transmit") or mName:contains("comm") or mName:contains("animate")
-           or mName:contains("deploy") or mName:contains("dish") or mName:contains("boom") {
-            set isDeployableModule to true.
+        LOCAL isDeployableModule IS FALSE.
+        IF mName:contains("solar") OR mName:contains("panel") OR mName:contains("antenna")
+           OR mName:contains("transmit") OR mName:contains("comm") OR mName:contains("animate")
+           OR mName:contains("deploy") OR mName:contains("dish") OR mName:contains("boom") {
+            SET isDeployableModule TO TRUE.
         }
         
-        if isAntennaOrPanelPart or isDeployableModule {
-            for ev in pMod:alleventnames {
-                local evLower is ev:tolower.
-                if evLower:contains("extend") or evLower:contains("deploy") or evLower:contains("open") 
-                   or evLower:contains("activate") or evLower:contains("toggle") or evLower:contains("start") {
-                    if not (evLower:contains("retract") or evLower:contains("close") or evLower:contains("stop")
-                            or evLower:contains("disable") or evLower:contains("shutdown") or evLower:contains("jettison")) {
+        IF isAntennaOrPanelPart OR isDeployableModule {
+            FOR ev IN pMod:alleventnames {
+                LOCAL evLower IS ev:tolower.
+                IF evLower:contains("extend") OR evLower:contains("deploy") OR evLower:contains("open") 
+                   OR evLower:contains("activate") OR evLower:contains("toggle") OR evLower:contains("start") {
+                    IF NOT (evLower:contains("retract") OR evLower:contains("close") OR evLower:contains("stop")
+                            OR evLower:contains("disable") OR evLower:contains("shutdown") OR evLower:contains("jettison")) {
                         pMod:doevent(ev).
                         logMsg("Deploying: " + ev + " on " + p:title).
                     }
@@ -104,104 +104,104 @@ for p in ship:parts {
     }
 }
 
-if ship:periapsis < 75000 {
+IF SHIP:PERIAPSIS < 75000 {
     logMsg("Waiting to circularize at Apoapsis.").
-    lock steering to prograde.
-    wait until eta:apoapsis < 15.
+    LOCK STEERING TO PROGRADE.
+    WAIT UNTIL ETA:APOAPSIS < 15.
     logMsg("Circularization burn start.").
-    lock throttle to 1.0.
-    wait until ship:periapsis >= 75000.
-    lock throttle to 0.0.
+    LOCK THROTTLE TO 1.0.
+    WAIT UNTIL SHIP:PERIAPSIS >= 75000.
+    LOCK THROTTLE TO 0.0.
     logMsg("Orbit achieved.").
 }
 
 // 3. Rendezvous
-if not hastarget {
+IF NOT hastarget {
     logMsg("Please select a target station to proceed.").
-    wait until hastarget.
+    WAIT UNTIL hastarget.
 }
-logMsg("Target selected: " + target:name).
+logMsg("Target selected: " + TARGET:NAME).
 
 // Simplified Rendezvous: match altitude and wait for close approach
-function executeRendezvous {
+FUNCTION executeRendezvous {
     logMsg("Initiating Hohmann transfer to target.").
     
     // Calculate phase angle for transfer
-    local r1 is ship:orbit:semimajoraxis.
-    local r2 is target:orbit:semimajoraxis.
-    local transferSMA is (r1 + r2) / 2.
-    local transferTime is sqrt( 4 * constant:pi^2 * transferSMA^3 / constant:g / body:mass ) / 2.
-    local reqPhaseAngle is 180 - ((360 / target:orbit:period) * transferTime).
+    LOCAL r1 IS SHIP:ORBIT:semimajoraxis.
+    LOCAL r2 IS TARGET:ORBIT:semimajoraxis.
+    LOCAL transferSMA IS (r1 + r2) / 2.
+    LOCAL transferTime IS sqrt( 4 * CONSTANT:pi^2 * transferSMA^3 / CONSTANT:g / BODY:MASS ) / 2.
+    LOCAL reqPhaseAngle IS 180 - ((360 / TARGET:ORBIT:period) * transferTime).
     
     logMsg("Waiting for phase window...").
-    lock shipAngle to obt:lan + obt:argumentofperiapsis + obt:trueanomaly.
-    lock tgtAngle to target:obt:lan + target:obt:argumentofperiapsis + target:obt:trueanomaly.
-    lock phaseAngle to tgtAngle - shipAngle - 360 * floor((tgtAngle - shipAngle) / 360).
+    LOCK shipAngle TO obt:lan + obt:argumentofperiapsis + obt:trueanomaly.
+    LOCK tgtAngle TO TARGET:obt:lan + TARGET:obt:argumentofperiapsis + TARGET:obt:trueanomaly.
+    LOCK phaseAngle TO tgtAngle - shipAngle - 360 * FLOOR((tgtAngle - shipAngle) / 360).
     
-    if r1 < r2 {
-        lock dAngle to phaseAngle - reqPhaseAngle - 360 * floor((phaseAngle - reqPhaseAngle) / 360).
-    } else {
-        lock dAngle to reqPhaseAngle - phaseAngle - 360 * floor((reqPhaseAngle - phaseAngle) / 360).
+    IF r1 < r2 {
+        LOCK dAngle TO phaseAngle - reqPhaseAngle - 360 * FLOOR((phaseAngle - reqPhaseAngle) / 360).
+    } ELSE {
+        LOCK dAngle TO reqPhaseAngle - phaseAngle - 360 * FLOOR((reqPhaseAngle - phaseAngle) / 360).
     }
     
-    local phaseRate is (360 / target:orbit:period) - (360 / orbit:period).
-    lock timeToBurn to abs(dAngle / phaseRate).
+    LOCAL phaseRate IS (360 / TARGET:ORBIT:period) - (360 / ORBIT:period).
+    LOCK timeToBurn TO abs(dAngle / phaseRate).
     
-    wait until timeToBurn < 30.
-    set warpmode to "physics".
-    set warp to 0.
-    wait until timeToBurn < 5.
+    WAIT UNTIL timeToBurn < 30.
+    SET WARPMODE TO "physics".
+    SET warp TO 0.
+    WAIT UNTIL timeToBurn < 5.
     
     logMsg("Executing transfer burn.").
-    lock steering to prograde.
-    wait until timeToBurn < 0.1.
-    lock throttle to 1.0.
-    wait until ship:apoapsis >= target:apoapsis.
-    lock throttle to 0.0.
+    LOCK STEERING TO PROGRADE.
+    WAIT UNTIL timeToBurn < 0.1.
+    LOCK THROTTLE TO 1.0.
+    WAIT UNTIL SHIP:APOAPSIS >= TARGET:APOAPSIS.
+    LOCK THROTTLE TO 0.0.
     
     logMsg("Coasting to closest approach.").
-    wait until eta:apoapsis < 60.
+    WAIT UNTIL ETA:APOAPSIS < 60.
     
     // Kill relative velocity at close approach
     logMsg("Matching velocity with target.").
-    lock relVel to ship:velocity:orbit - target:velocity:orbit.
-    lock steering to -1 * relVel.
-    wait until vdot(-relVel, ship:facing:forevector) > 0.95.
+    LOCK relVel TO SHIP:VELOCITY:ORBIT - TARGET:VELOCITY:ORBIT.
+    LOCK STEERING TO -1 * relVel.
+    WAIT UNTIL VDOT(-relVel, SHIP:FACING:FOREVECTOR) > 0.95.
     
     // Wait for closest approach point
-    local lastDist is target:distance.
-    until false {
-        if target:distance > lastDist { break. }
-        set lastDist to target:distance.
-        wait 0.1.
+    LOCAL lastDist IS TARGET:distance.
+    UNTIL FALSE {
+        IF TARGET:distance > lastDist { BREAK. }
+        SET lastDist TO TARGET:distance.
+        WAIT 0.1.
     }
     
-    lock throttle to min(relVel:mag / 10, 1.0).
-    wait until relVel:mag < 0.5.
-    lock throttle to 0.0.
-    logMsg("Rendezvous complete. Distance: " + round(target:distance) + "m.").
+    LOCK THROTTLE TO MIN(relVel:MAG / 10, 1.0).
+    WAIT UNTIL relVel:MAG < 0.5.
+    LOCK THROTTLE TO 0.0.
+    logMsg("Rendezvous complete. Distance: " + ROUND(TARGET:distance) + "m.").
 }
 
 executeRendezvous().
 
 // 4. Docking
-function prepareAndDock {
+FUNCTION prepareAndDock {
     logMsg("Preparing for docking sequence.").
     
     // If the target is just the station (Vessel), find a docking port to target
-    if target:istype("Vessel") {
-        local tgtPorts is target:dockingports.
-        if tgtPorts:length = 0 {
+    IF TARGET:istype("Vessel") {
+        LOCAL tgtPorts IS TARGET:dockingports.
+        IF tgtPorts:length = 0 {
             logMsg("ERROR: No docking ports found on target station!").
-            return.
+            RETURN.
         }
         // Set the specific port as the target so SpaceCore/Dock.ks can use it
-        set target to tgtPorts[0]. 
-        logMsg("Targeted docking port: " + target:name).
+        SET TARGET TO tgtPorts[0]. 
+        logMsg("Targeted docking port: " + TARGET:NAME).
     }
     
     logMsg("Running general docking script...").
-    runpath("0:/SpaceCore/Dock.ks").
+    RUNPATH("0:/SpaceCore/Dock.ks").
     logMsg("Docking complete!").
 }
 

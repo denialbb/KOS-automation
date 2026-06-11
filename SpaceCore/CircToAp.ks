@@ -1,104 +1,104 @@
-@lazyGlobal on.
-set WarpStopTime to 30. //custom value
+@LAZYGLOBAL ON.
+SET WarpStopTime TO 30. //custom value
 
-clearscreen.
+CLEARSCREEN.
 
 //display info
-set running to true.
-when true then {
-	if not running {
+SET running TO TRUE.
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else {
-	print "Apoapsis: "+round(apoapsis)+" m       " at (0,2).
-	print "Periapsis: "+round(periapsis)+" m       " at (0,3).
-	print "Time to apoapsis: "+round(eta:apoapsis)+"s       " at (0,4).
-	print "Running: uCircToAp" at (0,6).
+	} ELSE {
+	PRINT "Apoapsis: "+ROUND(APOAPSIS)+" m       " AT (0,2).
+	PRINT "Periapsis: "+ROUND(PERIAPSIS)+" m       " AT (0,3).
+	PRINT "Time to apoapsis: "+ROUND(ETA:APOAPSIS)+"s       " AT (0,4).
+	PRINT "Running: uCircToAp" AT (0,6).
 
-    local r_dist is body:radius + ship:altitude.
-    local grav is body:mu / (r_dist * r_dist).
-    local twr is 0.
-    if availablethrust > 0 and mass > 0 { set twr to availablethrust / (mass * grav). }
-    print "--- TELEMETRY ----------" at(0,30).
-    print "TWR: " + round(twr, 2) + "        " at(0,31).
-    print "Q:   " + round(ship:dynamicpressure, 4) + " kPa   " at(0,32).
-    print "EC:  " + round(ship:electriccharge) + "       " at(0,33).
+    LOCAL r_dist IS BODY:RADIUS + SHIP:ALTITUDE.
+    LOCAL grav IS BODY:MU / (r_dist * r_dist).
+    LOCAL twr IS 0.
+    IF AVAILABLETHRUST > 0 AND MASS > 0 { SET twr TO AVAILABLETHRUST / (MASS * grav). }
+    PRINT "--- TELEMETRY ----------" AT(0,30).
+    PRINT "TWR: " + ROUND(twr, 2) + "        " AT(0,31).
+    PRINT "Q:   " + ROUND(SHIP:DYNAMICPRESSURE, 4) + " kPa   " AT(0,32).
+    PRINT "EC:  " + ROUND(SHIP:ELECTRICCHARGE) + "       " AT(0,33).
 
-    preserve.
+    PRESERVE.
 	}
 }
 
 
 //staging
-set InitialStageThrust to maxthrust.
-when true then {
-	if not running {
+SET InitialStageThrust TO MAXTHRUST.
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else if maxthrust < (InitialStageThrust - 10) or maxthrust = 0 {
-	wait 1.
-	stage.
-		if maxthrust > 0 {
-        local ec is 0.
-        local ecMax is 1.
-        for r in ship:resources {
-            if r:name = "ElectricCharge" {
-                set ec to r:amount.
-                set ecMax to max(0.1, r:capacity).
+	} ELSE IF MAXTHRUST < (InitialStageThrust - 10) OR MAXTHRUST = 0 {
+	WAIT 1.
+	STAGE.
+		IF MAXTHRUST > 0 {
+        LOCAL ec IS 0.
+        LOCAL ecMax IS 1.
+        FOR r IN SHIP:RESOURCES {
+            IF r:NAME = "ElectricCharge" {
+                SET ec TO r:AMOUNT.
+                SET ecMax TO MAX(0.1, r:CAPACITY).
             }
         }
-        local ecPct is round((ec/ecMax)*100, 1).
-        local histFile is "0:/mission_history.log".
-        if exists(histFile) {
-            log round(missiontime) + ",Staging," + ship:body:name + "," + round(ship:altitude) + "," + round(ship:periapsis) + "," + round(ship:apoapsis) + "," + round(ship:orbit:inclination, 1) + "," + ecPct + "," + round(ship:velocity:orbit:mag) to histFile.
+        LOCAL ecPct IS ROUND((ec/ecMax)*100, 1).
+        LOCAL histFile IS "0:/mission_history.log".
+        IF exists(histFile) {
+            LOG ROUND(MISSIONTIME) + ",Staging," + SHIP:BODY:NAME + "," + ROUND(SHIP:ALTITUDE) + "," + ROUND(SHIP:PERIAPSIS) + "," + ROUND(SHIP:APOAPSIS) + "," + ROUND(SHIP:ORBIT:inclination, 1) + "," + ecPct + "," + ROUND(SHIP:VELOCITY:ORBIT:MAG) TO histFile.
         }
-		set InitialStageThrust to maxthrust.
+		SET InitialStageThrust TO MAXTHRUST.
 	}
-	preserve.
-	} else {
-		preserve.
+	PRESERVE.
+	} ELSE {
+		PRESERVE.
 	}
 }
 
 
-wait until ship:q = 0.
-	lock steering to prograde.
-	set TargetV to ((body:mu)/(body:radius+apoapsis))^0.5.
-	set ApoapsisV to (2*body:mu*((1/(body:radius+apoapsis))-(1/orbit:semimajoraxis/2)))^0.5.
-	set BurnDeltaV to TargetV-ApoapsisV.
-	if availablethrust = 0 {
-	    print "Waiting for active engine...".
-	    wait until availablethrust > 0.
+WAIT UNTIL SHIP:Q = 0.
+	LOCK STEERING TO PROGRADE.
+	SET TargetV TO ((BODY:MU)/(BODY:RADIUS+APOAPSIS))^0.5.
+	SET ApoapsisV TO (2*BODY:MU*((1/(BODY:RADIUS+APOAPSIS))-(1/ORBIT:semimajoraxis/2)))^0.5.
+	SET BurnDeltaV TO TargetV-ApoapsisV.
+	IF AVAILABLETHRUST = 0 {
+	    PRINT "Waiting for active engine...".
+	    WAIT UNTIL AVAILABLETHRUST > 0.
 	}
-	set BurnTime to (BurnDeltaV*mass)/availablethrust.
+	SET BurnTime TO (BurnDeltaV*MASS)/AVAILABLETHRUST.
 
-wait 1.
-rcs on.
-unlock steering.
-sas on.
-wait 0.1.
-set sasmode to "PROGRADE".
-set warpmode to "physics".
-set warp to 1.
-print "Warping to apoapsis" at (0,0).
-set BurnMoment to time:seconds + eta:apoapsis.
-wait until time:seconds >= (BurnMoment-BurnTime/2-WarpStopTime).
-set warp to 0.
+WAIT 1.
+RCS ON.
+UNLOCK STEERING.
+SAS ON.
+WAIT 0.1.
+SET sasmode TO "PROGRADE".
+SET WARPMODE TO "physics".
+SET warp TO 1.
+PRINT "Warping to apoapsis" AT (0,0).
+SET BurnMoment TO TIME:SECONDS + ETA:APOAPSIS.
+WAIT UNTIL TIME:SECONDS >= (BurnMoment-BurnTime/2-WarpStopTime).
+SET warp TO 0.
 
-sas off.
-lock steering to prograde.
-wait until vang(ship:facing:forevector,steering:forevector) <  5 and time:seconds > BurnMoment-BurnTime/2.
-	lock throttle to 1.
-	print "Circularization burn started" at (0,0).
+SAS OFF.
+LOCK STEERING TO PROGRADE.
+WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING:FOREVECTOR) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+	LOCK THROTTLE TO 1.
+	PRINT "Circularization burn started" AT (0,0).
 
-wait until TargetV < ship:velocity:orbit:mag.
-	lock throttle to 0.
-	unlock steering.
-	rcs off.
-	print "Circularization burn completed" at (0,0).
-	lock throttle to 0. unlock throttle.
-	clearscreen.
+WAIT UNTIL TargetV < SHIP:VELOCITY:ORBIT:MAG.
+	LOCK THROTTLE TO 0.
+	UNLOCK STEERING.
+	RCS OFF.
+	PRINT "Circularization burn completed" AT (0,0).
+	LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+	CLEARSCREEN.
 
-rcs off.
-sas on.
-set running to false.
-set ship:control:pilotmainthrottle to 0.
-clearscreen.
+RCS OFF.
+SAS ON.
+SET running TO FALSE.
+SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+CLEARSCREEN.

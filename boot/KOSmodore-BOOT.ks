@@ -4,8 +4,8 @@
 //                                              |
 //----------------------------------------------|
 
-wait until ship:status <> "prelaunch" or ship:unpacked.
+WAIT UNTIL SHIP:STATUS <> "prelaunch" OR SHIP:unpacked.
 
-switch to 0.
+switch TO 0.
 
 RUNPATH( "/KOSmodore/main.ks").

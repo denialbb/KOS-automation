@@ -1,6 +1,6 @@
 //bunch of strings freely used for input pages
 
-global INPstr1 to "".
-global INPstr2 to "".
-global INPstr3 to "".
-global INPstr4 to "".
+GLOBAL INPstr1 TO "".
+GLOBAL INPstr2 TO "".
+GLOBAL INPstr3 TO "".
+GLOBAL INPstr4 TO "".

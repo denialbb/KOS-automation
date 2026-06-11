@@ -1,3 +1,3 @@
 //parameter primo, secondo.
-clearscreen.
-print "Hello world!" at(5,10).
+CLEARSCREEN.
+PRINT "Hello world!" AT(5,10).

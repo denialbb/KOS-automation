@@ -1,199 +1,199 @@
-@lazyGlobal on.
-set better to 1.
-declare parameter TInc, WhichNode is better.    //better if more efficient, closer if faster.
+@LAZYGLOBAL ON.
+SET better TO 1.
+DECLARE PARAMETER TInc, WhichNode IS better.    //better if more efficient, closer if faster.
 
-set WarpStopTime to 30. //custom value
-set IncAccuracy to 0.1. //custom value
+SET WarpStopTime TO 30. //custom value
+SET IncAccuracy TO 0.1. //custom value
 
-set running to true.
-set closer to 123.
+SET running TO TRUE.
+SET closer TO 123.
 
-clearscreen.
+CLEARSCREEN.
 
 //display info
-when true then {
-	if not running {
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else {
-	print "Inclination: "+round(orbit:inclination,1)+" degrees       " at (0,2).
-	print "Target inclination: "+round(TInc,1)+" degrees       " at (0,3).
-	print "Running: uChangeInc" at (0,5).
-    preserve.
+	} ELSE {
+	PRINT "Inclination: "+ROUND(ORBIT:inclination,1)+" degrees       " AT (0,2).
+	PRINT "Target inclination: "+ROUND(TInc,1)+" degrees       " AT (0,3).
+	PRINT "Running: uChangeInc" AT (0,5).
+    PRESERVE.
 	}
 }
 
 
 //staging
-set InitialStageThrust to maxthrust.
-when true then {
-	if not running {
+SET InitialStageThrust TO MAXTHRUST.
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else if maxthrust < InitialStageThrust {
-	wait 1.
-	stage.
-		if maxthrust > 0 {
-		set InitialStageThrust to maxthrust.
+	} ELSE IF MAXTHRUST < InitialStageThrust {
+	WAIT 1.
+	STAGE.
+		IF MAXTHRUST > 0 {
+		SET InitialStageThrust TO MAXTHRUST.
 	}
-	preserve.
-	} else {
-		preserve.
+	PRESERVE.
+	} ELSE {
+		PRESERVE.
 	}
 }
 
 
 //calculations
 
-lock Inc to orbit:inclination.
+LOCK Inc TO ORBIT:inclination.
 
-set ANTrA to 360-orbit:argumentofperiapsis.
-set DNTrA to ANTrA + 180.
-if DNTrA >= 360 {
-    set DNTrA to DNTrA-360.
+SET ANTrA TO 360-ORBIT:argumentofperiapsis.
+SET DNTrA TO ANTrA + 180.
+IF DNTrA >= 360 {
+    SET DNTrA TO DNTrA-360.
 }
 
-set ANEccA to 2*arctan(tan(ANTrA/2)/sqrt((1+orbit:eccentricity)/(1-orbit:eccentricity))).
-if ANEccA<0 {
-	set ANEccA to ANEccA+360.
+SET ANEccA TO 2*arctan(tan(ANTrA/2)/sqrt((1+ORBIT:eccentricity)/(1-ORBIT:eccentricity))).
+IF ANEccA<0 {
+	SET ANEccA TO ANEccA+360.
 }
-set DNEccA to 2*arctan(tan(DNTrA/2)/sqrt((1+orbit:eccentricity)/(1-orbit:eccentricity))).
-if DNEccA<0 {
-	set DNEccA to DNEccA+360.
-}
-
-set ANMA to ANEccA - orbit:eccentricity*sin(ANEccA)*180/constant:pi.
-if ANMA<0 {
-	set ANMA to ANMA+360.
-}
-set DNMA to DNEccA - orbit:eccentricity*sin(DNEccA)*180/constant:pi.
-if DNMA<0 {
-	set DNMA to DNMA+360.
+SET DNEccA TO 2*arctan(tan(DNTrA/2)/sqrt((1+ORBIT:eccentricity)/(1-ORBIT:eccentricity))).
+IF DNEccA<0 {
+	SET DNEccA TO DNEccA+360.
 }
 
-set ANAlt to orbit:semimajoraxis*(1-orbit:eccentricity^2)/(1+orbit:eccentricity*cos(ANTrA)).
-set DNAlt to orbit:semimajoraxis*(1-orbit:eccentricity^2)/(1+orbit:eccentricity*cos(DNTrA)).
+SET ANMA TO ANEccA - ORBIT:eccentricity*sin(ANEccA)*180/CONSTANT:pi.
+IF ANMA<0 {
+	SET ANMA TO ANMA+360.
+}
+SET DNMA TO DNEccA - ORBIT:eccentricity*sin(DNEccA)*180/CONSTANT:pi.
+IF DNMA<0 {
+	SET DNMA TO DNMA+360.
+}
 
-set ANV to sqrt(2*body:mu*((1/ANAlt)-(1/orbit:semimajoraxis/2))).
-set DNV to sqrt(2*body:mu*((1/DNAlt)-(1/orbit:semimajoraxis/2))).
+SET ANAlt TO ORBIT:semimajoraxis*(1-ORBIT:eccentricity^2)/(1+ORBIT:eccentricity*cos(ANTrA)).
+SET DNAlt TO ORBIT:semimajoraxis*(1-ORBIT:eccentricity^2)/(1+ORBIT:eccentricity*cos(DNTrA)).
 
-set ANdV to 2*sin(abs(TInc-Inc)/2)*ANV.
-set DNdV to 2*sin(abs(TInc-Inc)/2)*DNV.
+SET ANV TO sqrt(2*BODY:MU*((1/ANAlt)-(1/ORBIT:semimajoraxis/2))).
+SET DNV TO sqrt(2*BODY:MU*((1/DNAlt)-(1/ORBIT:semimajoraxis/2))).
 
-set dV to min(ANdV,DNdV).
-set BurnTime to (dV*mass)/availablethrust.
+SET ANdV TO 2*sin(abs(TInc-Inc)/2)*ANV.
+SET DNdV TO 2*sin(abs(TInc-Inc)/2)*DNV.
 
-function TimeToAN {
-    local TimeToANPure is ship:orbit:period/360*(ANMA-orbit:meananomalyatepoch).
-    if TimeToANPure<0 {
-        set TimeToANPure to TimeToANPure + orbit:period.
+SET dV TO MIN(ANdV,DNdV).
+SET BurnTime TO (dV*MASS)/AVAILABLETHRUST.
+
+FUNCTION TimeToAN {
+    LOCAL TimeToANPure IS SHIP:ORBIT:period/360*(ANMA-ORBIT:meananomalyatepoch).
+    IF TimeToANPure<0 {
+        SET TimeToANPure TO TimeToANPure + ORBIT:period.
     }
 
-    return TimeToANPure.
+    RETURN TimeToANPure.
 }
 
-function TimeToDN {
-    local TimeToDNPure is ship:orbit:period/360*(DNMA-orbit:meananomalyatepoch).
-    if TimeToDNPure<0 {
-        set TimeToDNPure to TimeToDNPure + orbit:period.
+FUNCTION TimeToDN {
+    LOCAL TimeToDNPure IS SHIP:ORBIT:period/360*(DNMA-ORBIT:meananomalyatepoch).
+    IF TimeToDNPure<0 {
+        SET TimeToDNPure TO TimeToDNPure + ORBIT:period.
     }
 
-    return TimeToDNPure.
+    RETURN TimeToDNPure.
 }
 
 //burn
 
-rcs on.
-sas off.
+RCS ON.
+SAS OFF.
 
-if WhichNode = better {
-    if ANdV<DNdV {
-        lock steering to vcrs(ship:velocity:orbit,body:position).
-	    set warpmode to "rails".
-	    print "Warping to ascending node" at (0,0).
-		set BurnMoment to time:seconds + TimeToAN.
-	    warpto(BurnMoment-BurnTime/2-WarpStopTime).
+IF WhichNode = better {
+    IF ANdV<DNdV {
+        LOCK STEERING TO VCRS(SHIP:VELOCITY:ORBIT,BODY:position).
+	    SET WARPMODE TO "rails".
+	    PRINT "Warping to ascending node" AT (0,0).
+		SET BurnMoment TO TIME:SECONDS + TimeToAN.
+	    WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-	    wait until vang(ship:facing:forevector,steering) <  5 and time:seconds > BurnMoment-BurnTime/2.
-	    	lock throttle to 1.
-		    print "Burn started             " at (0,0).
+	    WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+	    	LOCK THROTTLE TO 1.
+		    PRINT "Burn started             " AT (0,0).
 
-		wait until abs(TInc-Inc)<=IncAccuracy*10.
-	    	lock throttle to 0.1.
+		WAIT UNTIL abs(TInc-Inc)<=IncAccuracy*10.
+	    	LOCK THROTTLE TO 0.1.
 
-	    wait until abs(TInc-Inc)<=IncAccuracy.
-	    	lock throttle to 0.
-		    print "Burn completed" at (0,0).
+	    WAIT UNTIL abs(TInc-Inc)<=IncAccuracy.
+	    	LOCK THROTTLE TO 0.
+		    PRINT "Burn completed" AT (0,0).
     }
 
-    if DNdV<ANdV {
-        lock steering to vcrs(ship:velocity:orbit,-body:position).
-	    set warpmode to "rails".
-	    print "Warping to descending node" at (0,0).
-	    set BurnMoment to time:seconds + TimeToDN.
-	    warpto(BurnMoment-BurnTime/2-WarpStopTime).
+    IF DNdV<ANdV {
+        LOCK STEERING TO VCRS(SHIP:VELOCITY:ORBIT,-BODY:position).
+	    SET WARPMODE TO "rails".
+	    PRINT "Warping to descending node" AT (0,0).
+	    SET BurnMoment TO TIME:SECONDS + TimeToDN.
+	    WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-	    wait until vang(ship:facing:forevector,steering) <  5 and time:seconds > BurnMoment-BurnTime/2.
-	    	lock throttle to 1.
-		    print "Burn started              " at (0,0).
+	    WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+	    	LOCK THROTTLE TO 1.
+		    PRINT "Burn started              " AT (0,0).
 
-		wait until abs(TInc-Inc)<=IncAccuracy*10.
-	    	lock throttle to 0.1.
+		WAIT UNTIL abs(TInc-Inc)<=IncAccuracy*10.
+	    	LOCK THROTTLE TO 0.1.
 
-	    wait until abs(TInc-Inc)<=IncAccuracy.
-	    	lock throttle to 0.
-		    print "Burn completed" at (0,0).
+	    WAIT UNTIL abs(TInc-Inc)<=IncAccuracy.
+	    	LOCK THROTTLE TO 0.
+		    PRINT "Burn completed" AT (0,0).
     }
-	set running to false.
+	SET running TO FALSE.
 }
 
 
-if running = true and WhichNode = closer {
-	if TimeToAN < TimeToDN {
-        lock steering to vcrs(ship:velocity:orbit,body:position).
-	    set warpmode to "rails".
-	    print "Warping to ascending node" at (0,0).
-	    set BurnMoment to time:seconds + TimeToAN.
-	    warpto(BurnMoment-BurnTime/2-WarpStopTime).
+IF running = TRUE AND WhichNode = closer {
+	IF TimeToAN < TimeToDN {
+        LOCK STEERING TO VCRS(SHIP:VELOCITY:ORBIT,BODY:position).
+	    SET WARPMODE TO "rails".
+	    PRINT "Warping to ascending node" AT (0,0).
+	    SET BurnMoment TO TIME:SECONDS + TimeToAN.
+	    WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-	    wait until vang(ship:facing:forevector,steering) <  5 and time:seconds > BurnMoment-BurnTime/2.
-	    	lock throttle to 1.
-		    print "Burn started             " at (0,0).
+	    WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+	    	LOCK THROTTLE TO 1.
+		    PRINT "Burn started             " AT (0,0).
 
-		wait until abs(TInc-Inc)<=IncAccuracy*10.
-	    	lock throttle to 0.1.
+		WAIT UNTIL abs(TInc-Inc)<=IncAccuracy*10.
+	    	LOCK THROTTLE TO 0.1.
 
-	    wait until abs(TInc-Inc)<=IncAccuracy.
-	    	lock throttle to 0.
-		    print "Burn completed" at (0,0).
+	    WAIT UNTIL abs(TInc-Inc)<=IncAccuracy.
+	    	LOCK THROTTLE TO 0.
+		    PRINT "Burn completed" AT (0,0).
     }
 
-    if TimeToAN > TimeToDN {
-        lock steering to vcrs(ship:velocity:orbit,-body:position).
-	    set warpmode to "rails".
-	    print "Warping to descending node" at (0,0).
-		set BurnMoment to time:seconds + TimeToDN.
-	    warpto(BurnMoment-BurnTime/2-WarpStopTime).
+    IF TimeToAN > TimeToDN {
+        LOCK STEERING TO VCRS(SHIP:VELOCITY:ORBIT,-BODY:position).
+	    SET WARPMODE TO "rails".
+	    PRINT "Warping to descending node" AT (0,0).
+		SET BurnMoment TO TIME:SECONDS + TimeToDN.
+	    WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-	    wait until vang(ship:facing:forevector,steering) <  5 and time:seconds > BurnMoment-BurnTime/2.
-	    	lock throttle to 1.
-		    print "Burn started              " at (0,0).
+	    WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+	    	LOCK THROTTLE TO 1.
+		    PRINT "Burn started              " AT (0,0).
 
-		wait until abs(TInc-Inc)<=IncAccuracy*10.
-	    	lock throttle to 0.1.
+		WAIT UNTIL abs(TInc-Inc)<=IncAccuracy*10.
+	    	LOCK THROTTLE TO 0.1.
 
-	    wait until abs(TInc-Inc)<=IncAccuracy.
-	    	lock throttle to 0.
-		    print "Burn completed" at (0,0).
+	    WAIT UNTIL abs(TInc-Inc)<=IncAccuracy.
+	    	LOCK THROTTLE TO 0.
+		    PRINT "Burn completed" AT (0,0).
     }
 }
 
 
-if WhichNode <> better and WhichNode <> closer {
-	print "WhichNode parameter has to be 'better' or 'closer'" at (0,0).
-	wait 5.
+IF WhichNode <> better AND WhichNode <> closer {
+	PRINT "WhichNode parameter has to be 'better' or 'closer'" AT (0,0).
+	WAIT 5.
 }
 
-lock throttle to 0. unlock throttle.
-unlock steering.
-set running to false.
-clearscreen.
-set ship:control:pilotmainthrottle to 0.
+LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+UNLOCK STEERING.
+SET running TO FALSE.
+CLEARSCREEN.
+SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.

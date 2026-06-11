@@ -1,70 +1,70 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
 // ------------------------------------------------------------------------
 // Probe Boot Script
 // ------------------------------------------------------------------------
 
-wait until ship:unpacked.
+WAIT UNTIL SHIP:unpacked.
 
 // Open the kOS terminal using the core processor's module
-local coreProc is core:part:getmodule("kOSProcessor").
-if coreProc:hasevent("Open Terminal") {
+LOCAL coreProc IS core:part:getmodule("kOSProcessor").
+IF coreProc:hasevent("Open Terminal") {
     coreProc:doevent("Open Terminal").
 }
 
-clearscreen.
+CLEARSCREEN.
 
-print "==========================================".
-print "      PROBE BOOT SEQUENCE INITIATED       ".
-print "==========================================".
-wait 0.5.
+PRINT "==========================================".
+PRINT "      PROBE BOOT SEQUENCE INITIATED       ".
+PRINT "==========================================".
+WAIT 0.5.
 
 // Play a boot sound sequence
-local v0 is getvoice(0).
+LOCAL v0 IS getvoice(0).
 v0:play(note(440, 0.2)).
-wait 0.2.
+WAIT 0.2.
 v0:play(note(554, 0.2)).
-wait 0.2.
+WAIT 0.2.
 v0:play(note(659, 0.4)).
-wait 0.5.
+WAIT 0.5.
 
 // Print relevant probe information
-print " ".
-print "Vessel Name:     " + ship:name.
-print "Vessel Mass:     " + round(ship:mass, 2) + " t".
-print "Status:          " + ship:status.
-print "Body:            " + ship:body:name.
-print "Altitude:        " + round(ship:altitude) + " m".
-print " ".
+PRINT " ".
+PRINT "Vessel Name:     " + SHIP:NAME.
+PRINT "Vessel Mass:     " + ROUND(SHIP:MASS, 2) + " t".
+PRINT "Status:          " + SHIP:STATUS.
+PRINT "Body:            " + SHIP:BODY:NAME.
+PRINT "Altitude:        " + ROUND(SHIP:ALTITUDE) + " m".
+PRINT " ".
 
 // List and format resources
-print "--- Onboard Resources ---".
-local resList is list().
-list resources in resList.
-if resList:length = 0 {
-    print "No resources found.".
-} else {
-    for res in resList {
-        local resAmount is round(res:amount, 2).
-        local resCapacity is round(res:capacity, 2).
-        local pct is 0.
-        if resCapacity > 0 {
-            set pct to round((resAmount / resCapacity) * 100, 1).
+PRINT "--- Onboard Resources ---".
+LOCAL resList IS LIST().
+LIST RESOURCES IN resList.
+IF resList:length = 0 {
+    PRINT "No resources found.".
+} ELSE {
+    FOR res IN resList {
+        LOCAL resAmount IS ROUND(res:AMOUNT, 2).
+        LOCAL resCapacity IS ROUND(res:CAPACITY, 2).
+        LOCAL pct IS 0.
+        IF resCapacity > 0 {
+            SET pct TO ROUND((resAmount / resCapacity) * 100, 1).
         }
-        print "- " + res:name + ": " + resAmount + " / " + resCapacity + " (" + pct + "%)".
+        PRINT "- " + res:NAME + ": " + resAmount + " / " + resCapacity + " (" + pct + "%)".
     }
 }
-print "-------------------------".
-print " ".
+PRINT "-------------------------".
+PRINT " ".
 
-print "Boot sequence complete.".
-wait 2.
+PRINT "Boot sequence complete.".
+WAIT 2.
 
 // Load the main mission script if it exists
-if exists("0:/DASA/minmus_mission.ks") {
-    print "Loading 0:/DASA/minmus_mission.ks...".
-    wait 1.
-    runpath("0:/DASA/minmus_mission.ks").
-} else {
-    print "Waiting for instructions...".
+IF exists("0:/DASA/minmus_mission.ks") {
+    PRINT "Loading 0:/DASA/minmus_mission.ks...".
+    WAIT 1.
+    RUNPATH("0:/DASA/minmus_mission.ks").
+} ELSE {
+    PRINT "Waiting for instructions...".
 }

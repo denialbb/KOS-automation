@@ -15,14 +15,14 @@ SET failedTests TO LIST().
 
 // Simple assert
 DECLARE FUNCTION ASSERT_EQ {
-    PARAMETER name, expected, actual.
+    PARAMETER NAME, expected, actual.
 
     SET totalTests TO totalTests + 1.
 
     IF expected = actual {
         SET passedTests TO passedTests + 1.
     } ELSE {
-        LOCAL msg IS name + " expected: " + expected + ", actual: " + actual.
+        LOCAL msg IS NAME + " expected: " + expected + ", actual: " + actual.
         failedTests:ADD(msg).
         PRINT "FAILED: " + msg.
     }
@@ -30,8 +30,8 @@ DECLARE FUNCTION ASSERT_EQ {
 
 // Helper: ASSERT_TRUE
 DECLARE FUNCTION ASSERT_TRUE {
-    PARAMETER name, condition.
-    ASSERT_EQ(name, TRUE, condition).
+    PARAMETER NAME, condition.
+    ASSERT_EQ(NAME, TRUE, condition).
 }.
 
 // -----------------------------------------------------------------------------

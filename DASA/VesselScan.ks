@@ -1,47 +1,47 @@
-@lazyGlobal on.
+@LAZYGLOBAL ON.
 
-print "Scanning Vessel Structure...".
+PRINT "Scanning Vessel Structure...".
 
-local structFile is "0:/telemetry/vessel_structure.json".
-if exists(structFile) {
+LOCAL structFile IS "0:/telemetry/vessel_structure.json".
+IF exists(structFile) {
     deletepath(structFile).
 }
 
-local jsonOut is "{ ""parts"": [".
-local first is true.
+LOCAL jsonOut IS "{ ""parts"": [".
+LOCAL first IS TRUE.
 
-for p in ship:parts {
-    local vRel is p:position - ship:position.
-    local posX is vdot(ship:facing:starvector, vRel).
-    local posY is vdot(ship:facing:topvector, vRel).
-    local posZ is vdot(ship:facing:forevector, vRel).
+FOR p IN SHIP:parts {
+    LOCAL vRel IS p:position - SHIP:position.
+    LOCAL posX IS VDOT(SHIP:FACING:starvector, vRel).
+    LOCAL posY IS VDOT(SHIP:FACING:topvector, vRel).
+    LOCAL posZ IS VDOT(SHIP:FACING:FOREVECTOR, vRel).
     
-    local b is p:bounds.
-    local diag is b:absmax - b:absmin.
-    local sizeX is abs(vdot(ship:facing:starvector, diag)).
-    local sizeY is abs(vdot(ship:facing:topvector, diag)).
-    local sizeZ is abs(vdot(ship:facing:forevector, diag)).
+    LOCAL b IS p:bounds.
+    LOCAL diag IS b:absmax - b:absmin.
+    LOCAL sizeX IS abs(VDOT(SHIP:FACING:starvector, diag)).
+    LOCAL sizeY IS abs(VDOT(SHIP:FACING:topvector, diag)).
+    LOCAL sizeZ IS abs(VDOT(SHIP:FACING:FOREVECTOR, diag)).
     
-    local parentUid is "".
-    if p:hasparent {
-        set parentUid to p:parent:uid.
+    LOCAL parentUid IS "".
+    IF p:hasparent {
+        SET parentUid TO p:parent:uid.
     }
     
-    if not first {
-        set jsonOut to jsonOut + ",".
+    IF NOT first {
+        SET jsonOut TO jsonOut + ",".
     }
-    set first to false.
+    SET first TO FALSE.
     
-    set jsonOut to jsonOut + "{".
-    set jsonOut to jsonOut + """uid"": """ + p:uid + """,".
-    set jsonOut to jsonOut + """name"": """ + p:name + """,".
-    set jsonOut to jsonOut + """parent"": """ + parentUid + """,".
-    set jsonOut to jsonOut + """pos"": [" + round(posX, 2) + ", " + round(posY, 2) + ", " + round(posZ, 2) + "],".
-    set jsonOut to jsonOut + """size"": [" + round(sizeX, 2) + ", " + round(sizeY, 2) + ", " + round(sizeZ, 2) + "]".
-    set jsonOut to jsonOut + "}".
+    SET jsonOut TO jsonOut + "{".
+    SET jsonOut TO jsonOut + """uid"": """ + p:uid + """,".
+    SET jsonOut TO jsonOut + """name"": """ + p:NAME + """,".
+    SET jsonOut TO jsonOut + """parent"": """ + parentUid + """,".
+    SET jsonOut TO jsonOut + """pos"": [" + ROUND(posX, 2) + ", " + ROUND(posY, 2) + ", " + ROUND(posZ, 2) + "],".
+    SET jsonOut TO jsonOut + """size"": [" + ROUND(sizeX, 2) + ", " + ROUND(sizeY, 2) + ", " + ROUND(sizeZ, 2) + "]".
+    SET jsonOut TO jsonOut + "}".
 }
 
-set jsonOut to jsonOut + "] }".
+SET jsonOut TO jsonOut + "] }".
 
-log jsonOut to structFile.
-print "Vessel scan complete. Exported " + ship:parts:length + " parts.".
+LOG jsonOut TO structFile.
+PRINT "Vessel scan complete. Exported " + SHIP:parts:length + " parts.".

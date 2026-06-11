@@ -1,72 +1,72 @@
-run once "/KOSmodore/settings.ks".
+RUN once "/KOSmodore/settings.ks".
 
-local visualtrack to list(). 
+LOCAL visualtrack TO LIST(). 
 
 
-function gvec {
+FUNCTION gvec {
 	//PARAMETER targetOrbitable,vColor, vLabel IS "default".
-	parameter a,b,c,co.
-	return VECDRAW(
+	PARAMETER a,b,c,co.
+	RETURN VECDRAW(
 		v(0,0,0),
 		v(a,b,c),
 		co,
 		"w",
 		1,
-		true,
+		TRUE,
 		SettingsL[0], //marker thikness
-		true,
-		false
+		TRUE,
+		FALSE
 	).
 }
 
 // piccolo esempio per illustrare come gestire singoli vettori disegnati in una lista
-function draw {
-   local vecs to list().
-   vecs:add(gvec(-2,4,6,yellow)).
-   wait 3.
-   set vecs[0]:show to false.
+FUNCTION draw {
+   LOCAL vecs TO LIST().
+   vecs:ADD(gvec(-2,4,6,yellow)).
+   WAIT 3.
+   SET vecs[0]:show TO FALSE.
 }
 
-function HideTRK {
+FUNCTION HideTRK {
 	clearvecdraws().
 }
 
 // visualizza un segmento verticale sulla superficie
 // in corrispondenza del puntop geografico
-function GSpot {
-	parameter gp, lbl.
-return VECDRAW(
-			{return gp:ALTITUDEPOSITION(gp:TERRAINHEIGHT+3).},
-			{return gp:POSITION - gp:ALTITUDEPOSITION(gp:TERRAINHEIGHT+3).},
-			{return red.},
-			lbl, 1, true, SettingsL[0], false).
+FUNCTION GSpot {
+	PARAMETER gp, lbl.
+RETURN VECDRAW(
+			{RETURN gp:ALTITUDEPOSITION(gp:TERRAINHEIGHT+3).},
+			{RETURN gp:POSITION - gp:ALTITUDEPOSITION(gp:TERRAINHEIGHT+3).},
+			{RETURN red.},
+			lbl, 1, TRUE, SettingsL[0], FALSE).
 }
 
-function GDestination {
+FUNCTION GDestination {
 	clearvecdraws().
 	GSpot(GeoPos,"Destination").
 }
 
-function GTrack {
-	parameter LT.  
-	local gp to LATLNG(10, 20). //geo pos
-	local cou to 0.	
+FUNCTION GTrack {
+	PARAMETER LT.  
+	LOCAL gp TO LATLNG(10, 20). //geo pos
+	LOCAL cou TO 0.	
 	clearvecdraws().
 	
-	//print  "l: " + LT:LENGTH + ", TCou = " + Tcou at (0,5).
+	//print  "l: " + LT:LENGTH + ", TCou = " + Tcou AT (0,5).
 	
-	for po in LT {
+	FOR po IN LT {
 	
-		//print Tcou + "° pos: " + po[1] +", " + po[2] at (0,6).
-		set gp to LatLng(po[1], po[2]).
+		//print Tcou + "° pos: " + po[1] +", " + po[2] AT (0,6).
+		SET gp TO LatLng(po[1], po[2]).
 	
-		if cou > 0 {
+		IF cou > 0 {
 			//wait 1.
 			//print cou + ", " + gp:lat  + ", " + gp:lng .
-			visualtrack:add(V(0,0,0)).
-			set visualtrack[cou-1] TO GSpot(gp, cou + "").
+			visualtrack:ADD(V(0,0,0)).
+			SET visualtrack[cou-1] TO GSpot(gp, cou + "").
 			
 		}
-		set cou to cou + 1.
+		SET cou TO cou + 1.
 	}
 }	

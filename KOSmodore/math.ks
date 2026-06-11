@@ -1,15 +1,15 @@
-function SRCOOold { //ship-raw to body coordinates
-	parameter vec.
-	local SOIvec to vec + SHIP:BODY:POSITION.
-	local spot TO LATLNG(10, 20). 
-	return spot.
+FUNCTION SRCOOold { //ship-raw to body coordinates
+	PARAMETER vec.
+	LOCAL SOIvec TO vec + SHIP:BODY:POSITION.
+	LOCAL spot TO LATLNG(10, 20). 
+	RETURN spot.
 }
 
-function SRCOO {    // geo coordinates to ship-raw
-	parameter coo,  // coordinate
+FUNCTION SRCOO {    // geo coordinates to ship-raw
+	PARAMETER coo,  // coordinate
 	          h.    // altezza dal suolo
 	
-	return geopos:ALTITUDEPOSITION(geopos:TERRAINHEIGHT+h).
+	RETURN geopos:ALTITUDEPOSITION(geopos:TERRAINHEIGHT+h).
     //return geopos:POSITION - geopos:ALTITUDEPOSITION(geopos:TERRAINHEIGHT+3),
             
 

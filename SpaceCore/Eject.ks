@@ -1,35 +1,35 @@
-declare parameter TargetAltitudeKm.     //altitude of one of the apsis of target orbit (the second one is semi-major axis of the body you are departing from)
+DECLARE PARAMETER TargetAltitudeKm.     //altitude of one of the apsis of target orbit (the second one is semi-major axis of the body you are departing from)
 
-set running to true.
-set WarpStopTime to 30. //custom value
+SET running TO TRUE.
+SET WarpStopTime TO 30. //custom value
 
-set TargetAlt to TargetAltitudeKm*1000.
+SET TargetAlt TO TargetAltitudeKm*1000.
 
-if orbit:inclination > 10 {
-    runpath("0:/SpaceCore/ChangeInc",0).
+IF ORBIT:inclination > 10 {
+    RUNPATH("0:/SpaceCore/ChangeInc",0).
 }
 
-if orbit:eccentricity > 0.05 {
-    runpath("0:/SpaceCore/CircToPe").
+IF ORBIT:eccentricity > 0.05 {
+    RUNPATH("0:/SpaceCore/CircToPe").
 }
 
-clearscreen.
-print "Running: uEject" at (0,7).
+CLEARSCREEN.
+PRINT "Running: uEject" AT (0,7).
 
 //staging
-set InitialStageThrust to maxthrust.
-when true then {
-	if not running {
+SET InitialStageThrust TO MAXTHRUST.
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else if maxthrust < InitialStageThrust {
-	wait 1.
-	stage.
-		if maxthrust > 0 {
-		set InitialStageThrust to maxthrust.
+	} ELSE IF MAXTHRUST < InitialStageThrust {
+	WAIT 1.
+	STAGE.
+		IF MAXTHRUST > 0 {
+		SET InitialStageThrust TO MAXTHRUST.
 	}
-	preserve.
-	} else {
-		preserve.
+	PRESERVE.
+	} ELSE {
+		PRESERVE.
 	}
 }
 
@@ -37,64 +37,64 @@ when true then {
 
 //calculations
 
-function BPA {       //body prograde angle - basically what has to be equal to an ejection angle
-    local BPAPure is 90-(body:orbit:velocity:orbit:direction-velocity:orbit:direction):yaw.
-    if BPAPure < 0 {
-        set BPAPure to BPAPure + 360.
+FUNCTION BPA {       //body prograde angle - basically what has to be equal to an ejection angle
+    LOCAL BPAPure IS 90-(BODY:ORBIT:VELOCITY:ORBIT:direction-VELOCITY:ORBIT:direction):yaw.
+    IF BPAPure < 0 {
+        SET BPAPure TO BPAPure + 360.
     }
-    return BPAPure.
+    RETURN BPAPure.
 }
 
 
-set TargetV to sqrt(2*(body:body:mu/body:orbit:semimajoraxis-body:body:mu/(TargetAlt+body:body:radius+body:orbit:semimajoraxis))).
-set BodyV to abs(TargetV-body:orbit:velocity:orbit:mag).
-set SpecMechEnEsc to BodyV^2/2-body:mu/body:soiradius. 
-set VDep to sqrt(2*(body:mu/orbit:semimajoraxis+SpecMechEnEsc)).
-set EscV to sqrt(2*(body:mu/orbit:semimajoraxis-body:mu/(orbit:semimajoraxis+body:soiradius))).
-if EscV > VDep {
-    set VDep to EscV.
+SET TargetV TO sqrt(2*(BODY:BODY:MU/BODY:ORBIT:semimajoraxis-BODY:BODY:MU/(TargetAlt+BODY:BODY:RADIUS+BODY:ORBIT:semimajoraxis))).
+SET BodyV TO abs(TargetV-BODY:ORBIT:VELOCITY:ORBIT:MAG).
+SET SpecMechEnEsc TO BodyV^2/2-BODY:MU/BODY:soiradius. 
+SET VDep TO sqrt(2*(BODY:MU/ORBIT:semimajoraxis+SpecMechEnEsc)).
+SET EscV TO sqrt(2*(BODY:MU/ORBIT:semimajoraxis-BODY:MU/(ORBIT:semimajoraxis+BODY:soiradius))).
+IF EscV > VDep {
+    SET VDep TO EscV.
 }
-set EjdV to VDep-velocity:orbit:mag.
-set BurnTime to (EjdV*mass)/availablethrust.
+SET EjdV TO VDep-VELOCITY:ORBIT:MAG.
+SET BurnTime TO (EjdV*MASS)/AVAILABLETHRUST.
 
 
-set SpecMechEn to VDep^2/2-body:mu/orbit:semimajoraxis.
-set HypSMA to -body:mu/2/SpecMechEn.
-set Ecc to 1-orbit:semimajoraxis/HypSMA.
-set EjAngle to arcsin(1/Ecc)+90.
-if TargetAlt+body:body:radius < body:orbit:semimajoraxis {
-    set EjAngle to EjAngle+180.
-}
-
-if EjAngle > 360 {
-    set EjAngle to 360-EjAngle.
+SET SpecMechEn TO VDep^2/2-BODY:MU/ORBIT:semimajoraxis.
+SET HypSMA TO -BODY:MU/2/SpecMechEn.
+SET Ecc TO 1-ORBIT:semimajoraxis/HypSMA.
+SET EjAngle TO arcsin(1/Ecc)+90.
+IF TargetAlt+BODY:BODY:RADIUS < BODY:ORBIT:semimajoraxis {
+    SET EjAngle TO EjAngle+180.
 }
 
-
-set TAOffset to BPA-(360-orbit:trueanomaly).
-if TAOffset < 0 {
-    set TAOffset to TAOffset+360.
-}
-
-set EjTA to 360-(EjAngle-TAOffset).
-if EjTA < 0 {
-    set EjTa to EjTa+360.
-}
-
-set EjEccA to 2*arctan(tan(EjTA/2)/sqrt((1+orbit:eccentricity)/(1-orbit:eccentricity))).
-if EjEccA<0 {
-	set EjEccA to EjEccA+360.
-}
-
-set EjMA to EjEccA - orbit:eccentricity*sin(EjEccA)*180/constant:pi.
-if EjMA<0 {
-	set EjMA to EjMA+360.
+IF EjAngle > 360 {
+    SET EjAngle TO 360-EjAngle.
 }
 
 
-set TimeToBurn to ship:orbit:period/360*(EjMA-orbit:meananomalyatepoch).
-if TimeToBurn<0 {
-    set TimeToBurn to TimeToBurn + orbit:period.
+SET TAOffset TO BPA-(360-ORBIT:trueanomaly).
+IF TAOffset < 0 {
+    SET TAOffset TO TAOffset+360.
+}
+
+SET EjTA TO 360-(EjAngle-TAOffset).
+IF EjTA < 0 {
+    SET EjTa TO EjTa+360.
+}
+
+SET EjEccA TO 2*arctan(tan(EjTA/2)/sqrt((1+ORBIT:eccentricity)/(1-ORBIT:eccentricity))).
+IF EjEccA<0 {
+	SET EjEccA TO EjEccA+360.
+}
+
+SET EjMA TO EjEccA - ORBIT:eccentricity*sin(EjEccA)*180/CONSTANT:pi.
+IF EjMA<0 {
+	SET EjMA TO EjMA+360.
+}
+
+
+SET TimeToBurn TO SHIP:ORBIT:period/360*(EjMA-ORBIT:meananomalyatepoch).
+IF TimeToBurn<0 {
+    SET TimeToBurn TO TimeToBurn + ORBIT:period.
 }
 
 
@@ -102,38 +102,38 @@ if TimeToBurn<0 {
 
 //burn
 
-clearscreen.
-rcs on.
-sas off.
+CLEARSCREEN.
+RCS ON.
+SAS OFF.
 
-wait 1.
-lock steering to prograde.
-set warpmode to "rails".
-print "Warping to burn moment" at (0,0).
-set BurnMoment to time:seconds + TimeToBurn.
-warpto(BurnMoment-BurnTime/2-WarpStopTime).
+WAIT 1.
+LOCK STEERING TO PROGRADE.
+SET WARPMODE TO "rails".
+PRINT "Warping to burn moment" AT (0,0).
+SET BurnMoment TO TIME:SECONDS + TimeToBurn.
+WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-wait until vang(ship:facing:forevector,steering:forevector) <  5 and time:seconds > BurnMoment-BurnTime/2.
-	set throttle to 1.
-    print "Burn started                  " at (0,0).
+WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING:FOREVECTOR) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+	SET THROTTLE TO 1.
+    PRINT "Burn started                  " AT (0,0).
 
 
-if TargetAlt < body:altitude + body:body:radius {
-    wait until ship:patches:tostring:contains("ORBIT of "+body:body:name) and orbit:nextpatch:periapsis < TargetAlt.
+IF TargetAlt < BODY:ALTITUDE + BODY:BODY:RADIUS {
+    WAIT UNTIL SHIP:patches:tostring:contains("ORBIT of "+BODY:BODY:NAME) AND ORBIT:nextpatch:PERIAPSIS < TargetAlt.
 }
 
-if TargetAlt > body:altitude + body:body:radius {
-    wait until ship:patches:tostring:contains("ORBIT of "+body:body:name) and orbit:nextpatch:apoapsis > TargetAlt.
+IF TargetAlt > BODY:ALTITUDE + BODY:BODY:RADIUS {
+    WAIT UNTIL SHIP:patches:tostring:contains("ORBIT of "+BODY:BODY:NAME) AND ORBIT:nextpatch:APOAPSIS > TargetAlt.
 }
 
 
-set throttle to 0.
-print "Burn completed" at (0,0).
+SET THROTTLE TO 0.
+PRINT "Burn completed" AT (0,0).
 
-rcs off.
-sas on.
-unlock steering.
-lock throttle to 0. unlock throttle.
-set running to false.
-clearscreen.
-set ship:control:pilotmainthrottle to 0.
+RCS OFF.
+SAS ON.
+UNLOCK STEERING.
+LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+SET running TO FALSE.
+CLEARSCREEN.
+SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.

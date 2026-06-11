@@ -1,9 +1,9 @@
-declare parameter FairingDeployment is false, TargetAltitudeKm is 75,RelativeInclinationDegr is 0, FairingDeploymentAltitudeKm is 60.
+DECLARE PARAMETER FairingDeployment IS FALSE, TargetAltitudeKm IS 75,RelativeInclinationDegr IS 0, FairingDeploymentAltitudeKm IS 60.
 
-runpath("0:/SpaceCore/Countdown").
+RUNPATH("0:/SpaceCore/Countdown").
 
-runpath("0:/SpaceCore/Liftoff").
+RUNPATH("0:/SpaceCore/Liftoff").
 
-runpath("0:/SpaceCore/Ascent",FairingDeployment,TargetAltitudeKm,RelativeInclinationDegr,FairingDeploymentAltitudeKm).
+RUNPATH("0:/SpaceCore/Ascent",FairingDeployment,TargetAltitudeKm,RelativeInclinationDegr,FairingDeploymentAltitudeKm).
 
-runpath("0:/SpaceCore/CircToAp").
+RUNPATH("0:/SpaceCore/CircToAp").

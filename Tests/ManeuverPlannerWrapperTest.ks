@@ -15,14 +15,14 @@ SET failedTests TO LIST().
 
 // Simple assert
 DECLARE FUNCTION ASSERT_EQ {
-    PARAMETER name, expected, actual.
+    PARAMETER NAME, expected, actual.
 
     SET totalTests TO totalTests + 1.
 
     IF expected = actual {
         SET passedTests TO passedTests + 1.
     } ELSE {
-        LOCAL msg IS name + " expected: " + expected + ", actual: " + actual.
+        LOCAL msg IS NAME + " expected: " + expected + ", actual: " + actual.
         failedTests:ADD(msg).
         PRINT "FAILED: " + msg.
     }
@@ -30,15 +30,15 @@ DECLARE FUNCTION ASSERT_EQ {
 
 // Helper: ASSERT_TRUE
 DECLARE FUNCTION ASSERT_TRUE {
-    PARAMETER name, condition.
-    ASSERT_EQ(name, TRUE, condition).
+    PARAMETER NAME, condition.
+    ASSERT_EQ(NAME, TRUE, condition).
 }.
 
 // -----------------------------------------------------------------------------
 // Getting planner wrapper
 // -----------------------------------------------------------------------------
 PRINT "Getting ManeuverPlanner wrapper...".
-SET planner TO ADDONS:MJ:PLANNER.
+SET PLANNER TO ADDONS:MJ:PLANNER.
 PRINT "OK.".
 PRINT "-------------------------------".
 
@@ -47,8 +47,8 @@ PRINT "-------------------------------".
 // -----------------------------------------------------------------------------
 PRINT "TEST: PLANNER access".
 
-ASSERT_TRUE("planner exists", DEFINED(planner)).
-ASSERT_TRUE("planner type check", planner:ISTYPE("ManeuverPlannerWrapper")).
+ASSERT_TRUE("planner exists", DEFINED(PLANNER)).
+ASSERT_TRUE("planner type check", PLANNER:ISTYPE("ManeuverPlannerWrapper")).
 
 PRINT "PLANNER access tests done.".
 PRINT "-------------------------------".
@@ -70,7 +70,7 @@ PRINT "-------------------------------".
 // -----------------------------------------------------------------------------
 PRINT "TEST: OPERATIONS list".
 
-SET ops TO planner:OPERATIONS.
+SET ops TO PLANNER:OPERATIONS.
 ASSERT_TRUE("OPERATIONS returns list", ops:LENGTH > 0).
 
 // Verify some known operations exist
@@ -108,7 +108,7 @@ WAIT 0.1.
 SET targetPe TO MAX(70000, PERIAPSIS - 5000).
 PRINT "  Creating node to change Pe to " + targetPe.
 
-SET result TO planner:CHANGEPE(targetPe, "APOAPSIS").
+SET result TO PLANNER:CHANGEPE(targetPe, "APOAPSIS").
 WAIT 0.2.
 
 ASSERT_TRUE("CHANGEPE returns boolean", result = TRUE OR result = FALSE).
@@ -140,7 +140,7 @@ UNTIL NOT HASNODE {
 }
 WAIT 0.1.
 
-SET result TO planner:CIRCULARIZE("APOAPSIS").
+SET result TO PLANNER:CIRCULARIZE("APOAPSIS").
 WAIT 0.2.
 
 ASSERT_TRUE("CIRCULARIZE returns boolean", result = TRUE OR result = FALSE).

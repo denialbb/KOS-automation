@@ -1,4 +1,4 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
 // ------------------------------------------------------------------------
 // Minmus Automation Mission Script
@@ -6,265 +6,265 @@
 //       Hohmann Transfer -> Coasting (Science/Power) -> Capture -> Polar Orbit
 // ------------------------------------------------------------------------
 
-local telemetryFile is "0:/telemetry/telemetry.json".
-local missionLogPath is "0:/logs/log.txt".
-global hadConnection is true.
-global localLogPath is "1:/local_log.txt".
-local apuState is false.
-local lastPowerCheck is 0.
-global telemetryStage is "Booting".
-global missionMilestones is list().
-local lastTelemetryUpdate is 0.
-global maxQVal is 0.
-global maxQTime is 0.
-global maxQLogged is false.
+LOCAL telemetryFile IS "0:/telemetry/telemetry.json".
+LOCAL missionLogPath IS "0:/logs/log.txt".
+GLOBAL hadConnection IS TRUE.
+GLOBAL localLogPath IS "1:/local_log.txt".
+LOCAL apuState IS FALSE.
+LOCAL lastPowerCheck IS 0.
+GLOBAL telemetryStage IS "Booting".
+GLOBAL missionMilestones IS LIST().
+LOCAL lastTelemetryUpdate IS 0.
+GLOBAL maxQVal IS 0.
+GLOBAL maxQTime IS 0.
+GLOBAL maxQLogged IS FALSE.
 
-if exists("0:/logs/mission_history.log") {
+IF exists("0:/logs/mission_history.log") {
     deletepath("0:/logs/mission_history.log").
 }
-if exists(missionLogPath) {
+IF exists(missionLogPath) {
     deletepath(missionLogPath).
 }
 
 // ------------------------------------------------------------------------
 // Helpers: Logging and Telemetry
 // ------------------------------------------------------------------------
-function formatTime {
-    parameter t.
-    local h is floor(t / 3600).
-    local m is floor(mod(t, 3600) / 60).
-    local s is floor(mod(t, 60)).
-    local hStr is "" + h. if h < 10 { set hStr to "0" + h. }
-    local mStr is "" + m. if m < 10 { set mStr to "0" + m. }
-    local sStr is "" + s. if s < 10 { set sStr to "0" + s. }
-    return hStr + ":" + mStr + ":" + sStr.
+FUNCTION formatTime {
+    PARAMETER t.
+    LOCAL h IS FLOOR(t / 3600).
+    LOCAL m IS FLOOR(MOD(t, 3600) / 60).
+    LOCAL s IS FLOOR(MOD(t, 60)).
+    LOCAL hStr IS "" + h. IF h < 10 { SET hStr TO "0" + h. }
+    LOCAL mStr IS "" + m. IF m < 10 { SET mStr TO "0" + m. }
+    LOCAL sStr IS "" + s. IF s < 10 { SET sStr TO "0" + s. }
+    RETURN hStr + ":" + mStr + ":" + sStr.
 }
 
-function logMsg {
-    parameter msg.
-    local tStr is "T+".
-    local tVal is missiontime.
-    if hasnode {
-        set tStr to "T-".
-        set tVal to nextnode:eta.
+FUNCTION logMsg {
+    PARAMETER msg.
+    LOCAL tStr IS "T+".
+    LOCAL tVal IS MISSIONTIME.
+    IF HASNODE {
+        SET tStr TO "T-".
+        SET tVal TO NEXTNODE:ETA.
     }
-    local line is "[" + tStr + formatTime(tVal) + "] " + msg.
-    print line.
-    missionMilestones:add(line).
+    LOCAL line IS "[" + tStr + formatTime(tVal) + "] " + msg.
+    PRINT line.
+    missionMilestones:ADD(line).
 
-    if homeconnection:isconnected {
+    IF homeconnection:isconnected {
         // If we have local logs cached from blackout, flush them to archive
-        if exists(localLogPath) {
-            local f is open(localLogPath).
-            for l in f:readall {
-                log l to missionLogPath.
+        IF exists(localLogPath) {
+            LOCAL f IS open(localLogPath).
+            FOR l IN f:readall {
+                LOG l TO missionLogPath.
             }
             deletepath(localLogPath).
         }
-        log line to missionLogPath.
-    } else {
-        log line to localLogPath.
+        LOG line TO missionLogPath.
+    } ELSE {
+        LOG line TO localLogPath.
     }
 }
 
-function updateTelemetry {
-    parameter stageName.
-    local ec is ship:electriccharge.
-    local ecMax is 0.
-    for r in ship:resources {
-        if r:name = "ElectricCharge" {
-            set ecMax to r:capacity.
+FUNCTION updateTelemetry {
+    PARAMETER stageName.
+    LOCAL ec IS SHIP:ELECTRICCHARGE.
+    LOCAL ecMax IS 0.
+    FOR r IN SHIP:RESOURCES {
+        IF r:NAME = "ElectricCharge" {
+            SET ecMax TO r:CAPACITY.
         }
     }
 
-    local currentMass is ship:mass.
-    local currentThrust is ship:availablethrust.
-    local r_dist is body:radius + ship:altitude.
-    local grav is body:mu / (r_dist * r_dist).
-    local currentTwr is 0.
-    if grav > 0 and currentMass > 0 { set currentTwr to currentThrust / (currentMass * grav). }
-    local currentQ is ship:dynamicpressure.
+    LOCAL currentMass IS SHIP:MASS.
+    LOCAL currentThrust IS SHIP:AVAILABLETHRUST.
+    LOCAL r_dist IS BODY:RADIUS + SHIP:ALTITUDE.
+    LOCAL grav IS BODY:MU / (r_dist * r_dist).
+    LOCAL currentTwr IS 0.
+    IF grav > 0 AND currentMass > 0 { SET currentTwr TO currentThrust / (currentMass * grav). }
+    LOCAL currentQ IS SHIP:DYNAMICPRESSURE.
 
-    local dq is char(34).
+    LOCAL dq IS char(34).
 
     // Construct parts array
-    local partsJson is "[".
-    local first is true.
-    for p in ship:parts {
-        if not first {
-            set partsJson to partsJson + ", ".
+    LOCAL partsJson IS "[".
+    LOCAL first IS TRUE.
+    FOR p IN SHIP:parts {
+        IF NOT first {
+            SET partsJson TO partsJson + ", ".
         }
-        set first to false.
-        local pName is p:name:replace(dq, "").
-        local pTitle is p:title:replace(dq, "").
-        local pTag is p:tag:replace(dq, "").
-        set partsJson to partsJson + "{" + dq + "uid" + dq + ":" + dq + p:uid + dq + "," + dq + "name" + dq + ":" + dq + pName + dq + "," + dq + "title" + dq + ":" + dq + pTitle + dq + "," + dq + "tag" + dq + ":" + dq + pTag + dq + "}".
+        SET first TO FALSE.
+        LOCAL pName IS p:NAME:replace(dq, "").
+        LOCAL pTitle IS p:title:replace(dq, "").
+        LOCAL pTag IS p:tag:replace(dq, "").
+        SET partsJson TO partsJson + "{" + dq + "uid" + dq + ":" + dq + p:uid + dq + "," + dq + "name" + dq + ":" + dq + pName + dq + "," + dq + "title" + dq + ":" + dq + pTitle + dq + "," + dq + "tag" + dq + ":" + dq + pTag + dq + "}".
     }
-    set partsJson to partsJson + "]".
+    SET partsJson TO partsJson + "]".
 
     // Construct all resources array/object
-    local resJson is "{".
-    local firstRes is true.
-    for r in ship:resources {
-        if not firstRes {
-            set resJson to resJson + ", ".
+    LOCAL resJson IS "{".
+    LOCAL firstRes IS TRUE.
+    FOR r IN SHIP:RESOURCES {
+        IF NOT firstRes {
+            SET resJson TO resJson + ", ".
         }
-        set firstRes to false.
-        set resJson to resJson + dq + r:name + dq + ": {" + dq + "amount" + dq + ":" + round(r:amount, 1) + "," + dq + "capacity" + dq + ":" + round(r:capacity, 1) + "}".
+        SET firstRes TO FALSE.
+        SET resJson TO resJson + dq + r:NAME + dq + ": {" + dq + "amount" + dq + ":" + ROUND(r:AMOUNT, 1) + "," + dq + "capacity" + dq + ":" + ROUND(r:CAPACITY, 1) + "}".
     }
-    set resJson to resJson + "}".
+    SET resJson TO resJson + "}".
 
     // Construct closest POI (Waypoint)
-    local closestPoiName is "None".
-    local closestPoiDist is 0.
-    local minPoiDist is 999999999999.
-    for wp in allwaypoints() {
-        if wp:body:name = ship:body:name {
-            local dist is wp:position:mag.
-            if dist < minPoiDist {
-                set minPoiDist to dist.
-                set closestPoiName to wp:name.
-                set closestPoiDist to dist.
+    LOCAL closestPoiName IS "None".
+    LOCAL closestPoiDist IS 0.
+    LOCAL minPoiDist IS 999999999999.
+    FOR wp IN allwaypoints() {
+        IF wp:BODY:NAME = SHIP:BODY:NAME {
+            LOCAL dist IS wp:position:MAG.
+            IF dist < minPoiDist {
+                SET minPoiDist TO dist.
+                SET closestPoiName TO wp:NAME.
+                SET closestPoiDist TO dist.
             }
         }
     }
 
     // Construct Target Info
-    local hasTgt is false.
-    local hasTgtStr is "false".
-    local tgtName is "None".
-    local tgtDist is 0.
-    local tgtRelV is 0.
-    if hastarget {
-        set hasTgt to true.
-        set hasTgtStr to "true".
-        set tgtName to target:name.
-        set tgtDist to target:position:mag.
-        set tgtRelV to (target:velocity:orbit - ship:velocity:orbit):mag.
+    LOCAL hasTgt IS FALSE.
+    LOCAL hasTgtStr IS "false".
+    LOCAL tgtName IS "None".
+    LOCAL tgtDist IS 0.
+    LOCAL tgtRelV IS 0.
+    IF hastarget {
+        SET hasTgt TO TRUE.
+        SET hasTgtStr TO "true".
+        SET tgtName TO TARGET:NAME.
+        SET tgtDist TO TARGET:position:MAG.
+        SET tgtRelV TO (TARGET:VELOCITY:ORBIT - SHIP:VELOCITY:ORBIT):MAG.
     }
 
     // Construct JSON string
-    local jsonStr is "{".
-    set jsonStr to jsonStr + dq + "time" + dq + ": " + round(missiontime, 1) + ", ".
-    set jsonStr to jsonStr + dq + "vessel" + dq + ": " + dq + ship:name + dq + ", ".
-    set jsonStr to jsonStr + dq + "stage" + dq + ": " + dq + stageName + dq + ", ".
-    set jsonStr to jsonStr + dq + "altitude" + dq + ": " + round(ship:altitude) + ", ".
-    set jsonStr to jsonStr + dq + "periapsis" + dq + ": " + round(ship:periapsis) + ", ".
-    set jsonStr to jsonStr + dq + "apoapsis" + dq + ": " + round(ship:apoapsis) + ", ".
-    set jsonStr to jsonStr + dq + "inclination" + dq + ": " + round(ship:orbit:inclination, 2) + ", ".
-    set jsonStr to jsonStr + dq + "velocity" + dq + ": " + round(ship:velocity:orbit:mag) + ", ".
-    set jsonStr to jsonStr + dq + "electricCharge" + dq + ": " + round(ec) + ", ".
-    set jsonStr to jsonStr + dq + "electricChargeMax" + dq + ": " + round(ecMax) + ", ".
-    set jsonStr to jsonStr + dq + "twr" + dq + ": " + round(currentTwr, 2) + ", ".
-    set jsonStr to jsonStr + dq + "q" + dq + ": " + round(currentQ, 4) + ", ".
-    set jsonStr to jsonStr + dq + "body" + dq + ": " + dq + ship:body:name + dq + ", ".
-    set jsonStr to jsonStr + dq + "resources" + dq + ": " + resJson + ", ".
-    set jsonStr to jsonStr + dq + "closestPoi" + dq + ": {" + dq + "name" + dq + ":" + dq + closestPoiName + dq + "," + dq + "distance" + dq + ":" + round(closestPoiDist) + "}, ".
-    set jsonStr to jsonStr + dq + "target" + dq + ": {" + dq + "hasTarget" + dq + ":" + hasTgtStr + "," + dq + "name" + dq + ":" + dq + tgtName + dq + "," + dq + "distance" + dq + ":" + round(tgtDist) + "," + dq + "relVelocity" + dq + ":" + round(tgtRelV, 2) + "}, ".
+    LOCAL jsonStr IS "{".
+    SET jsonStr TO jsonStr + dq + "time" + dq + ": " + ROUND(MISSIONTIME, 1) + ", ".
+    SET jsonStr TO jsonStr + dq + "vessel" + dq + ": " + dq + SHIP:NAME + dq + ", ".
+    SET jsonStr TO jsonStr + dq + "stage" + dq + ": " + dq + stageName + dq + ", ".
+    SET jsonStr TO jsonStr + dq + "altitude" + dq + ": " + ROUND(SHIP:ALTITUDE) + ", ".
+    SET jsonStr TO jsonStr + dq + "periapsis" + dq + ": " + ROUND(SHIP:PERIAPSIS) + ", ".
+    SET jsonStr TO jsonStr + dq + "apoapsis" + dq + ": " + ROUND(SHIP:APOAPSIS) + ", ".
+    SET jsonStr TO jsonStr + dq + "inclination" + dq + ": " + ROUND(SHIP:ORBIT:inclination, 2) + ", ".
+    SET jsonStr TO jsonStr + dq + "velocity" + dq + ": " + ROUND(SHIP:VELOCITY:ORBIT:MAG) + ", ".
+    SET jsonStr TO jsonStr + dq + "electricCharge" + dq + ": " + ROUND(ec) + ", ".
+    SET jsonStr TO jsonStr + dq + "electricChargeMax" + dq + ": " + ROUND(ecMax) + ", ".
+    SET jsonStr TO jsonStr + dq + "twr" + dq + ": " + ROUND(currentTwr, 2) + ", ".
+    SET jsonStr TO jsonStr + dq + "q" + dq + ": " + ROUND(currentQ, 4) + ", ".
+    SET jsonStr TO jsonStr + dq + "body" + dq + ": " + dq + SHIP:BODY:NAME + dq + ", ".
+    SET jsonStr TO jsonStr + dq + "resources" + dq + ": " + resJson + ", ".
+    SET jsonStr TO jsonStr + dq + "closestPoi" + dq + ": {" + dq + "name" + dq + ":" + dq + closestPoiName + dq + "," + dq + "distance" + dq + ":" + ROUND(closestPoiDist) + "}, ".
+    SET jsonStr TO jsonStr + dq + "target" + dq + ": {" + dq + "hasTarget" + dq + ":" + hasTgtStr + "," + dq + "name" + dq + ":" + dq + tgtName + dq + "," + dq + "distance" + dq + ":" + ROUND(tgtDist) + "," + dq + "relVelocity" + dq + ":" + ROUND(tgtRelV, 2) + "}, ".
 
     // Construct Attitude Info
-    local upVec is ship:up:vector.
-    local northVec is ship:north:vector.
-    local eastVec is vcrs(upVec, northVec):normalized.
-    local foreVec is ship:facing:forevector.
-    local topVec is ship:facing:topvector.
+    LOCAL upVec IS SHIP:UP:vector.
+    LOCAL northVec IS SHIP:NORTH:vector.
+    LOCAL eastVec IS VCRS(upVec, northVec):normalized.
+    LOCAL foreVec IS SHIP:FACING:FOREVECTOR.
+    LOCAL topVec IS SHIP:FACING:topvector.
 
-    local fx is round(vdot(foreVec, eastVec), 4).
-    local fy is round(vdot(foreVec, northVec), 4).
-    local fz is round(vdot(foreVec, upVec), 4).
-    local tx is round(vdot(topVec, eastVec), 4).
-    local ty is round(vdot(topVec, northVec), 4).
-    local tz is round(vdot(topVec, upVec), 4).
+    LOCAL fx IS ROUND(VDOT(foreVec, eastVec), 4).
+    LOCAL fy IS ROUND(VDOT(foreVec, northVec), 4).
+    LOCAL fz IS ROUND(VDOT(foreVec, upVec), 4).
+    LOCAL tx IS ROUND(VDOT(topVec, eastVec), 4).
+    LOCAL ty IS ROUND(VDOT(topVec, northVec), 4).
+    LOCAL tz IS ROUND(VDOT(topVec, upVec), 4).
 
-    set jsonStr to jsonStr + dq + "attitude" + dq + ": {" + dq + "fore" + dq + ": [" + fx + "," + fy + "," + fz + "]," + dq + "top" + dq + ": [" + tx + "," + ty + "," + tz + "]}, ".
+    SET jsonStr TO jsonStr + dq + "attitude" + dq + ": {" + dq + "fore" + dq + ": [" + fx + "," + fy + "," + fz + "]," + dq + "top" + dq + ": [" + tx + "," + ty + "," + tz + "]}, ".
 
-    local bHasNode is hasnode.
-    if bHasNode {
-        set jsonStr to jsonStr + dq + "maneuver" + dq + ": { " + dq + "hasNode" + dq + ": true, " + dq + "eta" + dq + ": " + round(nextnode:eta, 1) + ", " + dq + "dv" + dq + ": " + round(nextnode:deltav:mag, 1) + " }, ".
-    } else {
-        set jsonStr to jsonStr + dq + "maneuver" + dq + ": { " + dq + "hasNode" + dq + ": false, " + dq + "eta" + dq + ": 0, " + dq + "dv" + dq + ": 0 }, ".
+    LOCAL bHasNode IS HASNODE.
+    IF bHasNode {
+        SET jsonStr TO jsonStr + dq + "maneuver" + dq + ": { " + dq + "hasNode" + dq + ": true, " + dq + "eta" + dq + ": " + ROUND(NEXTNODE:ETA, 1) + ", " + dq + "dv" + dq + ": " + ROUND(NEXTNODE:DELTAV:MAG, 1) + " }, ".
+    } ELSE {
+        SET jsonStr TO jsonStr + dq + "maneuver" + dq + ": { " + dq + "hasNode" + dq + ": false, " + dq + "eta" + dq + ": 0, " + dq + "dv" + dq + ": 0 }, ".
     }
 
-    set jsonStr to jsonStr + dq + "parts" + dq + ": " + partsJson + ", ".
+    SET jsonStr TO jsonStr + dq + "parts" + dq + ": " + partsJson + ", ".
 
-    local milestonesJson is "[".
-    local firstMilestone is true.
-    for ms in missionMilestones {
-        if not firstMilestone { set milestonesJson to milestonesJson + ", ". }
-        set firstMilestone to false.
-        set milestonesJson to milestonesJson + dq + ms:replace(dq, "") + dq.
+    LOCAL milestonesJson IS "[".
+    LOCAL firstMilestone IS TRUE.
+    FOR ms IN missionMilestones {
+        IF NOT firstMilestone { SET milestonesJson TO milestonesJson + ", ". }
+        SET firstMilestone TO FALSE.
+        SET milestonesJson TO milestonesJson + dq + ms:replace(dq, "") + dq.
     }
-    set milestonesJson to milestonesJson + "]".
+    SET milestonesJson TO milestonesJson + "]".
 
-    set jsonStr to jsonStr + dq + "milestones" + dq + ": " + milestonesJson.
-    set jsonStr to jsonStr + "}".
+    SET jsonStr TO jsonStr + dq + "milestones" + dq + ": " + milestonesJson.
+    SET jsonStr TO jsonStr + "}".
 
     // Only write telemetry to archive if KSC connection is active to prevent kOS crash
-    if homeconnection:isconnected {
-        if exists(telemetryFile) {
+    IF homeconnection:isconnected {
+        IF exists(telemetryFile) {
             deletepath(telemetryFile).
         }
-        log jsonStr to telemetryFile.
+        LOG jsonStr TO telemetryFile.
     }
 }
 
-function setStage {
-    parameter newStage.
-    clearscreen.
-    print("==================================================").
+FUNCTION setStage {
+    PARAMETER newStage.
+    CLEARSCREEN.
+    PRINT("==================================================").
     logMsg("          Entered stage: " + newStage).
-    print("==================================================").
-    print("    ").
-    set telemetryStage to newStage.
+    PRINT("==================================================").
+    PRINT("    ").
+    SET telemetryStage TO newStage.
     updateTelemetry(telemetryStage).
 
-    if homeconnection:isconnected {
-        local histFile is "0:/logs/mission_history.log".
-        if not exists(histFile) {
-            log "Time,Stage,Body,Alt,Pe,Ap,Inc,EC_pct,Vel" to histFile.
+    IF homeconnection:isconnected {
+        LOCAL histFile IS "0:/logs/mission_history.log".
+        IF NOT exists(histFile) {
+            LOG "Time,Stage,Body,Alt,Pe,Ap,Inc,EC_pct,Vel" TO histFile.
         }
 
-        local ec is 0.
-        local ecMax is 1.
-        for r in ship:resources {
-            if r:name = "ElectricCharge" {
-                set ec to r:amount.
-                set ecMax to max(0.1, r:capacity).
+        LOCAL ec IS 0.
+        LOCAL ecMax IS 1.
+        FOR r IN SHIP:RESOURCES {
+            IF r:NAME = "ElectricCharge" {
+                SET ec TO r:AMOUNT.
+                SET ecMax TO MAX(0.1, r:CAPACITY).
             }
         }
-        local ecPct is round((ec/ecMax)*100, 1).
-        local logLine is round(missiontime) + "," + newStage + "," + ship:body:name + "," + round(ship:altitude) + "," + round(ship:periapsis) + "," + round(ship:apoapsis) + "," + round(ship:orbit:inclination, 1) + "," + ecPct + "," + round(ship:velocity:orbit:mag).
-        log logLine to histFile.
+        LOCAL ecPct IS ROUND((ec/ecMax)*100, 1).
+        LOCAL logLine IS ROUND(MISSIONTIME) + "," + newStage + "," + SHIP:BODY:NAME + "," + ROUND(SHIP:ALTITUDE) + "," + ROUND(SHIP:PERIAPSIS) + "," + ROUND(SHIP:APOAPSIS) + "," + ROUND(SHIP:ORBIT:inclination, 1) + "," + ecPct + "," + ROUND(SHIP:VELOCITY:ORBIT:MAG).
+        LOG logLine TO histFile.
     }
 }
 
-when abort then {
+WHEN ABORT THEN {
     setStage("Aborted").
     logMsg("--- MISSION ABORTED ---").
-    preserve.
+    PRESERVE.
 }
 
 // ------------------------------------------------------------------------
 // Helpers: Subsystems (Power & Science)
 // ------------------------------------------------------------------------
-function setAPUState {
-    parameter state.
-    local stateStr is "OFF".
-    if state { set stateStr to "ON". }
+FUNCTION setAPUState {
+    PARAMETER state.
+    LOCAL stateStr IS "OFF".
+    IF state { SET stateStr TO "ON". }
     logMsg("Setting Fuel Cells/APUs to " + stateStr).
 
-    for p in ship:parts {
-        for mName in p:modules {
-            local pMod is p:getmodule(mName).
-            for ev in pMod:allevents {
-                local evLower is ev:tolower.
-                if state {
-                    if (evLower:contains("start") or evLower:contains("activate") or evLower:contains("enable")) and (evLower:contains("cell") or evLower:contains("gen") or evLower:contains("apu") or evLower:contains("power")) {
+    FOR p IN SHIP:parts {
+        FOR mName IN p:modules {
+            LOCAL pMod IS p:getmodule(mName).
+            FOR ev IN pMod:allevents {
+                LOCAL evLower IS ev:tolower.
+                IF state {
+                    IF (evLower:contains("start") OR evLower:contains("activate") OR evLower:contains("enable")) AND (evLower:contains("cell") OR evLower:contains("gen") OR evLower:contains("apu") OR evLower:contains("power")) {
                         pMod:doevent(ev).
                         logMsg("APU ON: " + ev + " on " + p:title).
                     }
-                } else {
-                    if (evLower:contains("stop") or evLower:contains("deactivate") or evLower:contains("disable")) and (evLower:contains("cell") or evLower:contains("gen") or evLower:contains("apu") or evLower:contains("power")) {
+                } ELSE {
+                    IF (evLower:contains("stop") OR evLower:contains("deactivate") OR evLower:contains("disable")) AND (evLower:contains("cell") OR evLower:contains("gen") OR evLower:contains("apu") OR evLower:contains("power")) {
                         pMod:doevent(ev).
                         logMsg("APU OFF: " + ev + " on " + p:title).
                     }
@@ -274,55 +274,55 @@ function setAPUState {
     }
 }
 
-function checkPower {
-    local ec is ship:electriccharge.
-    local ecMax is 0.
-    for r in ship:resources {
-        if r:name = "ElectricCharge" { set ecMax to r:capacity. }
+FUNCTION checkPower {
+    LOCAL ec IS SHIP:ELECTRICCHARGE.
+    LOCAL ecMax IS 0.
+    FOR r IN SHIP:RESOURCES {
+        IF r:NAME = "ElectricCharge" { SET ecMax TO r:CAPACITY. }
     }
-    if ecMax > 0 {
-        local pct is ec / ecMax.
-        if pct < 0.20 {
-            if not apuState {
+    IF ecMax > 0 {
+        LOCAL pct IS ec / ecMax.
+        IF pct < 0.20 {
+            IF NOT apuState {
                 logMsg("CRITICAL POWER: Starting APUs.").
-                setAPUState(true).
-                set apuState to true.
+                setAPUState(TRUE).
+                SET apuState TO TRUE.
             }
-            if lights {
-                lights off.
+            IF LIGHTS {
+                LIGHTS OFF.
                 logMsg("CRITICAL POWER: Turning off lights to conserve energy.").
             }
-        } else if pct > 0.95 {
-            if apuState {
+        } ELSE IF pct > 0.95 {
+            IF apuState {
                 logMsg("Power restored. Stopping APUs.").
-                setAPUState(false).
-                set apuState to false.
+                setAPUState(FALSE).
+                SET apuState TO FALSE.
             }
         }
 
         // Turn lights on if in orbit and power is stable (>20%)
-        if pct >= 0.20 and (ship:status = "ORBITING" or ship:status = "ESCAPING") {
-            if not lights {
-                lights on.
+        IF pct >= 0.20 AND (SHIP:STATUS = "ORBITING" OR SHIP:STATUS = "ESCAPING") {
+            IF NOT LIGHTS {
+                LIGHTS ON.
                 logMsg("Vessel in orbit with stable power. Turning lights on.").
             }
         }
     }
 }
 
-function runAllScience {
+FUNCTION runAllScience {
     logMsg("Triggering all science experiments...").
-    for p in ship:parts {
-        for mName in p:modules {
-            local mNameLower is mName:tolower.
-            if mNameLower:contains("science") or mNameLower:contains("experiment") or mNameLower:contains("sensor") {
-                local pMod is p:getmodule(mName).
-                if pMod:hasfield("deploy") or pMod:hasevent("deploy") {
+    FOR p IN SHIP:parts {
+        FOR mName IN p:modules {
+            LOCAL mNameLower IS mName:tolower.
+            IF mNameLower:contains("science") OR mNameLower:contains("experiment") OR mNameLower:contains("sensor") {
+                LOCAL pMod IS p:getmodule(mName).
+                IF pMod:hasfield("deploy") OR pMod:hasevent("deploy") {
                     pMod:doevent("deploy").
                 }
-                for ev in pMod:allevents {
-                    local evLower is ev:tolower.
-                    if evLower:contains("start") or evLower:contains("deploy") or evLower:contains("run") or evLower:contains("collect") {
+                FOR ev IN pMod:allevents {
+                    LOCAL evLower IS ev:tolower.
+                    IF evLower:contains("start") OR evLower:contains("deploy") OR evLower:contains("run") OR evLower:contains("collect") {
                         pMod:doevent(ev).
                     }
                 }
@@ -334,59 +334,59 @@ function runAllScience {
 // ------------------------------------------------------------------------
 // Safe Coasting Routine
 // ------------------------------------------------------------------------
-function safeCoast {
-    parameter targetTime.
+FUNCTION safeCoast {
+    PARAMETER targetTime.
     setStage("Coasting").
 
-    until time:seconds >= targetTime - 60 {
-        lock steering to sun:position.
+    UNTIL TIME:SECONDS >= targetTime - 60 {
+        LOCK STEERING TO sun:position.
         checkPower().
         runAllScience().
 
-        local timeLeft is targetTime - time:seconds.
-        if timeLeft > 3600 {
-            local nextStop is min(time:seconds + 3600, targetTime - 60).
-            set warpmode to "rails".
-            warpto(nextStop).
-            wait until time:seconds >= nextStop - 5.
-        } else if timeLeft > 300 {
-            local nextStop is targetTime - 60.
-            set warpmode to "rails".
-            warpto(nextStop).
-            wait until time:seconds >= nextStop - 5.
-        } else {
-            wait 10.
+        LOCAL timeLeft IS targetTime - TIME:SECONDS.
+        IF timeLeft > 3600 {
+            LOCAL nextStop IS MIN(TIME:SECONDS + 3600, targetTime - 60).
+            SET WARPMODE TO "rails".
+            WARPTO(nextStop).
+            WAIT UNTIL TIME:SECONDS >= nextStop - 5.
+        } ELSE IF timeLeft > 300 {
+            LOCAL nextStop IS targetTime - 60.
+            SET WARPMODE TO "rails".
+            WARPTO(nextStop).
+            WAIT UNTIL TIME:SECONDS >= nextStop - 5.
+        } ELSE {
+            WAIT 10.
         }
     }
-    unlock steering.
+    UNLOCK STEERING.
 }
 
 // ------------------------------------------------------------------------
 // Math & Orbital Node Calculation
 // ------------------------------------------------------------------------
-function clamp {
-    parameter val, mn, mx.
-    if val < mn return mn.
-    if val > mx return mx.
-    return val.
+FUNCTION clamp {
+    PARAMETER val, mn, mx.
+    IF val < mn RETURN mn.
+    IF val > mx RETURN mx.
+    RETURN val.
 }
 
-function createNodeFromVector {
-    parameter burnTime, dVVector.
-    local r_at is positionat(ship, burnTime) - positionat(ship:body, burnTime).
-    local v_at is velocityat(ship, burnTime):orbit.
+FUNCTION createNodeFromVector {
+    PARAMETER burnTime, dVVector.
+    LOCAL r_at IS positionat(SHIP, burnTime) - positionat(SHIP:BODY, burnTime).
+    LOCAL v_at IS velocityat(SHIP, burnTime):ORBIT.
 
-    local pro_dir is v_at:normalized.
-    local norm_dir is vcrs(v_at, r_at):normalized.
-    local rad_dir is vcrs(pro_dir, norm_dir):normalized.
+    LOCAL pro_dir IS v_at:normalized.
+    LOCAL norm_dir IS VCRS(v_at, r_at):normalized.
+    LOCAL rad_dir IS VCRS(pro_dir, norm_dir):normalized.
 
-    local dV_pro is vdot(dVVector, pro_dir).
-    local dV_norm is vdot(dVVector, norm_dir).
-    local dV_rad is vdot(dVVector, rad_dir).
+    LOCAL dV_pro IS VDOT(dVVector, pro_dir).
+    LOCAL dV_norm IS VDOT(dVVector, norm_dir).
+    LOCAL dV_rad IS VDOT(dVVector, rad_dir).
 
-    local nd is node(burnTime, dV_rad, dV_norm, dV_pro).
-    add nd.
-    return nd.
+    LOCAL nd IS NODE(burnTime, dV_rad, dV_norm, dV_pro).
+    ADD nd.
+    RETURN nd.
 }
 
 
@@ -395,115 +395,115 @@ function createNodeFromVector {
 // Main Mission Sequence
 // ------------------------------------------------------------------------
 // Start background power and subsystem monitor trigger (runs every 5 seconds)
-when time:seconds > lastPowerCheck + 5 then {
-    set lastPowerCheck to time:seconds.
+WHEN TIME:SECONDS > lastPowerCheck + 5 THEN {
+    SET lastPowerCheck TO TIME:SECONDS.
     checkPower().
-    preserve.
+    PRESERVE.
 }
 
-when time:seconds > lastTelemetryUpdate + 0.2 then {
-    local hasConn is homeconnection:isconnected.
-    if hasConn <> hadConnection {
-        if hasConn {
+WHEN TIME:SECONDS > lastTelemetryUpdate + 0.2 THEN {
+    LOCAL hasConn IS homeconnection:isconnected.
+    IF hasConn <> hadConnection {
+        IF hasConn {
             logMsg("--- SIGNAL RESTORED: Reconnected to KSC. ---").
-        } else {
+        } ELSE {
             logMsg("--- SIGNAL LOST: Connection to KSC lost. ---").
         }
-        set hadConnection to hasConn.
+        SET hadConnection TO hasConn.
     }
 
-    if telemetryStage = "Ascent" and not maxQLogged {
-        local currentQ is ship:dynamicpressure.
-        if currentQ > maxQVal {
-            set maxQVal to currentQ.
-            set maxQTime to missiontime.
-        } else if currentQ < maxQVal - 0.01 and maxQVal > 0.05 and missiontime > maxQTime + 2 {
-            set maxQLogged to true.
-            logMsg("Max Q reached: " + round(maxQVal * 101.325, 2) + " kPa").
+    IF telemetryStage = "Ascent" AND NOT maxQLogged {
+        LOCAL currentQ IS SHIP:DYNAMICPRESSURE.
+        IF currentQ > maxQVal {
+            SET maxQVal TO currentQ.
+            SET maxQTime TO MISSIONTIME.
+        } ELSE IF currentQ < maxQVal - 0.01 AND maxQVal > 0.05 AND MISSIONTIME > maxQTime + 2 {
+            SET maxQLogged TO TRUE.
+            logMsg("Max Q reached: " + ROUND(maxQVal * 101.325, 2) + " kPa").
         }
     }
 
     updateTelemetry(telemetryStage).
-    set lastTelemetryUpdate to time:seconds.
-    preserve.
+    SET lastTelemetryUpdate TO TIME:SECONDS.
+    PRESERVE.
 }
 
 setStage("Booting").
 logMsg("Minmus Mission Initialized.").
 
 
-if not exists("0:/telemetry/vessel_structure.json") {
+IF NOT exists("0:/telemetry/vessel_structure.json") {
     logMsg("No existing vessel structure found. Forcing scan...").
-    wait 1.
-    runpath("0:/DASA/VesselScan.ks").
+    WAIT 1.
+    RUNPATH("0:/DASA/VesselScan.ks").
 }
 
-print "Scan vessel structure? (y/n)".
-local scanChoice is "".
-until scanChoice = "y" or scanChoice = "n" {
-    set scanChoice to terminal:input:getchar().
+PRINT "Scan vessel structure? (y/n)".
+LOCAL scanChoice IS "".
+UNTIL scanChoice = "y" OR scanChoice = "n" {
+    SET scanChoice TO terminal:input:getchar().
 }
-if scanChoice = "y" {
-    runpath("0:/DASA/VesselScan.ks").
-} else {
+IF scanChoice = "y" {
+    RUNPATH("0:/DASA/VesselScan.ks").
+} ELSE {
     logMsg("Skipping vessel scan. Dashboard will use existing vessel structure.").
-    wait 1.
+    WAIT 1.
 }
 
-local skipDeployment is false.
+LOCAL skipDeployment IS FALSE.
 // 1. Wait for deployment / Pre-launch
-if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING" and ship:altitude < 70000) {
+IF SHIP:STATUS = "PRELAUNCH" OR SHIP:STATUS = "LANDED" OR (SHIP:STATUS = "FLYING" AND SHIP:ALTITUDE < 70000) {
     setStage("Pre-Launch").
-    sas on.
+    SAS ON.
     logMsg("Vessel is pre-launch/flying. Waiting for staging to initiate launch.").
-    wait until maxthrust > 0.
+    WAIT UNTIL MAXTHRUST > 0.
 
     logMsg("Launch detected! Ascending to 80km orbit.").
     setStage("Ascent").
-    runpath("0:/MJ/MJAscent.ks", false, 80, 0, 60).
+    RUNPATH("0:/MJ/MJAscent.ks", FALSE, 80, 0, 60).
 
-    if ship:periapsis < 70000 {
+    IF SHIP:PERIAPSIS < 70000 {
         logMsg("Circularizing at Apoapsis.").
         setStage("Circularization").
-        runpath("0:/MJ/MJCircToAp.ks").
+        RUNPATH("0:/MJ/MJCircToAp.ks").
     }
-} else {
-    if panels {
-        set skipDeployment to true.
+} ELSE {
+    IF PANELS {
+        SET skipDeployment TO TRUE.
     }
-    for p in ship:parts {
-        for m in p:modules {
-            local mName is m:tostring:tolower.
-            if mName:contains("solar") or mName:contains("panel") {
-                local pMod is p:getmodule(m).
-                if pMod:hasfield("state") {
-                    local st is pMod:getfield("state"):tolower.
-                    if st:contains("extend") {
-                        set skipDeployment to true.
+    FOR p IN SHIP:parts {
+        FOR m IN p:modules {
+            LOCAL mName IS m:tostring:tolower.
+            IF mName:contains("solar") OR mName:contains("panel") {
+                LOCAL pMod IS p:getmodule(m).
+                IF pMod:hasfield("state") {
+                    LOCAL st IS pMod:getfield("state"):tolower.
+                    IF st:contains("extend") {
+                        SET skipDeployment TO TRUE.
                     }
                 }
             }
         }
     }
-    if skipDeployment {
+    IF skipDeployment {
         logMsg("Vessel already in orbit with panels active. Skipping jettison & deployment.").
-    } else {
+    } ELSE {
         logMsg("Vessel already in orbit. Proceeding with mission.").
     }
 }
 
 // ADDITION: Deploy all bays, solar panels, and antennas once in orbit
-if not skipDeployment {
+IF NOT skipDeployment {
     // 1. Deploy any fairings on the vessel first to unshield parts
     logMsg("Jettisoning all fairings...").
-    for p in ship:parts {
-        for m in p:modules {
-            local mName is m:tostring:tolower.
-            if mName:contains("fairing") or mName:contains("jettison") or mName:contains("shroud") {
-                local pMod is p:getmodule(m).
-                for ev in pMod:alleventnames {
-                    local evLower is ev:tolower.
-                    if evLower:contains("deploy") or evLower:contains("jettison") or evLower:contains("open") or evLower:contains("release") {
+    FOR p IN SHIP:parts {
+        FOR m IN p:modules {
+            LOCAL mName IS m:tostring:tolower.
+            IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
+                LOCAL pMod IS p:getmodule(m).
+                FOR ev IN pMod:alleventnames {
+                    LOCAL evLower IS ev:tolower.
+                    IF evLower:contains("deploy") OR evLower:contains("jettison") OR evLower:contains("open") OR evLower:contains("release") {
                         pMod:doevent(ev).
                         logMsg("Jettisoned fairing: " + ev + " on " + p:title).
                     }
@@ -511,50 +511,50 @@ if not skipDeployment {
             }
         }
     }
-    wait 1. // Wait for fairing separation physics
+    WAIT 1. // Wait for fairing separation physics
 
     logMsg("Deploying solar panels, bays, and antennas.").
-    panels on.
-    bays on.
+    PANELS ON.
+    bays ON.
 
-    for p in ship:parts {
+    FOR p IN SHIP:parts {
         // Check if the part itself is likely an antenna or solar panel
-        local pName is p:name:tolower.
-        local pTitle is p:title:tolower.
-        local isAntennaOrPanelPart is false.
-        if pName:contains("solar") or pName:contains("panel") or pName:contains("antenna")
-           or pName:contains("dish") or pName:contains("comm") or pName:contains("trans")
-           or pName:contains("ray") or pName:contains("reflector") {
-            set isAntennaOrPanelPart to true.
+        LOCAL pName IS p:NAME:tolower.
+        LOCAL pTitle IS p:title:tolower.
+        LOCAL isAntennaOrPanelPart IS FALSE.
+        IF pName:contains("solar") OR pName:contains("panel") OR pName:contains("antenna")
+           OR pName:contains("dish") OR pName:contains("comm") OR pName:contains("trans")
+           OR pName:contains("ray") OR pName:contains("reflector") {
+            SET isAntennaOrPanelPart TO TRUE.
         }
-        if pTitle:contains("solar") or pTitle:contains("panel") or pTitle:contains("antenna")
-           or pTitle:contains("dish") or pTitle:contains("comm") or pTitle:contains("trans")
-           or pTitle:contains("ray") or pTitle:contains("reflector") {
-            set isAntennaOrPanelPart to true.
+        IF pTitle:contains("solar") OR pTitle:contains("panel") OR pTitle:contains("antenna")
+           OR pTitle:contains("dish") OR pTitle:contains("comm") OR pTitle:contains("trans")
+           OR pTitle:contains("ray") OR pTitle:contains("reflector") {
+            SET isAntennaOrPanelPart TO TRUE.
         }
 
-        for m in p:modules {
-            local mName is m:tostring:tolower.
-            local pMod is p:getmodule(m).
+        FOR m IN p:modules {
+            LOCAL mName IS m:tostring:tolower.
+            LOCAL pMod IS p:getmodule(m).
 
             // Match panels, antennas, transmitters, animated booms, or deployables
-            local isDeployableModule is false.
-            if mName:contains("solar") or mName:contains("panel") or mName:contains("antenna")
-               or mName:contains("transmit") or mName:contains("comm") or mName:contains("animate")
-               or mName:contains("deploy") or mName:contains("dish") or mName:contains("boom") {
-                set isDeployableModule to true.
+            LOCAL isDeployableModule IS FALSE.
+            IF mName:contains("solar") OR mName:contains("panel") OR mName:contains("antenna")
+               OR mName:contains("transmit") OR mName:contains("comm") OR mName:contains("animate")
+               OR mName:contains("deploy") OR mName:contains("dish") OR mName:contains("boom") {
+                SET isDeployableModule TO TRUE.
             }
 
             // If the part is an antenna/panel, or the module itself is deployable, scan its events
-            if isAntennaOrPanelPart or isDeployableModule {
-                for ev in pMod:alleventnames {
-                    local evLower is ev:tolower.
+            IF isAntennaOrPanelPart OR isDeployableModule {
+                FOR ev IN pMod:alleventnames {
+                    LOCAL evLower IS ev:tolower.
                     // Trigger extend, deploy, open, toggle, or activate events
-                    if evLower:contains("extend") or evLower:contains("deploy") or evLower:contains("open")
-                       or evLower:contains("activate") or evLower:contains("toggle") or evLower:contains("start") {
+                    IF evLower:contains("extend") OR evLower:contains("deploy") OR evLower:contains("open")
+                       OR evLower:contains("activate") OR evLower:contains("toggle") OR evLower:contains("start") {
                         // Ignore retract/close/stop/disable/shutdown/jettison
-                        if not (evLower:contains("retract") or evLower:contains("close") or evLower:contains("stop")
-                                or evLower:contains("disable") or evLower:contains("shutdown") or evLower:contains("jettison")) {
+                        IF NOT (evLower:contains("retract") OR evLower:contains("close") OR evLower:contains("stop")
+                                OR evLower:contains("disable") OR evLower:contains("shutdown") OR evLower:contains("jettison")) {
                             pMod:doevent(ev).
                             logMsg("Deploying: " + ev + " on " + p:title).
                         }
@@ -566,87 +566,87 @@ if not skipDeployment {
 }
 
 // 2. Interrogate Astrogator
-set target to body("Minmus").
+SET TARGET TO BODY("Minmus").
 setStage("Hohmann Transfer").
 logMsg("Interrogating Astrogator for transfer window and node information...").
 
 // Clear any existing nodes BEFORE calling Astrogator
-until not hasnode {
-    remove nextnode.
-    wait 0.05.
+UNTIL NOT HASNODE {
+    REMOVE NEXTNODE.
+    WAIT 0.05.
 }
 
-local bms is addons:astrogator:calculateBurns(target).
+LOCAL bms IS ADDONS:astrogator:calculateBurns(TARGET).
 
-if bms:length = 0 {
+IF bms:length = 0 {
     logMsg("CRITICAL ERROR: Astrogator failed to calculate transfer burns!").
     logMsg("Switching to basic probe survival routine.").
-    runpath("0:/DASA/basic_probe_routine.ks").
-} else {
+    RUNPATH("0:/DASA/basic_probe_routine.ks").
+} ELSE {
     logMsg("Astrogator provided " + bms:length + " maneuver(s).").
 
     // Log details of all burns
-    from {local i is 0.} until i >= bms:length step {set i to i+1.} do {
-        local bm is bms[i].
-        local tToBurn is bm:atTime - time:seconds.
-        logMsg(" - Node " + i + ": T-" + round(tToBurn) + "s | dV: " + round(bm:totalDV, 1) + " m/s").
+    FROM {LOCAL i IS 0.} UNTIL i >= bms:length STEP {SET i TO i+1.} DO {
+        LOCAL bm IS bms[i].
+        LOCAL tToBurn IS bm:atTime - TIME:SECONDS.
+        logMsg(" - Node " + i + ": T-" + ROUND(tToBurn) + "s | dV: " + ROUND(bm:totalDV, 1) + " m/s").
     }
 
-    local bm is bms[0].
-    local timeToWindow is bm:atTime - time:seconds.
-    local incDiff is abs(target:orbit:inclination - ship:orbit:inclination).
-    local dvNeeded is bm:totalDV.
-    local dvAvail is 0.
-    if addons:available("KER") {
-        set dvAvail to addons:ker:deltav.
-    } else {
-        set dvAvail to ship:deltav:current.
+    LOCAL bm IS bms[0].
+    LOCAL timeToWindow IS bm:atTime - TIME:SECONDS.
+    LOCAL incDiff IS abs(TARGET:ORBIT:inclination - SHIP:ORBIT:inclination).
+    LOCAL dvNeeded IS bm:totalDV.
+    LOCAL dvAvail IS 0.
+    IF ADDONS:AVAILABLE("KER") {
+        SET dvAvail TO ADDONS:ker:DELTAV.
+    } ELSE {
+        SET dvAvail TO SHIP:DELTAV:current.
     }
 
     logMsg("Primary Transfer Node Details:").
-    logMsg(" - Relative Inclination: " + round(incDiff, 2) + " deg").
-    logMsg(" - Delta-V Available: " + round(dvAvail, 1) + " m/s").
+    logMsg(" - Relative Inclination: " + ROUND(incDiff, 2) + " deg").
+    logMsg(" - Delta-V Available: " + ROUND(dvAvail, 1) + " m/s").
 
-    if dvAvail < dvNeeded {
+    IF dvAvail < dvNeeded {
         logMsg("WARNING: Insufficient Delta-V for maneuver!").
     }
 
     // Execute each burn model sequentially: add node manually, wait for it, execute, then clear.
-    from {local i is 0.} until i >= bms:length step {set i to i+1.} do {
-        local bm is bms[i].
+    FROM {LOCAL i IS 0.} UNTIL i >= bms:length STEP {SET i TO i+1.} DO {
+        LOCAL bm IS bms[i].
         logMsg("Adding node " + i + " to flight plan").
 
         // Clear any leftover nodes first
-        if hasnode {
-            remove nextnode.
+        IF HASNODE {
+            REMOVE NEXTNODE.
         }
 
         // Manually add this burn model as a maneuver node
-        print "[DEBUG] Instantiating node " + i + " from Astrogator.".
-        local myNode is bm:toNode.
-        wait 1. // NEEDED for the NODE
-        if not hasnode {
-            print "[DEBUG] Node not automatically added by toNode. Adding it manually...".
-            add myNode.
-        } else {
-            print "[DEBUG] Node was automatically added to the flight plan by toNode.".
+        PRINT "[DEBUG] Instantiating node " + i + " from Astrogator.".
+        LOCAL myNode IS bm:toNode.
+        WAIT 1. // NEEDED for the NODE
+        IF NOT HASNODE {
+            PRINT "[DEBUG] Node not automatically added by toNode. Adding it manually...".
+            ADD myNode.
+        } ELSE {
+            PRINT "[DEBUG] Node was automatically added to the flight plan by toNode.".
         }
-        print "[DEBUG] Node " + i + " prepared. Waiting for hasnode...".
+        PRINT "[DEBUG] Node " + i + " prepared. Waiting for hasnode...".
 
         // Wait up to 5 seconds for the node to appear on the flight plan
-        local waitStart is time:seconds.
-        until hasnode or (time:seconds - waitStart > 5) {
-            wait 0.1.
+        LOCAL waitStart IS TIME:SECONDS.
+        UNTIL HASNODE OR (TIME:SECONDS - waitStart > 5) {
+            WAIT 0.1.
         }
 
-        if not hasnode {
+        IF NOT HASNODE {
             logMsg("WARNING: Node " + i + " did not appear on flight plan after 5s. Skipping.").
-            print "[DEBUG] hasnode timeout for node " + i + ".".
-        } else {
-            print "[DEBUG] hasnode confirmed for node " + i + ".".
+            PRINT "[DEBUG] hasnode timeout for node " + i + ".".
+        } ELSE {
+            PRINT "[DEBUG] hasnode confirmed for node " + i + ".".
             logMsg("Executing node " + i + "...").
-            runpath("0:/MJ/ExeNode.ks").
-            print "[DEBUG] Execution of node " + i + " returned.".
+            RUNPATH("0:/MJ/ExeNode.ks").
+            PRINT "[DEBUG] Execution of node " + i + " returned.".
         }
     }
 }
@@ -654,42 +654,42 @@ if bms:length = 0 {
 // 4. Coast to Minmus
 setStage("Coasting").
 logMsg("Transfer burn complete. Coasting to Minmus SOI.").
-wait until orbit:hasnextpatch and orbit:nextpatch:body:name = "Minmus".
-local timeToSOI is orbit:nextpatch:eta.
-safeCoast(time:seconds + timeToSOI + 10).
+WAIT UNTIL ORBIT:hasnextpatch AND ORBIT:nextpatch:BODY:NAME = "Minmus".
+LOCAL timeToSOI IS ORBIT:nextpatch:ETA.
+safeCoast(TIME:SECONDS + timeToSOI + 10).
 
-wait until ship:body:name = "Minmus".
+WAIT UNTIL SHIP:BODY:NAME = "Minmus".
 logMsg("Entered Minmus SOI!").
 
 // 5. Capture Burn
 setStage("Capture").
 logMsg("Waiting for Minmus periapsis to capture.").
-safeCoast(time:seconds + eta:periapsis - 60).
+safeCoast(TIME:SECONDS + ETA:PERIAPSIS - 60).
 
 logMsg("Calculating capture burn for 20km orbit.").
-local r_peri is ship:periapsis + body:radius.
-local targetPe is 20000.
-local r_apo_tgt is targetPe + body:radius. // 20km
-local a_tgt is (r_peri + r_apo_tgt) / 2.
-local v_tgt is sqrt(body:mu * (2/r_peri - 1/a_tgt)).
-local v_peri_pred is sqrt(body:mu * (2/r_peri - 1/orbit:semimajoraxis)).
-local dV_cap is v_peri_pred - v_tgt.
+LOCAL r_peri IS SHIP:PERIAPSIS + BODY:RADIUS.
+LOCAL targetPe IS 20000.
+LOCAL r_apo_tgt IS targetPe + BODY:RADIUS. // 20km
+LOCAL a_tgt IS (r_peri + r_apo_tgt) / 2.
+LOCAL v_tgt IS sqrt(BODY:MU * (2/r_peri - 1/a_tgt)).
+LOCAL v_peri_pred IS sqrt(BODY:MU * (2/r_peri - 1/ORBIT:semimajoraxis)).
+LOCAL dV_cap IS v_peri_pred - v_tgt.
 
-local nd_cap is node(time:seconds + eta:periapsis, 0, 0, -dV_cap).
-add nd_cap.
-runpath("0:/MJ/ExeNode.ks").
+LOCAL nd_cap IS NODE(TIME:SECONDS + ETA:PERIAPSIS, 0, 0, -dV_cap).
+ADD nd_cap.
+RUNPATH("0:/MJ/ExeNode.ks").
 
 // 6. Polar Inclination Change
 setStage("Inclination Change").
 logMsg("Adjusting to polar orbit (90 deg inclination).").
-runpath("0:/MJ/MJChangeInc.ks", 90).
+RUNPATH("0:/MJ/MJChangeInc.ks", 90).
 
 // 6. Circularize
 setStage("Circularize").
 logMsg("Circularizing at Minmus Apoapsis.").
-runpath("0:/MJ/MJCircToAp.ks").
-runpath("0:/MJ/MJChangeAp.ks", 20).
-runpath("0:/MJ/MJChangePe.ks", 20).
+RUNPATH("0:/MJ/MJCircToAp.ks").
+RUNPATH("0:/MJ/MJChangeAp.ks", 20).
+RUNPATH("0:/MJ/MJChangePe.ks", 20).
 
 setStage("Mission Complete").
 logMsg("Minmus automation mission completed successfully! Orbit is polar 20km.").

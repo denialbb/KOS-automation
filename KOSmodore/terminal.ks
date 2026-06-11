@@ -1,54 +1,54 @@
-@lazyglobal off.
+@LAZYGLOBAL OFF.
 
-run once "/KOSmodore/rover.ks".
-run once "/KOSmodore/keybT9.ks".
-run once "/KOSmodore/keyT9masks.ks".
-run once "/KOSmodore/logbook.ks".
-run once "/KOSmodore/files.ks".
-run once "/KOSmodore/GPS.ks".
-run once "/KOSmodore/test.ks".
-run once "/KOSmodore/hovering.ks".
+RUN once "/KOSmodore/rover.ks".
+RUN once "/KOSmodore/keybT9.ks".
+RUN once "/KOSmodore/keyT9masks.ks".
+RUN once "/KOSmodore/logbook.ks".
+RUN once "/KOSmodore/files.ks".
+RUN once "/KOSmodore/GPS.ks".
+RUN once "/KOSmodore/test.ks".
+RUN once "/KOSmodore/hovering.ks".
 //run once "/KOSmodore/basicflow.ks".
 
-global mybuttons to addons:kpm:buttons.
-global mylabels to addons:kpm:labels.
-global myflags to addons:kpm:flags.
+GLOBAL mybuttons TO ADDONS:kpm:buttons.
+GLOBAL mylabels TO ADDONS:kpm:labels.
+GLOBAL myflags TO ADDONS:kpm:flags.
 
 // silly infos
-function button05Press {
-	clearscreen.	
-	print "GUID: " + id.
-	print "monindex: " + monindex.
+FUNCTION button05Press {
+	CLEARSCREEN.	
+	PRINT "GUID: " + id.
+	PRINT "monindex: " + monindex.
 }
 
-function MSetLabel{
-	parameter nu.
-	parameter stri.
-	parameter monitors.
+FUNCTION MSetLabel{
+	PARAMETER nu.
+	PARAMETER stri.
+	PARAMETER monitors.
 	
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
-		set mylabels:currentmonitor to x.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
+		SET mylabels:currentmonitor TO x.
 		mylabels:setlabel(nu, stri).
 	}
 }
 
-function MSetFlag{
-	parameter nu.
-	parameter boo.
-	parameter monitors.
+FUNCTION MSetFlag{
+	PARAMETER nu.
+	PARAMETER boo.
+	PARAMETER monitors.
 	
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
-		 set myflags:currentmonitor to x. 
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
+		 SET myflags:currentmonitor TO x. 
 	     myflags:setstate(nu,FALSE).
 	}
 }
 	
-function MNOP{
+FUNCTION MNOP{
 }
 
-function InitTerminalMAIN {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTerminalMAIN {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 	    
@@ -85,9 +85,9 @@ function InitTerminalMAIN {
 
 
 // TEST - 8
-function InitTermTEST {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermTEST {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 	    
@@ -104,11 +104,11 @@ function InitTermTEST {
 }
 
 // Destination
-function InitTerminalDestination {
+FUNCTION InitTerminalDestination {
 
-	parameter monitors.
+	PARAMETER monitors.
 	
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -124,7 +124,7 @@ function InitTerminalDestination {
 		
 		
 		mybuttons:setdelegate(0,toggleFlag@:BIND(0)).
-		mybuttons:setdelegate(1,TypeRealNum@:BIND(55,"Type latitude: ",0, true)).
+		mybuttons:setdelegate(1,TypeRealNum@:BIND(55,"Type latitude: ",0, TRUE)).
 		mybuttons:setdelegate(2,GDestination@).
 		mybuttons:setdelegate(7,ClrGPSPOS@).
 		mybuttons:setdelegate(8,Savefilelist@:bind(0)).
@@ -142,9 +142,9 @@ function InitTerminalDestination {
 
 
 // Type RealNum Accept - P55 (latitude) - p56 (lng) - 101 - 102 - 103
-function InitTermTypeRealNum {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermTypeRealNum {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		ClearTerminal(x).
 		
 		SetNumbersOnlyE(x).
@@ -160,9 +160,9 @@ function InitTermTypeRealNum {
 
 
 // Save FIle 0 - P52 dest - p33 track - p83 Data Log - p243 bas
-function InitTermFileSave {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermFileSave {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		SetBasicSymbolsE(x).
@@ -182,9 +182,9 @@ function InitTermFileSave {
 }
 
 // Save File 1 - P53 dest - p34 track - p84 Data Log
-function InitTermFileSave1 {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermFileSave1 {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		SetBasicSymbolsLowerE(x).
@@ -203,9 +203,9 @@ function InitTermFileSave1 {
 }
 
 // Save File 2 - P54 dest - p35 track - p85 Data Log
-function InitTermFileSave2 {
-parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermFileSave2 {
+PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		SetBasicSymbolsNumbersE(x).
@@ -225,10 +225,10 @@ parameter monitors.
 
 
 // TRACKS - page 30
-function InitTerminalGPS {
+FUNCTION InitTerminalGPS {
 
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		mylabels:setlabel(0,"    + Here  ").
@@ -263,9 +263,9 @@ function InitTerminalGPS {
 
 
 // File select and load - P31 - P51 - P71 - P201
-function InitTermFileLoad {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermFileLoad {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		ClearTerminal(x).
 		
 		mylabels:setlabel(0," Make a copy").
@@ -284,10 +284,10 @@ function InitTermFileLoad {
 }
 
 // TRACKS view - page 32
-function InitTerminalViewTrack {
+FUNCTION InitTerminalViewTrack {
 
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -296,10 +296,10 @@ function InitTerminalViewTrack {
 }
 
 // Data Log page 70
-function InitTerminalSampler {
+FUNCTION InitTerminalSampler {
 
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		mylabels:setlabel(0,"   + Sample ").
@@ -328,11 +328,11 @@ function InitTerminalSampler {
 
 
 // view data log - P72
-function InitTerminalViewDataLog {
+FUNCTION InitTerminalViewDataLog {
 
-	parameter monitors.
+	PARAMETER monitors.
 	
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -347,11 +347,11 @@ function InitTerminalViewDataLog {
 }
 
 // ROVER
-function InitTerminalROVER {
+FUNCTION InitTerminalROVER {
 
-	parameter monitors.
+	PARAMETER monitors.
 	
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -373,9 +373,9 @@ function InitTerminalROVER {
 }
 
 // PAGE 40
-function InitTermLogBook {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermLogBook {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
   
@@ -394,9 +394,9 @@ function InitTermLogBook {
 }
 
 // page 74 - the data log will be lost. proceed?
-function InitTermProceedToSource{
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermProceedToSource{
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -411,9 +411,9 @@ function InitTermProceedToSource{
 }
 
 // page 75
-function InitTermShowDataSources{
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermShowDataSources{
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -428,9 +428,9 @@ function InitTermShowDataSources{
 }
 
 // pages 76 
-function InitTermSelectDataSourcesAdd{
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermSelectDataSourcesAdd{
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -442,9 +442,9 @@ function InitTermSelectDataSourcesAdd{
 }
 
 // p 77
-function InitTermSelectDataSourcesSub{
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermSelectDataSourcesSub{
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -456,9 +456,9 @@ function InitTermSelectDataSourcesSub{
 }
 
 // page 100 - Settings
-function InitTermSettings{
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermSettings{
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -466,18 +466,18 @@ function InitTermSettings{
 		mylabels:setlabel(1," Set d. i.").
 		mylabels:setlabel(2," Set t. i.").
 						
-		mybuttons:setdelegate(0,TypeRealNum@:BIND(101,"Type marker thickness: ",0, true)).
-		mybuttons:setdelegate(1,TypeRealNum@:BIND(102,"Type DL interval (s): ",0, true)).
-		mybuttons:setdelegate(2,TypeRealNum@:BIND(103,"Type TRK interval (s): ",0, true)).
+		mybuttons:setdelegate(0,TypeRealNum@:BIND(101,"Type marker thickness: ",0, TRUE)).
+		mybuttons:setdelegate(1,TypeRealNum@:BIND(102,"Type DL interval (s): ",0, TRUE)).
+		mybuttons:setdelegate(2,TypeRealNum@:BIND(103,"Type TRK interval (s): ",0, TRUE)).
 
 		mybuttons:setdelegate(-2,GoPage@:bind(1)).             //CANCEL
 	}
 }
 
 // page 200 - Programs
-function InitTermPrograms{
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermPrograms{
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 		
@@ -503,11 +503,11 @@ function InitTermPrograms{
 
 
 // page 211 - ended program
-function InitTermEndedProgram {
+FUNCTION InitTermEndedProgram {
 
-	parameter monitors.
+	PARAMETER monitors.
 	
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
 				
@@ -517,9 +517,9 @@ function InitTermEndedProgram {
 }
 
 // PAGE 218 view sks prog
-function InitTermViewSKS {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermViewSKS {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
   
@@ -545,14 +545,14 @@ function InitTermViewSKS {
 }
 
 // PAGE 220 view basic prog
-function InitTermViewBas {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermViewBas {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
   
-		if debugbas {mylabels:setlabel(0, "  Debug([#00FF00]on[#FFFFFF]) ").}
-		else {mylabels:setlabel(0, " Debug([#FFA050]off[#FFFFFF]) ").}
+		IF debugbas {mylabels:setlabel(0, "  Debug([#00FF00]on[#FFFFFF]) ").}
+		ELSE {mylabels:setlabel(0, " Debug([#FFA050]off[#FFFFFF]) ").}
 		
 		mylabels:setlabel(1, "    Run   ").
 		mylabels:setlabel(2, " Step run ").
@@ -588,9 +588,9 @@ function InitTermViewBas {
 
 
 // PAGE 230 - executing basic
-function InitTermExeBas {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermExeBas {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
         mylabels:setlabel(4,"   Abort  ").
@@ -603,9 +603,9 @@ function InitTermExeBas {
 }
 
 // PAGE 231 - executing step run basic
-function InitTermstepExeBas {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermstepExeBas {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
         mylabels:setlabel(1," Continue ").
@@ -623,9 +623,9 @@ function InitTermstepExeBas {
 }
 
 // PAGE 237 - 277 edit  prog 0 cursore
-function InitTermEditBas0cu {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermEditBas0cu {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
         
@@ -650,9 +650,9 @@ function InitTermEditBas0cu {
 }
 
 // PAGE 238 - 278 edit prog 1 cursore
-function InitTermEditBas1cu {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermEditBas1cu {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
         
@@ -677,9 +677,9 @@ function InitTermEditBas1cu {
 }
 
 // PAGE 239 - 279 edit prog 2 cursore
-function InitTermEditBas2cu{
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermEditBas2cu{
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
         
@@ -713,9 +713,9 @@ function InitTermEditBas2cu{
 
 
 // PAGE 240 edit basic prog 3 cursore
-function InitTermEditBas3cu {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermEditBas3cu {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
        
@@ -753,9 +753,9 @@ function InitTermEditBas3cu {
 }
 
 // PAGE 280 edit ks prog 3 cursore
-function InitTermEditKS3cu {
-	parameter monitors.
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION InitTermEditKS3cu {
+	PARAMETER monitors.
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		
 		ClearTerminal(x).
        

@@ -1,13 +1,13 @@
-@lazyglobal off.
+@LAZYGLOBAL OFF.
 
 //svuota tutti i bottoni, etichette, funzioni delegate ecc.
-function ClearTerminal {
+FUNCTION ClearTerminal {
 	    
-		parameter x.
+		PARAMETER x.
 
-		set mybuttons:currentmonitor to x. 
-		set mylabels:currentmonitor to x.
-		set myflags:currentmonitor to x.   
+		SET mybuttons:currentmonitor TO x. 
+		SET mylabels:currentmonitor TO x.
+		SET myflags:currentmonitor TO x.   
     
 		mylabels:setlabel(0,"            ").
 		mylabels:setlabel(1,"          ").
@@ -49,13 +49,13 @@ function ClearTerminal {
 
 
 
-function SetBasicSymbolsE {
-	parameter x.//monitors.
+FUNCTION SetBasicSymbolsE {
+	PARAMETER x.//monitors.
 	//FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
   
-		set mybuttons:currentmonitor to x. 
-		set mylabels:currentmonitor to x.
-		set myflags:currentmonitor to x.   
+		SET mybuttons:currentmonitor TO x. 
+		SET mylabels:currentmonitor TO x.
+		SET myflags:currentmonitor TO x.   
   
 		mylabels:setlabel(0,"     A B C  ").
 		mylabels:setlabel(1,"   D E F  ").
@@ -88,13 +88,13 @@ function SetBasicSymbolsE {
 
 
 
-function SetBasicSymbolsLowerE {
-	parameter x.//monitors.
+FUNCTION SetBasicSymbolsLowerE {
+	PARAMETER x.//monitors.
 	//FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
   
-		set mybuttons:currentmonitor to x. 
-		set mylabels:currentmonitor to x.
-		set myflags:currentmonitor to x.   
+		SET mybuttons:currentmonitor TO x. 
+		SET mylabels:currentmonitor TO x.
+		SET myflags:currentmonitor TO x.   
   
 		mylabels:setlabel(0,"     a b c  ").
 		mylabels:setlabel(1,"   d e f  ").
@@ -124,13 +124,13 @@ function SetBasicSymbolsLowerE {
 
 
 
-function SetBasicSymbolsNumbersE {
-	parameter x.//monitors.
+FUNCTION SetBasicSymbolsNumbersE {
+	PARAMETER x.//monitors.
 	//FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
   
-		set mybuttons:currentmonitor to x. 
-		set mylabels:currentmonitor to x.
-		set myflags:currentmonitor to x.   
+		SET mybuttons:currentmonitor TO x. 
+		SET mylabels:currentmonitor TO x.
+		SET myflags:currentmonitor TO x.   
 		
 		mylabels:setlabel(0,"     1 2 3  ").
 		mylabels:setlabel(1,"   4 5 6  ").
@@ -150,13 +150,13 @@ function SetBasicSymbolsNumbersE {
 
 
 
-function SetNumbersOnlyE {
-	parameter x.//monitors.
+FUNCTION SetNumbersOnlyE {
+	PARAMETER x.//monitors.
 	//FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
   
-		set mybuttons:currentmonitor to x. 
-		set mylabels:currentmonitor to x.
-		set myflags:currentmonitor to x.   
+		SET mybuttons:currentmonitor TO x. 
+		SET mylabels:currentmonitor TO x.
+		SET myflags:currentmonitor TO x.   
 		
 		mylabels:setlabel(0,"       1    ").
 		mylabels:setlabel(1,"     2    ").

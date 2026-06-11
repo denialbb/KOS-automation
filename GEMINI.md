@@ -14,6 +14,9 @@
 ## Notes and Decision Tracking
 - **Markdown Notes:** Keep adding and editing `.md` notes in `antigravity_notes/` when making decisions and additions to keep track of work, reasoning, and planning.
 
+## Coding Style
+- **Capitalized Keywords:** Use ALL CAPS for all KerboScript keywords and built-in functions (e.g., `IF`, `LOCAL`, `PRINT`, `WAIT`, `SET`, `FUNCTION`) across the entire codebase to maintain a consistent style aligned with the `MJ` integration scripts.
+
 # Knowledge Base
 
 ## 3D Attitude Coordinate Projections

@@ -1,7 +1,7 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
-run once "/KOSmodore/interface.ks".
-run once "/KOSmodore/main.ks".
+RUN once "/KOSmodore/interface.ks".
+RUN once "/KOSmodore/main.ks".
 
 
 // 0   time
@@ -16,18 +16,18 @@ run once "/KOSmodore/main.ks".
 
 // 101 latitude
 // 102 longitude
-global DataSources TO LIST().
-global DataSourcesAdded TO LIST().
+GLOBAL DataSources TO LIST().
+GLOBAL DataSourcesAdded TO LIST().
 //set mylexicon to lexicon().
-//set mylexicon["key1"] to "value1".
-//set mylexicon["key2"] to "value2".
+//set mylexicon["key1"] TO "value1".
+//set mylexicon["key2"] TO "value2".
 
-function InitSensLog {	
-		SensLog:add(LIST()).
-	    SensLog[SensLog:LENGTH-1]:add(0). //Time
+FUNCTION InitSensLog {	
+		SensLog:ADD(LIST()).
+	    SensLog[SensLog:LENGTH-1]:ADD(0). //Time
 		
-		for s in DataSourcesAdded {
-			SensLog[SensLog:LENGTH-1]:add(s).
+		FOR s IN DataSourcesAdded {
+			SensLog[SensLog:LENGTH-1]:ADD(s).
 		}
 		//SensLog[SensLog:LENGTH-1]:add(1). //Light exposition of the solar panels 
 		//FOR S IN SENSELIST {
@@ -41,126 +41,126 @@ function InitSensLog {
 }
 
 
-function riempisourcelist {
+FUNCTION riempisourcelist {
 	//DataSources:add(0).
-	DataSources:add(1). // Light exposition of the solar panels 
-	DataSources:add(4). // Vessel mass
-	DataSources:add(10). // dynamic pressure (Q)
-	DataSources:add(20). // Air speed
-	DataSources:add(21). // vertical speed
-	DataSources:add(22). // ground speed
-	DataSources:add(101).
-	DataSources:add(102).
+	DataSources:ADD(1). // Light exposition of the solar panels 
+	DataSources:ADD(4). // Vessel mass
+	DataSources:ADD(10). // dynamic pressure (Q)
+	DataSources:ADD(20). // Air speed
+	DataSources:ADD(21). // vertical speed
+	DataSources:ADD(22). // ground speed
+	DataSources:ADD(101).
+	DataSources:ADD(102).
 	
 	FOR S IN SENSELIST {
 		
-			if S:TYPE = "TEMP" {
-				DataSources:add(2).
+			IF S:TYPE = "TEMP" {
+				DataSources:ADD(2).
 			}
 	
-			if S:TYPE = "PRES" {
-				DataSources:add(3).
+			IF S:TYPE = "PRES" {
+				DataSources:ADD(3).
 			}		
 		}
 }
 
 // converte un codice nel nome del data source
-Function DSname {
-	parameter nu.
-	local str to "".
-	if nu = -1 { set str to "(no datasources)".}
-	if nu = 0 { set str to "Time".}
-	if nu = 1 { set str to "Light exposition".}	
-	if nu = 2 { set str to "Temperature".}	
-	if nu = 3 { set str to "Pressure".}
-	if nu = 4 { set str to "Vessel mass".}	
-	if nu = 10 { set str to "Dynamic pressure (Q)".}
-	if nu = 20 { set str to "Air speed".}		
-	if nu = 21 { set str to "Vertical speed".}	
-	if nu = 22 { set str to "Ground Speed".}	
-	if nu = 101 { set str to "Latitude".}	
-	if nu = 102 { set str to "Longitude".}	
-	return str.
+FUNCTION DSname {
+	PARAMETER nu.
+	LOCAL str TO "".
+	IF nu = -1 { SET str TO "(no datasources)".}
+	IF nu = 0 { SET str TO "Time".}
+	IF nu = 1 { SET str TO "Light exposition".}	
+	IF nu = 2 { SET str TO "Temperature".}	
+	IF nu = 3 { SET str TO "Pressure".}
+	IF nu = 4 { SET str TO "Vessel mass".}	
+	IF nu = 10 { SET str TO "Dynamic pressure (Q)".}
+	IF nu = 20 { SET str TO "Air speed".}		
+	IF nu = 21 { SET str TO "Vertical speed".}	
+	IF nu = 22 { SET str TO "Ground Speed".}	
+	IF nu = 101 { SET str TO "Latitude".}	
+	IF nu = 102 { SET str TO "Longitude".}	
+	RETURN str.
 }
 
 // converte una lista di codici in una lista di nomi dei data source
-Function DSnames {	     
-	parameter li.        // list input
-	local lo to list().  // list output
-	FOR ds in li {
-		lo:add(DSname(ds)).
+FUNCTION DSnames {	     
+	PARAMETER li.        // list input
+	LOCAL lo TO LIST().  // list output
+	FOR ds IN li {
+		lo:ADD(DSname(ds)).
 	}
-	return lo.
+	RETURN lo.
 }
 
-function ShowAddedDSources {   
-	parameter co.
+FUNCTION ShowAddedDSources {   
+	PARAMETER co.
 	//local co to 0.
-	if DataSourcesAdded:length = 0 {
-		print "No sources selected." at(0,co).
-	} else {
-		FOR ds in DataSourcesAdded {
-			//print DSname(ds) + " (" + ds + ")" at(0,co).
-			print "-" + DSname(ds) at(0,co).
-			set co to co + 1.
+	IF DataSourcesAdded:length = 0 {
+		PRINT "No sources selected." AT(0,co).
+	} ELSE {
+		FOR ds IN DataSourcesAdded {
+			//print DSname(ds) + " (" + ds + ")" AT(0,co).
+			PRINT "-" + DSname(ds) AT(0,co).
+			SET co TO co + 1.
 		}
 	}
 }
 
 //Aggiunge ad una lista di interi un elemento solo se non presente
-function AddIfNoItem {
-	parameter li, item.
+FUNCTION AddIfNoItem {
+	PARAMETER li, item.
 	//local lo.
-	if li:find(item) = -1 {
-		li:add(item).
+	IF li:find(item) = -1 {
+		li:ADD(item).
 	}
-	return li.
+	RETURN li.
 }
 
 //toglie da una lista di interi un elemento
-function SubItem {
-	parameter li, item.
+FUNCTION SubItem {
+	PARAMETER li, item.
 	//local lo.
 	//if not (li:find(item) = -1) {
-		li:remove(li:find(item)).
+		li:REMOVE(li:find(item)).
 	//}
-	return li.
+	RETURN li.
 }
 
-function ViewDataLogSource {
-	parameter Source.
-	local x to 0.
-	local y to 0.
+FUNCTION ViewDataLogSource {
+	PARAMETER Source.
+	LOCAL x TO 0.
+	LOCAL y TO 0.
 	
-	if Source = -1 {
+	IF Source = -1 {
 		SPageTile(72,"Time         " + DSname(-1)).
-	} else {
+	} ELSE {
 		SPageTile(72,"Time         " + DSname(SensLog[0][Source])).
 	}
 	
 	FOR S IN SensLog {
-		if y>0 {
+		IF y>0 {
 			FOR SS IN S {
-				if x = 0 {
-					print round(SS,1) at (0,Y).
+				IF x = 0 {
+					PRINT ROUND(SS,1) AT (0,Y).
 				} 
-				if x = Source {
-					print round(SS,6) at (13,Y).
+				IF x = Source {
+					PRINT ROUND(SS,6) AT (13,Y).
 				}
-				set x to x+1.
+				SET x TO x+1.
 			}		
 		}
-		set y to y+1.
-		set x to 0.
+		SET y TO y+1.
+		SET x TO 0.
 	}
 }
 
-function PrevColumnSource {
+FUNCTION PrevColumnSource {
 	PrevColumn().
 	ViewDataLogSource(selcolumn).
 }
 	
-function NextColumnSource {
+FUNCTION NextColumnSource {
 	NextColumn().
 	ViewDataLogSource(selcolumn).
 }

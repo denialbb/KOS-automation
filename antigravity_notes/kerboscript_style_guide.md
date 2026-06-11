@@ -4,10 +4,7 @@ Based on an analysis of the existing `.ks` files in this project (e.g., `KOSmodo
 
 ## 1. General Formatting and Syntax
 *   **Statement Termination:** All statements MUST end with a period (`.`). This is a strict requirement of the language.
-*   **Case Sensitivity:** While KerboScript is intrinsically case-insensitive, the project exhibits a mix of styles.
-    *   **Modern/Complex Scripts (e.g., `main.ks`, `KOSHUD.ks`):** Prefer lowercase for keywords (`if`, `for`, `set`, `global`, `local`, `function`).
-    *   **Simple/Legacy Scripts (e.g., `probe.ks`):** Sometimes use ALL CAPS for keywords (`PRINT`, `WAIT`, `SET`).
-    *   **Recommendation:** Stick to lowercase for language keywords and built-in functions to maintain readability in more complex logic.
+*   **Case Sensitivity:** While KerboScript is intrinsically case-insensitive, this project strictly uses ALL CAPS for language keywords and built-in functions (e.g., `IF`, `FOR`, `SET`, `GLOBAL`, `LOCAL`, `FUNCTION`, `PRINT`, `WAIT`) to align with the style used in the `MJ` directory.
 *   **Indentation:** Use tabs or spaces consistently to denote code blocks. The codebase predominantly uses tabs or 2/4 spaces depending on the author. When editing an existing file, strictly follow its current indentation style.
 
 ## 2. Variables and Scope

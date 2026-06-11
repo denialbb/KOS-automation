@@ -15,14 +15,14 @@ SET failedTests TO LIST().
 
 // Simple Assert
 DECLARE FUNCTION ASSERT_EQ {
-    parameter name, expected, actual.
+    PARAMETER NAME, expected, actual.
 
     SET totalTests TO totalTests + 1.
 
     IF expected = actual {
         SET passedTests TO passedTests + 1.
     } ELSE {
-        LOCAL msg IS name + " expected: " + expected + ", actual: " + actual.
+        LOCAL msg IS NAME + " expected: " + expected + ", actual: " + actual.
         failedTests:ADD(msg).
         PRINT "FAILED: " + msg.
     }
@@ -262,7 +262,7 @@ PRINT "-------------------------------".
 // -----------------------------------------------------------------------------
 PRINT "TEST: ASCENTTYPE / ASCTYPE (read-only)".
 
-// currently AscentType == 0 => "CLASSIC" or "NOT SUPPORTED"
+// currently AscentType == 0 => "CLASSIC" OR "NOT SUPPORTED"
  ASSERT_EQ("ASCENTTYPE equals alias ASCTYPE", asc:ASCENTTYPE, asc:ASCTYPE).
 
 // just verify that the current string is not empty

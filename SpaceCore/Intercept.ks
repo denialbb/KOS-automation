@@ -1,107 +1,107 @@
 //WORKS ONLY FOR PROGRADE ORBITS
 
-declare parameter TargetPeriapsisKm is 200.
+DECLARE PARAMETER TargetPeriapsisKm IS 200.
 
-set running to true.
-set WarpStopTime to 30. //custom value
+SET running TO TRUE.
+SET WarpStopTime TO 30. //custom value
 
-set TPeriapsis to TargetPeriapsisKm*1000.
+SET TPeriapsis TO TargetPeriapsisKm*1000.
 
-clearscreen.
+CLEARSCREEN.
 
-print "Running: uIntercept" at (0,7).
+PRINT "Running: uIntercept" AT (0,7).
 
-print "Set target to proceed" at (0,0).
-wait until hastarget.
+PRINT "Set target to proceed" AT (0,0).
+WAIT UNTIL hastarget.
 
-until abs(target:orbit:inclination-ship:orbit:inclination) < 0.11 {
-    print "Reduce relative inclination to 0.1 degrees or less to proceed" at (0,0).
-    print "Current relative inclination: " + round(abs(target:orbit:inclination-ship:orbit:inclination),2) + " degrees       " at (0,3).
+UNTIL abs(TARGET:ORBIT:inclination-SHIP:ORBIT:inclination) < 0.11 {
+    PRINT "Reduce relative inclination to 0.1 degrees or less to proceed" AT (0,0).
+    PRINT "Current relative inclination: " + ROUND(abs(TARGET:ORBIT:inclination-SHIP:ORBIT:inclination),2) + " degrees       " AT (0,3).
 }
-wait 2.
-until abs(target:orbit:inclination-ship:orbit:inclination) < 0.11 {
-    print "Reduce relative inclination to 0.1 degrees or less to proceed" at (0,0).
-    print "Current relative inclination: " + round(abs(target:orbit:inclination-ship:orbit:inclination),2) + " degrees       " at (0,3).
+WAIT 2.
+UNTIL abs(TARGET:ORBIT:inclination-SHIP:ORBIT:inclination) < 0.11 {
+    PRINT "Reduce relative inclination to 0.1 degrees or less to proceed" AT (0,0).
+    PRINT "Current relative inclination: " + ROUND(abs(TARGET:ORBIT:inclination-SHIP:ORBIT:inclination),2) + " degrees       " AT (0,3).
 }
-clearscreen.
+CLEARSCREEN.
 
-rcs on.
-sas off.
-set throttle to 0.
+RCS ON.
+SAS OFF.
+SET THROTTLE TO 0.
 
-if orbit:eccentricity > 0.05 {
-    runpath("0:/SpaceCore/CircToPe").
+IF ORBIT:eccentricity > 0.05 {
+    RUNPATH("0:/SpaceCore/CircToPe").
 }
 
-print "Running: uIntercept" at (0,7).
+PRINT "Running: uIntercept" AT (0,7).
 
 //staging
-set InitialStageThrust to maxthrust.
-when true then {
-	if not running {
+SET InitialStageThrust TO MAXTHRUST.
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else if maxthrust < InitialStageThrust {
-	wait 1.
-	stage.
-		if maxthrust > 0 {
-		set InitialStageThrust to maxthrust.
+	} ELSE IF MAXTHRUST < InitialStageThrust {
+	WAIT 1.
+	STAGE.
+		IF MAXTHRUST > 0 {
+		SET InitialStageThrust TO MAXTHRUST.
 	}
-	preserve.
-	} else {
-		preserve.
+	PRESERVE.
+	} ELSE {
+		PRESERVE.
 	}
 }
 
 
-set TransferSMA to (max(apoapsis,target:apoapsis)+min(periapsis,target:periapsis))/2+body:radius.
-set TransferTime to sqrt(4*constant:pi^2*TransferSMA^3/constant:g/body:mass)/2.
+SET TransferSMA TO (MAX(APOAPSIS,TARGET:APOAPSIS)+MIN(PERIAPSIS,TARGET:PERIAPSIS))/2+BODY:RADIUS.
+SET TransferTime TO sqrt(4*CONSTANT:pi^2*TransferSMA^3/CONSTANT:g/BODY:MASS)/2.
 
-set ReqPhaseAngle to 180-360/target:orbit:period*TransferTime.
-lock ShipAngle to obt:lan+obt:argumentofperiapsis+obt:trueanomaly.
-lock TargetAngle to target:obt:lan+target:obt:argumentofperiapsis+target:obt:trueanomaly.
-lock PhaseAngle to TargetAngle-ShipAngle-360*floor((TargetAngle-ShipAngle)/360).
-set PhaseAngleRate to 360/target:orbit:period-360/orbit:period.
+SET ReqPhaseAngle TO 180-360/TARGET:ORBIT:period*TransferTime.
+LOCK ShipAngle TO obt:lan+obt:argumentofperiapsis+obt:trueanomaly.
+LOCK TargetAngle TO TARGET:obt:lan+TARGET:obt:argumentofperiapsis+TARGET:obt:trueanomaly.
+LOCK PhaseAngle TO TargetAngle-ShipAngle-360*FLOOR((TargetAngle-ShipAngle)/360).
+SET PhaseAngleRate TO 360/TARGET:ORBIT:period-360/ORBIT:period.
 
-if orbit:semimajoraxis<target:orbit:semimajoraxis {
-    lock Dir to prograde.
-    lock dAngle to PhaseAngle-ReqPhaseAngle-360*floor((PhaseAngle-ReqPhaseAngle)/360).
+IF ORBIT:semimajoraxis<TARGET:ORBIT:semimajoraxis {
+    LOCK Dir TO PROGRADE.
+    LOCK dAngle TO PhaseAngle-ReqPhaseAngle-360*FLOOR((PhaseAngle-ReqPhaseAngle)/360).
 }
 
-else {
-    lock Dir to retrograde.
-    lock dAngle to ReqPhaseAngle-PhaseAngle-360*floor((ReqPhaseAngle-PhaseAngle)/360).
+ELSE {
+    LOCK Dir TO RETROGRADE.
+    LOCK dAngle TO ReqPhaseAngle-PhaseAngle-360*FLOOR((ReqPhaseAngle-PhaseAngle)/360).
 }
 
-lock TimeToRPA to abs(dAngle/PhaseAngleRate).
+LOCK TimeToRPA TO abs(dAngle/PhaseAngleRate).
 
-set V to sqrt(body:mu/orbit:semimajoraxis).
-set TV to sqrt(2*body:mu*((1/(body:radius+periapsis))-(1/TransferSMA/2))).
-set dV to abs(TV-V).
-set BurnTime to (dV*mass)/availablethrust.
+SET V TO sqrt(BODY:MU/ORBIT:semimajoraxis).
+SET TV TO sqrt(2*BODY:MU*((1/(BODY:RADIUS+PERIAPSIS))-(1/TransferSMA/2))).
+SET dV TO abs(TV-V).
+SET BurnTime TO (dV*MASS)/AVAILABLETHRUST.
 
 
-wait 1.
-lock steering to Dir.
-set warpmode to "rails".
-print "Warping to transfer burn point" at (0,0).
-set BurnMoment to time:seconds + TimeToRPA.
-warpto(BurnMoment-BurnTime/2-WarpStopTime).
+WAIT 1.
+LOCK STEERING TO Dir.
+SET WARPMODE TO "rails".
+PRINT "Warping to transfer burn point" AT (0,0).
+SET BurnMoment TO TIME:SECONDS + TimeToRPA.
+WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-wait until vang(ship:facing:forevector,steering:forevector) <  5 and time:seconds > BurnMoment-BurnTime/2.
-	set throttle to 1.
-    print "Burn started                  " at (0,0).
+WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING:FOREVECTOR) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+	SET THROTTLE TO 1.
+    PRINT "Burn started                  " AT (0,0).
 
-wait until ship:patches:tostring:contains("ORBIT of "+target:name).
-    set throttle to 0.1.
+WAIT UNTIL SHIP:patches:tostring:contains("ORBIT of "+TARGET:NAME).
+    SET THROTTLE TO 0.1.
 
-wait until orbit:nextpatch:periapsis < TPeriapsis or orbit:nextpatch:inclination > 90.
-   	set throttle to 0.
-    print "Burn completed" at (0,0).
+WAIT UNTIL ORBIT:nextpatch:PERIAPSIS < TPeriapsis OR ORBIT:nextpatch:inclination > 90.
+   	SET THROTTLE TO 0.
+    PRINT "Burn completed" AT (0,0).
 
-    rcs off.
-    sas on.
-	unlock steering.
-	lock throttle to 0. unlock throttle.
-	set running to false.
-	clearscreen.
-    set ship:control:pilotmainthrottle to 0.
+    RCS OFF.
+    SAS ON.
+	UNLOCK STEERING.
+	LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+	SET running TO FALSE.
+	CLEARSCREEN.
+    SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.

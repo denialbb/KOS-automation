@@ -7,13 +7,13 @@ IF NOT ADDONS:AVAILABLE("MJ") OR NOT ADDONS:MJ:HASSUFFIX("PLANNER") OR NOT ADDON
 } ELSE {
     PRINT "[MJ] Planning change of Apoapsis to " + targetAp + "km".
     LOCAL targetApM IS targetAp * 1000.
-    LOCAL planner IS ADDONS:MJ:PLANNER.
+    LOCAL PLANNER IS ADDONS:MJ:PLANNER.
     LOCAL success IS FALSE.
     
-    IF planner:HASSUFFIX("CHANGEAP") {
-        SET success TO planner:CHANGEAP(targetApM, "PERIAPSIS").
-    } ELSE IF planner:HASSUFFIX("CHANGEAPOAPSIS") {
-        planner:CHANGEAPOAPSIS(targetApM).
+    IF PLANNER:HASSUFFIX("CHANGEAP") {
+        SET success TO PLANNER:CHANGEAP(targetApM, "PERIAPSIS").
+    } ELSE IF PLANNER:HASSUFFIX("CHANGEAPOAPSIS") {
+        PLANNER:CHANGEAPOAPSIS(targetApM).
         SET success TO TRUE.
     }
     

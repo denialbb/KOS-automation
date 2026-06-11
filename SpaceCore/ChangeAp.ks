@@ -1,108 +1,108 @@
-@lazyGlobal on.
-declare parameter TargetApKm.
-set running to true.
+@LAZYGLOBAL ON.
+DECLARE PARAMETER TargetApKm.
+SET running TO TRUE.
 
-set WarpStopTime to 30. //custom value 
+SET WarpStopTime TO 30. //custom value 
 
-set TargetAp to TargetApKm*1000.
+SET TargetAp TO TargetApKm*1000.
 
-clearscreen.
+CLEARSCREEN.
 
 //display info
-when true then {
-	if not running {
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else {
-	print "Apoapsis: "+round(apoapsis)+" m       " at (0,2).
-	print "Target apoapsis: "+round(TargetAp)+" m       " at (0,3).
-	print "Time to periapsis: "+round(eta:periapsis)+"s       " at (0,4).
-	print "Running: uChangeAp" at (0,6).
-    preserve.
+	} ELSE {
+	PRINT "Apoapsis: "+ROUND(APOAPSIS)+" m       " AT (0,2).
+	PRINT "Target apoapsis: "+ROUND(TargetAp)+" m       " AT (0,3).
+	PRINT "Time to periapsis: "+ROUND(ETA:PERIAPSIS)+"s       " AT (0,4).
+	PRINT "Running: uChangeAp" AT (0,6).
+    PRESERVE.
 	}
 }
 
 
-rcs on.
-sas off.
+RCS ON.
+SAS OFF.
 
 //staging
-set InitialStageThrust to maxthrust.
-when true then {
-	if not running {
+SET InitialStageThrust TO MAXTHRUST.
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else if maxthrust < InitialStageThrust {
-	wait 1.
-	stage.
-		if maxthrust > 0 {
-		set InitialStageThrust to maxthrust.
+	} ELSE IF MAXTHRUST < InitialStageThrust {
+	WAIT 1.
+	STAGE.
+		IF MAXTHRUST > 0 {
+		SET InitialStageThrust TO MAXTHRUST.
 	}
-	preserve.
-	} else {
-		preserve.
+	PRESERVE.
+	} ELSE {
+		PRESERVE.
 	}
 }
 
 
-if TargetAp = apoapsis {
-    set running to false.
+IF TargetAp = APOAPSIS {
+    SET running TO FALSE.
 }
 
-if TargetAp < apoapsis and running = true{
-	set PeV to (2*body:mu*((1/(body:radius+periapsis))-(1/orbit:semimajoraxis/2)))^0.5.
-	set TPeV to (2*body:mu*((1/(body:radius+periapsis))-(1/(TargetAp+periapsis+body:radius*2))))^0.5.
-	set BurnDeltaV to PeV-TPeV.
-	set BurnTime to (BurnDeltaV*mass)/availablethrust.
+IF TargetAp < APOAPSIS AND running = TRUE{
+	SET PeV TO (2*BODY:MU*((1/(BODY:RADIUS+PERIAPSIS))-(1/ORBIT:semimajoraxis/2)))^0.5.
+	SET TPeV TO (2*BODY:MU*((1/(BODY:RADIUS+PERIAPSIS))-(1/(TargetAp+PERIAPSIS+BODY:RADIUS*2))))^0.5.
+	SET BurnDeltaV TO PeV-TPeV.
+	SET BurnTime TO (BurnDeltaV*MASS)/AVAILABLETHRUST.
 
-	wait 1.
-    lock steering to retrograde.
-	set warpmode to "rails".
-	print "Warping to periapsis" at (0,0).
-	set BurnMoment to time:seconds + eta:periapsis.
-	warpto(BurnMoment-BurnTime/2-WarpStopTime).
+	WAIT 1.
+    LOCK STEERING TO RETROGRADE.
+	SET WARPMODE TO "rails".
+	PRINT "Warping to periapsis" AT (0,0).
+	SET BurnMoment TO TIME:SECONDS + ETA:PERIAPSIS.
+	WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-	wait until vang(ship:facing:forevector,steering:forevector) <  5 and time:seconds > BurnMoment-BurnTime/2.
-		lock throttle to 1.
-		print "Burn started        " at (0,0).
+	WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING:FOREVECTOR) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+		LOCK THROTTLE TO 1.
+		PRINT "Burn started        " AT (0,0).
 
-	wait until ship:velocity:orbit:mag < TPeV.
-		lock throttle to 0.
-		print "Burn completed" at (0,0).
+	WAIT UNTIL SHIP:VELOCITY:ORBIT:MAG < TPeV.
+		LOCK THROTTLE TO 0.
+		PRINT "Burn completed" AT (0,0).
 
-	set running to false.
-	unlock steering.
-	lock throttle to 0. unlock throttle.
-	clearscreen.
+	SET running TO FALSE.
+	UNLOCK STEERING.
+	LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+	CLEARSCREEN.
 }
 
-if TargetAp > apoapsis and running = true{
-	set PeV to (2*body:mu*((1/(body:radius+periapsis))-(1/orbit:semimajoraxis/2)))^0.5.
-	set TPeV to (2*body:mu*((1/(body:radius+periapsis))-(1/(TargetAp+periapsis+body:radius*2))))^0.5.
-	set BurnDeltaV to TPeV-PeV.
-	set BurnTime to (BurnDeltaV*mass)/availablethrust.
+IF TargetAp > APOAPSIS AND running = TRUE{
+	SET PeV TO (2*BODY:MU*((1/(BODY:RADIUS+PERIAPSIS))-(1/ORBIT:semimajoraxis/2)))^0.5.
+	SET TPeV TO (2*BODY:MU*((1/(BODY:RADIUS+PERIAPSIS))-(1/(TargetAp+PERIAPSIS+BODY:RADIUS*2))))^0.5.
+	SET BurnDeltaV TO TPeV-PeV.
+	SET BurnTime TO (BurnDeltaV*MASS)/AVAILABLETHRUST.
 		
-	wait 1.
-    lock steering to prograde.
-	set warpmode to "rails".
-	print "Warping to periapsis" at (0,0).
-	set BurnMoment to time:seconds + eta:periapsis.
-	warpto(BurnMoment-BurnTime/2-WarpStopTime).
+	WAIT 1.
+    LOCK STEERING TO PROGRADE.
+	SET WARPMODE TO "rails".
+	PRINT "Warping to periapsis" AT (0,0).
+	SET BurnMoment TO TIME:SECONDS + ETA:PERIAPSIS.
+	WARPTO(BurnMoment-BurnTime/2-WarpStopTime).
 
-	wait until vang(ship:facing:forevector,steering:forevector) <  5 and time:seconds > BurnMoment-BurnTime/2.
-		lock throttle to 1.
-		print "Burn started        " at (0,0).
+	WAIT UNTIL VANG(SHIP:FACING:FOREVECTOR,STEERING:FOREVECTOR) <  5 AND TIME:SECONDS > BurnMoment-BurnTime/2.
+		LOCK THROTTLE TO 1.
+		PRINT "Burn started        " AT (0,0).
 
-	wait until ship:velocity:orbit:mag > TPeV.
-		lock throttle to 0.
-		print "Burn completed" at (0,0).
+	WAIT UNTIL SHIP:VELOCITY:ORBIT:MAG > TPeV.
+		LOCK THROTTLE TO 0.
+		PRINT "Burn completed" AT (0,0).
 
-	set running to false.
-	unlock steering.
-	lock throttle to 0. unlock throttle.
-	clearscreen.
+	SET running TO FALSE.
+	UNLOCK STEERING.
+	LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+	CLEARSCREEN.
 }
 
-rcs off.
-sas on.
-set running to false.
-set ship:control:pilotmainthrottle to 0.
-clearscreen.
+RCS OFF.
+SAS ON.
+SET running TO FALSE.
+SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+CLEARSCREEN.

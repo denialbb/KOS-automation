@@ -1,3 +1,3 @@
-@lazyglobal off.
+@LAZYGLOBAL OFF.
 
-function hovertest{	RUNPATH("/KOSmodore/kerboscript/h2.ks").}
+FUNCTION hovertest{	RUNPATH("/KOSmodore/kerboscript/h2.ks").}

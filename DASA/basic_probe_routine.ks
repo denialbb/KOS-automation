@@ -1,4 +1,4 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
 // ------------------------------------------------------------------------
 // Basic Probe Survival Routine
@@ -7,72 +7,72 @@
 // runs and transmits science experiments.
 // ------------------------------------------------------------------------
 
-print "--- BASIC PROBE SURVIVAL ROUTINE INITIATED ---".
+PRINT "--- BASIC PROBE SURVIVAL ROUTINE INITIATED ---".
 
-local warningPlayed is false.
-local lastScienceTime is 0.
-local SCIENCE_POLL_INTERVAL is 60.
+LOCAL warningPlayed IS FALSE.
+LOCAL lastScienceTime IS 0.
+LOCAL SCIENCE_POLL_INTERVAL IS 60.
 
-sas off.
-rcs off.
-lock steering to sun:position.
+SAS OFF.
+RCS OFF.
+LOCK STEERING TO sun:position.
 
-until false {
+UNTIL FALSE {
     // 1. Resource Monitoring
-    local ec is ship:electriccharge.
-    local ecMax is 1.
-    for r in ship:resources {
-        if r:name = "ElectricCharge" {
-            set ecMax to max(0.1, r:capacity).
+    LOCAL ec IS SHIP:ELECTRICCHARGE.
+    LOCAL ecMax IS 1.
+    FOR r IN SHIP:RESOURCES {
+        IF r:NAME = "ElectricCharge" {
+            SET ecMax TO MAX(0.1, r:CAPACITY).
         }
     }
     
-    local ecPct is ec / ecMax.
+    LOCAL ecPct IS ec / ecMax.
     
-    if ecPct < 0.2 {
-        if not warningPlayed {
-            print "WARNING: Low ElectricCharge (" + round(ecPct*100) + "%). Sounding alarm!".
+    IF ecPct < 0.2 {
+        IF NOT warningPlayed {
+            PRINT "WARNING: Low ElectricCharge (" + ROUND(ecPct*100) + "%). Sounding alarm!".
             // Play a 3-beep warning tone
-            local v is getvoice(0).
+            LOCAL v IS getvoice(0).
             v:play(note("A4", 0.2, 0.3)).
-            wait 0.3.
+            WAIT 0.3.
             v:play(note("A4", 0.2, 0.3)).
-            wait 0.3.
+            WAIT 0.3.
             v:play(note("A4", 0.2, 0.3)).
-            set warningPlayed to true.
+            SET warningPlayed TO TRUE.
         }
-    } else if ecPct > 0.5 {
-        set warningPlayed to false.
+    } ELSE IF ecPct > 0.5 {
+        SET warningPlayed TO FALSE.
     }
     
     // 2. Science Experiments & Transmission
-    if time:seconds > lastScienceTime + SCIENCE_POLL_INTERVAL {
-        set lastScienceTime to time:seconds.
+    IF TIME:SECONDS > lastScienceTime + SCIENCE_POLL_INTERVAL {
+        SET lastScienceTime TO TIME:SECONDS.
         
-        for p in ship:parts {
-            for mName in p:modules {
-                local mNameLower is mName:tolower.
-                if mNameLower:contains("science") or mNameLower:contains("experiment") or mNameLower:contains("sensor") {
-                    local pMod is p:getmodule(mName).
+        FOR p IN SHIP:parts {
+            FOR mName IN p:modules {
+                LOCAL mNameLower IS mName:tolower.
+                IF mNameLower:contains("science") OR mNameLower:contains("experiment") OR mNameLower:contains("sensor") {
+                    LOCAL pMod IS p:getmodule(mName).
                     
                     // Deploy if possible
-                    if pMod:hasfield("deploy") or pMod:hasevent("deploy") {
+                    IF pMod:hasfield("deploy") OR pMod:hasevent("deploy") {
                         pMod:doevent("deploy").
                     }
                     
                     // Run experiments and transmit
-                    for ev in pMod:allevents {
-                        local evLower is ev:tolower.
-                        if evLower:contains("start") or evLower:contains("run") or evLower:contains("log") or evLower:contains("observe") {
+                    FOR ev IN pMod:allevents {
+                        LOCAL evLower IS ev:tolower.
+                        IF evLower:contains("start") OR evLower:contains("run") OR evLower:contains("log") OR evLower:contains("observe") {
                             pMod:doevent(ev).
                         }
                     }
                     
                     // Trigger transmission if antenna is available and science is present
-                    for ev in pMod:allevents {
-                        if ev:tolower:contains("transmit") {
+                    FOR ev IN pMod:allevents {
+                        IF ev:tolower:contains("transmit") {
                             // Only transmit if power is safe (>30%)
-                            if ecPct > 0.3 {
+                            IF ecPct > 0.3 {
                                 pMod:doevent(ev).
                             }
                         }
@@ -82,5 +82,5 @@ until false {
         }
     }
     
-    wait 1.
+    WAIT 1.
 }

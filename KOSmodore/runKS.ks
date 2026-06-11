@@ -1,19 +1,19 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
-global emptyprog to list(). //it may be called "sourceprog". it contains the program as it is readed from file
-global preprocprog to list(). //it contains the program withoyt the comments and the labels. informations about the labels for the GOTO command are stored in the GOTOInf list
-global GOTOInf to list(list()). //it associate the position of GOTO line to the position where to jump
+GLOBAL emptyprog TO LIST(). //it may be called "sourceprog". it contains the program as it IS readed FROM file
+GLOBAL preprocprog TO LIST(). //it contains the program withoyt the comments and the labels. informations about the labels for the GOTO command are stored in the GOTOInf list
+GLOBAL GOTOInf TO LIST(LIST()). //it associate the position of GOTO line to the position where to jump
 //global editedline to 0. // edited line of a text (up and down to scroll)
 //noooo correggi! a fare list(list()) crei subliste vuote!
 
-function RunKS {
+FUNCTION RunKS {
 	//RUNPATH( "/KOSmodore/kerboscript/001.ks", 1, 2 ). 
-	parameter fname.
+	PARAMETER fname.
 	RUNPATH( "/KOSmodore/kerboscript/" + fname). 
 }
 
 
-function preprocess {
+FUNCTION preprocess {
 
 //!!!!!!!!!!!!!!!!!!!!!!!!!
 //   invece che caricare nella nuova lista solo le righe che non da eliminare
@@ -21,65 +21,65 @@ function preprocess {
 //   puoi fare anche più funzioni tipo: togli commenti, togli righe vuote..
 //!!!!!!!!!!!!!!!!!!!!!!!!!
 
-	parameter prog.
-	local pproced to list().
-	local auxi to 0. //auxiliary nummber
+	PARAMETER prog.
+	LOCAL pproced TO LIST().
+	LOCAL auxi TO 0. //auxiliary nummber
 	//local firstword to "".
 	
-	FROM {local x is 4.} UNTIL x = prog:LENGTH-1 STEP {set x to x+1.} DO {
+	FROM {LOCAL x IS 4.} UNTIL x = prog:LENGTH-1 STEP {SET x TO x+1.} DO {
 		//set firstword to prog[x].
 		
 		//Remove REM comments
-		if not(prog[x]:TOUPPER:startswith("REM ")) { 
+		IF NOT(prog[x]:TOUPPER:startswith("REM ")) { 
 		//	pproced:add(prog[x]).
 		
 		//Remove ' comments
-			set auxi to prog[x]:FIND("'").
-			if auxi = -1 {
-				pproced:add(prog[x]).
-			} else {
-				pproced:add(prog[x]:REMOVE(auxi,(prog[x]:length-auxi))).
+			SET auxi TO prog[x]:FIND("'").
+			IF auxi = -1 {
+				pproced:ADD(prog[x]).
+			} ELSE {
+				pproced:ADD(prog[x]:REMOVE(auxi,(prog[x]:length-auxi))).
 			}
 		}
 	}
-	return pproced.
+	RETURN pproced.
 }
 
-function ClearLine {
-	set emptyprog[CuY] to "".
-	print "                                        " at(0,CuY).
-	set CuX to 0.
+FUNCTION ClearLine {
+	SET emptyprog[CuY] TO "".
+	PRINT "                                        " AT(0,CuY).
+	SET CuX TO 0.
 }
 
-function initstextvar {
-	emptyprog:clear.
-	emptyprog:add("").   //otherwise he doesn't know where to draw the cursor
+FUNCTION initstextvar {
+	emptyprog:CLEAR.
+	emptyprog:ADD("").   //otherwise he doesn't know where to draw the cursor
 	ClsNoCur().
 	
 }
 
-function NewBasFile {
+FUNCTION NewBasFile {
 	ClearKSFile().
-	set cuy to 0.  //would be better run it once
+	SET cuy TO 0.  //would be better run it once
 	//set offsy to 1. //
-	set cux to 0.
+	SET cux TO 0.
 	GoPage(237).
 }
 
-function ClearKSFile {
-	emptyprog:clear.
+FUNCTION ClearKSFile {
+	emptyprog:CLEAR.
 	// add also the header (version ecc.)
-	emptyprog:add("").   //otherwise he doesn't know where to draw the cursor
+	emptyprog:ADD("").   //otherwise he doesn't know where to draw the cursor
 	ClsNoCur().
 	//set lind to 0.
 	//GoPage(277).
 }
 
-function NewKSFile {
+FUNCTION NewKSFile {
 	ClearKSFile().
-	set cuy to 0.  //would be better run it once
+	SET cuy TO 0.  //would be better run it once
 	//set offsy to 1. //
-	set cux to 0.
+	SET cux TO 0.
 	GoPage(277).
 }
 

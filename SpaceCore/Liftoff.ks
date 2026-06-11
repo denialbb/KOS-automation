@@ -1,15 +1,15 @@
-set TimeAfterIgnition to 3.		//custom value
+SET TimeAfterIgnition TO 3.		//custom value
 
-clearscreen.
+CLEARSCREEN.
 
-print "Running: uLiftoff" at (0,2).
+PRINT "Running: uLiftoff" AT (0,2).
 
-if maxthrust=0 {stage.}
-set throttle to 1.
-print "Ignition          " at (0,0).
+IF MAXTHRUST=0 {STAGE.}
+SET THROTTLE TO 1.
+PRINT "Ignition          " AT (0,0).
 
-wait TimeAfterIgnition.
-if ship:velocity:surface:mag < 1 {stage.}
-print "Liftoff!          " at (0,0).
-wait 3.
-clearscreen.
+WAIT TimeAfterIgnition.
+IF SHIP:VELOCITY:SURFACE:MAG < 1 {STAGE.}
+PRINT "Liftoff!          " AT (0,0).
+WAIT 3.
+CLEARSCREEN.

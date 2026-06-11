@@ -1,57 +1,57 @@
-declare parameter PreTouchdownAltitude is 30, ThrottleLevel is 0.8, LandingVelocity is 5.	//PreTouchdownAltitude - altitude of center of mass above the ground before TWR=1 descent 
+DECLARE PARAMETER PreTouchdownAltitude IS 30, ThrottleLevel IS 0.8, LandingVelocity IS 5.	//PreTouchdownAltitude - altitude of center of mass above the ground before TWR=1 descent 
 
-clearscreen.
-set running to true.
+CLEARSCREEN.
+SET running TO TRUE.
 
 //display info
-when true then {
-	if not running {
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else {
-	print "Radar altitude: "+round(alt:radar)+" m       " at(0,3).
-	print "Velocity: "+round(velocity:surface:mag)+" m/s       " at (0,4).
-	print "Vertical velocity: "+round(verticalspeed)+" m/s       " at (0,5).
-	print "Horizontal velocity: "+round(groundspeed)+" m/s       " at (0,6).
-	print "Running: uLanding" at (0,8).
-    preserve.
+	} ELSE {
+	PRINT "Radar altitude: "+ROUND(alt:radar)+" m       " AT(0,3).
+	PRINT "Velocity: "+ROUND(VELOCITY:SURFACE:MAG)+" m/s       " AT (0,4).
+	PRINT "Vertical velocity: "+ROUND(verticalspeed)+" m/s       " AT (0,5).
+	PRINT "Horizontal velocity: "+ROUND(groundspeed)+" m/s       " AT (0,6).
+	PRINT "Running: uLanding" AT (0,8).
+    PRESERVE.
 	}
 }
 
-sas off.
-rcs on.
-brakes on.
-set throttle to 0.
-lock steering to srfretrograde.
+SAS OFF.
+RCS ON.
+BRAKES ON.
+SET THROTTLE TO 0.
+LOCK STEERING TO srfretrograde.
 
 
 //landing burn start
-wait until (ship:velocity:surface:mag^2/(2*alt:radar-PreTouchdownAltitude)+body:mu/(body:radius+altitude)^2)*mass > availablethrust*ThrottleLevel.
-	set throttle to ThrottleLevel.
-	print "Landing burn initiated" at (0,0).
+WAIT UNTIL (SHIP:VELOCITY:SURFACE:MAG^2/(2*alt:radar-PreTouchdownAltitude)+BODY:MU/(BODY:RADIUS+ALTITUDE)^2)*MASS > AVAILABLETHRUST*ThrottleLevel.
+	SET THROTTLE TO ThrottleLevel.
+	PRINT "Landing burn initiated" AT (0,0).
 
-lock throttle to (ship:velocity:surface:mag^2/(2*(alt:radar-PreTouchdownAltitude))+body:mu/(body:radius+altitude)^2)*mass/availablethrust.
+LOCK THROTTLE TO (SHIP:VELOCITY:SURFACE:MAG^2/(2*(alt:radar-PreTouchdownAltitude))+BODY:MU/(BODY:RADIUS+ALTITUDE)^2)*MASS/AVAILABLETHRUST.
 
 
 //landing legs deployment
-when alt:radar < 700 then{
-	gear on.
+WHEN alt:radar < 700 THEN{
+	GEAR ON.
 }
 
 
 //final descent
-wait until ship:velocity:surface:mag < LandingVelocity.
-	set TargetRoll to ship:facing:roll +90.
-	lock steering to heading(90,90,TargetRoll).
-	lock throttle to body:mu/(body:radius+altitude)^2*mass/availablethrust.
+WAIT UNTIL SHIP:VELOCITY:SURFACE:MAG < LandingVelocity.
+	SET TargetRoll TO SHIP:FACING:roll +90.
+	LOCK STEERING TO HEADING(90,90,TargetRoll).
+	LOCK THROTTLE TO BODY:MU/(BODY:RADIUS+ALTITUDE)^2*MASS/AVAILABLETHRUST.
 
 //landing
-wait until status = "LANDED" or status = "SPLASHED" or verticalspeed > 0.
-	set throttle to 0.
-	print "Landing completed       " at (0,0).
-	wait 5.
-	unlock steering.
-	sas on.
-	lock throttle to 0. unlock throttle.
-	set running to false.
-	clearscreen.
-	set ship:control:pilotmainthrottle to 0.
+WAIT UNTIL STATUS = "LANDED" OR STATUS = "SPLASHED" OR verticalspeed > 0.
+	SET THROTTLE TO 0.
+	PRINT "Landing completed       " AT (0,0).
+	WAIT 5.
+	UNLOCK STEERING.
+	SAS ON.
+	LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+	SET running TO FALSE.
+	CLEARSCREEN.
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.

@@ -1,40 +1,40 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
-global LBook to list(list()). //noooo correggi! a fare list(list()) crei subliste vuote!
+GLOBAL LBook TO LIST(LIST()). //noooo correggi! a fare list(list()) crei subliste vuote!
 
-global CurrentNote to 0. // n di pagina corrente del logbook
+GLOBAL CurrentNote TO 0. // n di pagina corrente del logbook
 
 
 
-function showNextNote {
-	if CurrentNote < LBook:LENGTH-1 {
-		set CurrentNote to CurrentNote + 1.
+FUNCTION showNextNote {
+	IF CurrentNote < LBook:LENGTH-1 {
+		SET CurrentNote TO CurrentNote + 1.
 		GoPage(40).
 	}
 	
 }
 
-function LeaveLBook{
-	set CurrentNote to LBook:LENGTH-1.
+FUNCTION LeaveLBook{
+	SET CurrentNote TO LBook:LENGTH-1.
 	GoPage(1).
 }
 
-function showPrevNote {
-	if CurrentNote > 0 {
-		set CurrentNote to CurrentNote - 1.
+FUNCTION showPrevNote {
+	IF CurrentNote > 0 {
+		SET CurrentNote TO CurrentNote - 1.
 		GoPage(40).
 	}
 }
 
-function LbookNewPage{
-	local stri to "".
-	LBook:add(list()).
+FUNCTION LbookNewPage{
+	LOCAL stri TO "".
+	LBook:ADD(LIST()).
 	
-	local datetime to TIMESTAMP().
-	set stri to "Time: " + datetime:full. //TIME:SECONDS.
-	LBook[LBook:LENGTH-1]:add(stri).
-	set stri to "Place: " + SHIP:body.
-	LBook[LBook:LENGTH-1]:add(stri).
-	set CurrentNote to LBook:LENGTH-1.
+	LOCAL datetime TO TIMESTAMP().
+	SET stri TO "Time: " + datetime:full. //TIME:SECONDS.
+	LBook[LBook:LENGTH-1]:ADD(stri).
+	SET stri TO "Place: " + SHIP:BODY.
+	LBook[LBook:LENGTH-1]:ADD(stri).
+	SET CurrentNote TO LBook:LENGTH-1.
 	GoPage(40).
 }

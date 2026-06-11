@@ -20,8 +20,8 @@ IF NOT mjAvailable() {
 
     // Print diagnostic block for available suffixes
     IF ADDONS:MJ:HASSUFFIX("ASCENT") {
-        local suffixes is ADDONS:MJ:ASCENT:SUFFIXNAMES:JOIN(", ").
-        log suffixes to "0:/logs/MJAscentSuffixes.log".
+        LOCAL suffixes IS ADDONS:MJ:ASCENT:SUFFIXNAMES:JOIN(", ").
+        LOG suffixes TO "0:/logs/MJAscentSuffixes.log".
         mjLog("Ascent Suffixes available logged to MJAscentSuffixes.log").
     }
 
@@ -81,7 +81,7 @@ IF NOT mjAvailable() {
 
         WAIT 0.5.
     }
-    set running to FALSE.
+    SET running TO FALSE.
 
     mjLog("Ascent complete. Disabling Ascent Autopilot").
     SET asc:ENABLED TO FALSE.

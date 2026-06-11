@@ -1,37 +1,37 @@
-print "Basics #28".
-wait 3.
-sas off.
+PRINT "Basics #28".
+WAIT 3.
+SAS OFF.
 
-local targvel is 0.
+LOCAL targvel IS 0.
 
-lock steering to up.
+LOCK STEERING TO UP.
 
-set throttlePID to PIDLoop(1.02, 10.3, 0.03, 0, 1).
-set throttlePID:setpoint to targvel.
-set wanted_throttle to 1.
-lock throttle to wanted_throttle.
+SET throttlePID TO PIDLoop(1.02, 10.3, 0.03, 0, 1).
+SET throttlePID:setpoint TO targvel.
+SET wanted_throttle TO 1.
+LOCK THROTTLE TO wanted_throttle.
 
-stage.
+STAGE.
 //set throttlePID:SETPOINT to -2.
-wait until alt:radar >= 10.
-set now to time:seconds.
+WAIT UNTIL alt:radar >= 10.
+SET now TO TIME:SECONDS.
 
-until time:seconds >= now + 15 {
-  set wanted_throttle to throttlePID:UPDATE(time:seconds, ship:verticalspeed).
-  print "  PID Throttle : " + round(throttle,2) + "   " at (0,6).
-  print "vertical speed : " + round(ship:verticalspeed,2) + " m/s      " at (0,7).
-  print "     alt:radar : " + round(alt:radar,2) + " m      " at (0,8).
+UNTIL TIME:SECONDS >= now + 15 {
+  SET wanted_throttle TO throttlePID:UPDATE(TIME:SECONDS, SHIP:verticalspeed).
+  PRINT "  PID Throttle : " + ROUND(THROTTLE,2) + "   " AT (0,6).
+  PRINT "vertical speed : " + ROUND(SHIP:verticalspeed,2) + " m/s      " AT (0,7).
+  PRINT "     alt:radar : " + ROUND(alt:radar,2) + " m      " AT (0,8).
 }
 
-set throttlePID:SETPOINT to -2.
-until ship:status = "landed" {
-  set wanted_throttle to throttlePID:UPDATE(time:seconds, ship:verticalspeed).
-  print "  PID Throttle : " + round(throttle,2) + "   " at (0,6).
-  print "vertical speed : " + round(ship:verticalspeed,2) + " m/s      " at (0,7).
-  print "     alt:radar : " + round(alt:radar,2) + " m      " at (0,8).
+SET throttlePID:SETPOINT TO -2.
+UNTIL SHIP:STATUS = "landed" {
+  SET wanted_throttle TO throttlePID:UPDATE(TIME:SECONDS, SHIP:verticalspeed).
+  PRINT "  PID Throttle : " + ROUND(THROTTLE,2) + "   " AT (0,6).
+  PRINT "vertical speed : " + ROUND(SHIP:verticalspeed,2) + " m/s      " AT (0,7).
+  PRINT "     alt:radar : " + ROUND(alt:radar,2) + " m      " AT (0,8).
 }
 
-wait 0.
-sas on.
-set ship:control:pilotmainthrottle to 0.
-unlock throttle.
+WAIT 0.
+SAS ON.
+SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
+UNLOCK THROTTLE.

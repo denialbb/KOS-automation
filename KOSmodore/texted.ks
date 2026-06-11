@@ -1,23 +1,23 @@
-@lazyglobal off.
+@LAZYGLOBAL OFF.
 
-run once "/KOSmodore/runKS.ks".
+RUN once "/KOSmodore/runKS.ks".
 //run once "/KOSmodore/texted.ks".
 
-global CuX to 0.
-global CuY to 0.
-global Cuc to "_".
-global CuVisible to true.
+GLOBAL CuX TO 0.
+GLOBAL CuY TO 0.
+GLOBAL Cuc TO "_".
+GLOBAL CuVisible TO TRUE.
 
-global STextAux to list(). //used to temporary stock the serialized text before saving
+GLOBAL STextAux TO LIST(). //used to temporary stock the serialized text before saving
 
-global offsy to 0. //how much up or down to print the text
+GLOBAL offsy TO 0. //how much up or down to print the text
 
-function copyvarsave { //
-	parameter Pag,mult. //mult is a id needed if more strings are asked from the same page
+FUNCTION copyvarsave { //
+	PARAMETER Pag,mult. //mult is a id needed if more strings are asked from the same page
 	//resetcicleset().
-	set stextaux to emptyprog:copy.
-	emptyprog:clear.
-	emptyprog:add("").
+	SET stextaux TO emptyprog:COPY.
+	emptyprog:CLEAR.
+	emptyprog:ADD("").
 	//set cuy to 0.
 	//set offsy to 1.
 		
@@ -25,75 +25,75 @@ function copyvarsave { //
 	Savefilelist(mult).
 }
 
-function Cur {
-	print Cuc at(Cux, Cuy+offsy).
+FUNCTION Cur {
+	PRINT Cuc AT(Cux, Cuy+offsy).
 }
 
 //buffer state function (when you have to do something just once)
-function bufTextEdit {
+FUNCTION bufTextEdit {
 	CuReset().
 	GoPage(237).
 }
 
-function CuReset { 
-	set CuX to 0.
-	set Cuy to 0.
+FUNCTION CuReset { 
+	SET CuX TO 0.
+	SET Cuy TO 0.
 }
 	
-function cuBlank {
-	print " " at(cux,cuy+offsy).
+FUNCTION cuBlank {
+	PRINT " " AT(cux,cuy+offsy).
 }
 
-function CuDel {   //what char there is in (x,y). Behind the cursor
+FUNCTION CuDel {   //what char there is in (x,y). Behind the cursor
 	
-	local cha to "".
-	if cux < emptyprog[cuy]:length {
-		set cha to emptyprog[cuy]:substring(cux,1).
-	} else {
-		set cha to " ".
+	LOCAL cha TO "".
+	IF cux < emptyprog[cuy]:length {
+		SET cha TO emptyprog[cuy]:substring(cux,1).
+	} ELSE {
+		SET cha TO " ".
 	}
-	print cha at(cux,cuy+offsy).
+	PRINT cha AT(cux,cuy+offsy).
 }
 
-function CuRight {
-	if cuX < 40 {
-		if cux < emptyprog[Cuy]:length {
+FUNCTION CuRight {
+	IF cuX < 40 {
+		IF cux < emptyprog[Cuy]:length {
 			CuDel().
-			set cuX to cuX + 1.
+			SET cuX TO cuX + 1.
 			//Cur().
 		}
 	}
 }
 
-function CuLeft {
-	if cuX > 0 {
+FUNCTION CuLeft {
+	IF cuX > 0 {
 		CuDel().
-		set cuX to cuX - 1.
+		SET cuX TO cuX - 1.
 		//Cur().
 	}
 }
 
-function CuDown {
-	if cuY < 16 {
-		if Cuy < emptyprog:length-1 {
+FUNCTION CuDown {
+	IF cuY < 16 {
+		IF Cuy < emptyprog:length-1 {
 			
 			CuDel().
-			set cuY to cuY + 1.
+			SET cuY TO cuY + 1.
 			//set Edline to emptyprog[Cuy].
-			if emptyprog[Cuy]:length < CuX {
-				set Cux to emptyprog[Cuy]:length.
+			IF emptyprog[Cuy]:length < CuX {
+				SET Cux TO emptyprog[Cuy]:length.
 			}
 			//Cur().
 		}
 	}
 }
 
-function CuUp {
-	if cuY > 0 {
+FUNCTION CuUp {
+	IF cuY > 0 {
 		CuDel().
-		set cuY to cuY - 1.
-		if emptyprog[Cuy]:length < CuX {
-				set Cux to emptyprog[Cuy]:length.
+		SET cuY TO cuY - 1.
+		IF emptyprog[Cuy]:length < CuX {
+				SET Cux TO emptyprog[Cuy]:length.
 		}
 		//Cur().
 	}

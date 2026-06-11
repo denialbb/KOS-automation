@@ -1,13 +1,13 @@
-@lazyglobal off.
+@LAZYGLOBAL OFF.
 
-function doSomething {
-    parameter a.
-    parameter b.
-    local x is a^2 + b.
-    return x.
+FUNCTION doSomething {
+    PARAMETER a.
+    PARAMETER b.
+    LOCAL x IS a^2 + b.
+    RETURN x.
 }
 
-function stampa {
-	clearscreen.
-	print "VA!" at(10,10).
+FUNCTION stampa {
+	CLEARSCREEN.
+	PRINT "VA!" AT(10,10).
 }

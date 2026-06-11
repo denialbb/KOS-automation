@@ -1,31 +1,31 @@
-set CheckForMovement to true. //set to false if you want the countdown to run in any situation
+SET CheckForMovement TO TRUE. //set to false if you want the countdown to run in any situation
 
-clearscreen.
+CLEARSCREEN.
 
-print "Running: uCountdown" at (0,2).
+PRINT "Running: uCountdown" AT (0,2).
 
-set T to -10. //custom value
+SET T TO -10. //custom value
 
 
 
-if CheckForMovement = true {
+IF CheckForMovement = TRUE {
 
-	if ship:velocity:surface:mag < 1 {
-		until T>0 {
-			print "T"+T+" seconds    " at(0,0).
-			wait 1.
-			set T to T+1.
+	IF SHIP:VELOCITY:SURFACE:MAG < 1 {
+		UNTIL T>0 {
+			PRINT "T"+T+" seconds    " AT(0,0).
+			WAIT 1.
+			SET T TO T+1.
 		}
 	}
 }
 
 
-if CheckForMovement = false {
-	until T>0 {
-		print "T"+T+" seconds    " at(0,0).
-		wait 1.
-		set T to T+1.
+IF CheckForMovement = FALSE {
+	UNTIL T>0 {
+		PRINT "T"+T+" seconds    " AT(0,0).
+		WAIT 1.
+		SET T TO T+1.
 	}
 }
 
-clearscreen.
+CLEARSCREEN.

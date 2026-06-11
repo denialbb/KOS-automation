@@ -16,14 +16,14 @@ SET failedTests TO LIST().
 
 // Simple assert
 DECLARE FUNCTION ASSERT_EQ {
-    PARAMETER name, expected, actual.
+    PARAMETER NAME, expected, actual.
 
     SET totalTests TO totalTests + 1.
 
     IF expected = actual {
         SET passedTests TO passedTests + 1.
     } ELSE {
-        LOCAL msg IS name + " expected: " + expected + ", actual: " + actual.
+        LOCAL msg IS NAME + " expected: " + expected + ", actual: " + actual.
         failedTests:ADD(msg).
         PRINT "FAILED: " + msg.
     }
@@ -31,8 +31,8 @@ DECLARE FUNCTION ASSERT_EQ {
 
 // Helper: ASSERT_TRUE
 DECLARE FUNCTION ASSERT_TRUE {
-    PARAMETER name, condition.
-    ASSERT_EQ(name, TRUE, condition).
+    PARAMETER NAME, condition.
+    ASSERT_EQ(NAME, TRUE, condition).
 }.
 
 // Helper: Clear all maneuver nodes
@@ -48,7 +48,7 @@ DECLARE FUNCTION CLEAR_NODES {
 // Getting planner wrapper
 // -----------------------------------------------------------------------------
 PRINT "Getting ManeuverPlanner wrapper...".
-SET planner TO ADDONS:MJ:PLANNER.
+SET PLANNER TO ADDONS:MJ:PLANNER.
 PRINT "OK.".
 PRINT "-------------------------------".
 
@@ -63,7 +63,7 @@ CLEAR_NODES().
 SET targetPe TO MAX(70000, PERIAPSIS - 5000).
 PRINT "  Target Pe: " + targetPe.
 
-SET result TO planner:CHANGEPE(targetPe, "APOAPSIS").
+SET result TO PLANNER:CHANGEPE(targetPe, "APOAPSIS").
 WAIT 0.2.
 
 ASSERT_TRUE("CHANGEPE returns boolean", result = TRUE OR result = FALSE).
@@ -90,7 +90,7 @@ CLEAR_NODES().
 SET targetAp TO APOAPSIS + 10000.
 PRINT "  Target Ap: " + targetAp.
 
-SET result TO planner:CHANGEAP(targetAp, "PERIAPSIS").
+SET result TO PLANNER:CHANGEAP(targetAp, "PERIAPSIS").
 WAIT 0.2.
 
 ASSERT_TRUE("CHANGEAP returns boolean", result = TRUE OR result = FALSE).
@@ -113,7 +113,7 @@ PRINT "TEST: CIRCULARIZE".
 
 CLEAR_NODES().
 
-SET result TO planner:CIRCULARIZE("APOAPSIS").
+SET result TO PLANNER:CIRCULARIZE("APOAPSIS").
 WAIT 0.2.
 
 ASSERT_TRUE("CIRCULARIZE returns boolean", result = TRUE OR result = FALSE).
@@ -143,7 +143,7 @@ IF APOAPSIS > 70000 {
     SET targetAp TO APOAPSIS + 20000.
     PRINT "  Target Pe: " + targetPe + ", Ap: " + targetAp.
 
-    SET result TO planner:ELLIPTICIZE(targetPe, targetAp, "APOAPSIS").
+    SET result TO PLANNER:ELLIPTICIZE(targetPe, targetAp, "APOAPSIS").
     WAIT 0.2.
 
     ASSERT_TRUE("ELLIPTICIZE returns boolean", result = TRUE OR result = FALSE).
@@ -179,7 +179,7 @@ IF APOAPSIS > 70000 {
     SET targetSma TO bodySma + 120000.  // ~120km average altitude
     PRINT "  Target SMA: " + targetSma.
 
-    SET result TO planner:SEMIMAJOR(targetSma, "APOAPSIS").
+    SET result TO PLANNER:SEMIMAJOR(targetSma, "APOAPSIS").
     WAIT 0.2.
 
     ASSERT_TRUE("SEMIMAJOR returns boolean", result = TRUE OR result = FALSE).

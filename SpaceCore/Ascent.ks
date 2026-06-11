@@ -1,131 +1,131 @@
-@lazyGlobal on.
-declare parameter FairingDeployment is false, TargetAltitudeKm is 75,RelativeInclinationDegr is 0, FairingDeploymentAltitudeKm is 60.
+@LAZYGLOBAL ON.
+DECLARE PARAMETER FairingDeployment IS FALSE, TargetAltitudeKm IS 75,RelativeInclinationDegr IS 0, FairingDeploymentAltitudeKm IS 60.
 
-set PitchStartVelocity to 100.			//custom value
-set TargetRoll to ship:facing:roll +90.
-set TargetAltitude to TargetAltitudeKm*1000.
-set FairingDeploymentAltitude to FairingDeploymentAltitudeKm*1000.
-set RelativeInclination to RelativeInclinationDegr.
-set running to true.
+SET PitchStartVelocity TO 100.			//custom value
+SET TargetRoll TO SHIP:FACING:roll +90.
+SET TargetAltitude TO TargetAltitudeKm*1000.
+SET FairingDeploymentAltitude TO FairingDeploymentAltitudeKm*1000.
+SET RelativeInclination TO RelativeInclinationDegr.
+SET running TO TRUE.
 
-clearscreen.
+CLEARSCREEN.
 
 //display info
-when true then {
-	if not running {
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else {
-	print "Altitude: "+round(altitude)+" m       " at(0,3).
-	print "Apoapsis: "+round(apoapsis)+" m       " at (0,4).
-	print "Pitch: "+round(90-vang(ship:up:forevector,ship:facing:forevector))+" degrees       " at(0,5).
-	print "Orbital velocity: "+round(ship:velocity:orbit:mag)+" m/s       " at (0,6).
-	print "Running: uAscent" at (0,8).
+	} ELSE {
+	PRINT "Altitude: "+ROUND(ALTITUDE)+" m       " AT(0,3).
+	PRINT "Apoapsis: "+ROUND(APOAPSIS)+" m       " AT (0,4).
+	PRINT "Pitch: "+ROUND(90-VANG(SHIP:UP:FOREVECTOR,SHIP:FACING:FOREVECTOR))+" degrees       " AT(0,5).
+	PRINT "Orbital velocity: "+ROUND(SHIP:VELOCITY:ORBIT:MAG)+" m/s       " AT (0,6).
+	PRINT "Running: uAscent" AT (0,8).
 
-    local r_dist is body:radius + ship:altitude.
-    local grav is body:mu / (r_dist * r_dist).
-    local twr is 0.
-    if availablethrust > 0 and mass > 0 { set twr to availablethrust / (mass * grav). }
-    print "--- TELEMETRY ----------" at(0,30).
-    print "TWR: " + round(twr, 2) + "        " at(0,31).
-    print "Q:   " + round(ship:dynamicpressure, 4) + " kPa   " at(0,32).
-    print "EC:  " + round(ship:electriccharge) + "       " at(0,33).
+    LOCAL r_dist IS BODY:RADIUS + SHIP:ALTITUDE.
+    LOCAL grav IS BODY:MU / (r_dist * r_dist).
+    LOCAL twr IS 0.
+    IF AVAILABLETHRUST > 0 AND MASS > 0 { SET twr TO AVAILABLETHRUST / (MASS * grav). }
+    PRINT "--- TELEMETRY ----------" AT(0,30).
+    PRINT "TWR: " + ROUND(twr, 2) + "        " AT(0,31).
+    PRINT "Q:   " + ROUND(SHIP:DYNAMICPRESSURE, 4) + " kPa   " AT(0,32).
+    PRINT "EC:  " + ROUND(SHIP:ELECTRICCHARGE) + "       " AT(0,33).
 
-    preserve.
+    PRESERVE.
 	}
 }
 
 
-sas off.
-lock throttle to 1.
+SAS OFF.
+LOCK THROTTLE TO 1.
 
-if maxthrust = 0 {
-	stage.
-    print "Stage " + stage_num + " separation".
-	set stage_num to stage_num + 1.
-    print "Stage " + stage_num + " ignition".
+IF MAXTHRUST = 0 {
+	STAGE.
+    PRINT "Stage " + stage_num + " separation".
+	SET stage_num TO stage_num + 1.
+    PRINT "Stage " + stage_num + " ignition".
 }
 
 //staging
-set n to 1.
-set InitialStageThrust to maxthrust.
-when true then {
-	if not running {
+SET n TO 1.
+SET InitialStageThrust TO MAXTHRUST.
+WHEN TRUE THEN {
+	IF NOT running {
 		// cleanup
-	} else if maxthrust < (InitialStageThrust - 10) or maxthrust = 0 {
-	wait 1.
-	stage.
-		if maxthrust > 0 {
-		print "Stage "+n+" separation. Stage "+(n+1)+" ignition." at(0,1).
-        print "Stage " + n + " separation.".
+	} ELSE IF MAXTHRUST < (InitialStageThrust - 10) OR MAXTHRUST = 0 {
+	WAIT 1.
+	STAGE.
+		IF MAXTHRUST > 0 {
+		PRINT "Stage "+n+" separation. Stage "+(n+1)+" ignition." AT(0,1).
+        PRINT "Stage " + n + " separation.".
 
-        local ec is 0.
-        local ecMax is 1.
-        for r in ship:resources {
-            if r:name = "ElectricCharge" {
-                set ec to r:amount.
-                set ecMax to max(0.1, r:capacity).
+        LOCAL ec IS 0.
+        LOCAL ecMax IS 1.
+        FOR r IN SHIP:RESOURCES {
+            IF r:NAME = "ElectricCharge" {
+                SET ec TO r:AMOUNT.
+                SET ecMax TO MAX(0.1, r:CAPACITY).
             }
         }
-        local ecPct is round((ec/ecMax)*100, 1).
-        local histFile is "0:/mission_history.log".
-        if exists(histFile) {
-            log round(missiontime) + ",Staging," + ship:body:name + "," + round(ship:altitude) + "," + round(ship:periapsis) + "," + round(ship:apoapsis) + "," + round(ship:orbit:inclination, 1) + "," + ecPct + "," + round(ship:velocity:orbit:mag) to histFile.
+        LOCAL ecPct IS ROUND((ec/ecMax)*100, 1).
+        LOCAL histFile IS "0:/mission_history.log".
+        IF exists(histFile) {
+            LOG ROUND(MISSIONTIME) + ",Staging," + SHIP:BODY:NAME + "," + ROUND(SHIP:ALTITUDE) + "," + ROUND(SHIP:PERIAPSIS) + "," + ROUND(SHIP:APOAPSIS) + "," + ROUND(SHIP:ORBIT:inclination, 1) + "," + ecPct + "," + ROUND(SHIP:VELOCITY:ORBIT:MAG) TO histFile.
         }
 
-		set n to n+1.
-		set InitialStageThrust to maxthrust.
+		SET n TO n+1.
+		SET InitialStageThrust TO MAXTHRUST.
 	}
-	preserve.
-	} else {
-		preserve.
+	PRESERVE.
+	} ELSE {
+		PRESERVE.
 	}
 }
 
 
 //pitch
-lock steering to heading((90-RelativeInclination),90,TargetRoll).
-print "Ascent Program" at (0,0).
+LOCK STEERING TO HEADING((90-RelativeInclination),90,TargetRoll).
+PRINT "Ascent Program" AT (0,0).
 
-wait until ship:velocity:surface:mag > PitchStartVelocity.
-set PitchStartAltitude to altitude.
-lock TargetPitch to 90-((ship:apoapsis-PitchStartAltitude)*1.4)/((TargetAltitude-PitchStartAltitude)/90).
-lock steering to heading((90-RelativeInclination),TargetPitch,TargetRoll).
+WAIT UNTIL SHIP:VELOCITY:SURFACE:MAG > PitchStartVelocity.
+SET PitchStartAltitude TO ALTITUDE.
+LOCK TargetPitch TO 90-((SHIP:APOAPSIS-PitchStartAltitude)*1.4)/((TargetAltitude-PitchStartAltitude)/90).
+LOCK STEERING TO HEADING((90-RelativeInclination),TargetPitch,TargetRoll).
 
-wait until TargetPitch < 0.
-lock steering to heading(90-RelativeInclination,0,TargetRoll).
+WAIT UNTIL TargetPitch < 0.
+LOCK STEERING TO HEADING(90-RelativeInclination,0,TargetRoll).
 
 
 //cutoff
-wait until ship:apoapsis > TargetAltitude.
-	print "Engine cutoff                                  " at(0,1).
-	lock throttle to 0.
-	unlock steering.
-	sas on.
-	wait 0.1.
-	set sasmode to "PROGRADE".
+WAIT UNTIL SHIP:APOAPSIS > TargetAltitude.
+	PRINT "Engine cutoff                                  " AT(0,1).
+	LOCK THROTTLE TO 0.
+	UNLOCK STEERING.
+	SAS ON.
+	WAIT 0.1.
+	SET sasmode TO "PROGRADE".
 
-	set warpmode to "physics".
-	set warp to 1.
+	SET WARPMODE TO "physics".
+	SET warp TO 1.
 
 
 //fairing
-if FairingDeployment = true {
-	wait until ship:altitude > FairingDeploymentAltitude.
-		stage.
-		print "Fairing deployed                        " at(0,1).
+IF FairingDeployment = TRUE {
+	WAIT UNTIL SHIP:ALTITUDE > FairingDeploymentAltitude.
+		STAGE.
+		PRINT "Fairing deployed                        " AT(0,1).
 }
 
 
 
-wait until ship:q = 0.
-	set warp to 0.
-	unlock steering.
-	sas on. // ADDITION: Turn on SAS when coasting to prevent uncontrolled rotation
-	wait 0.1.
-	set sasmode to "PROGRADE".
-	lock throttle to 0. unlock throttle.
-	set running to false.
-	clearscreen.
-	set ship:control:pilotmainthrottle to 0.
+WAIT UNTIL SHIP:Q = 0.
+	SET warp TO 0.
+	UNLOCK STEERING.
+	SAS ON. // ADDITION: Turn on SAS when coasting to prevent uncontrolled rotation
+	WAIT 0.1.
+	SET sasmode TO "PROGRADE".
+	LOCK THROTTLE TO 0. UNLOCK THROTTLE.
+	SET running TO FALSE.
+	CLEARSCREEN.
+	SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
 
 

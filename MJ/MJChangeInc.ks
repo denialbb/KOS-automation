@@ -6,11 +6,11 @@ IF NOT ADDONS:AVAILABLE("MJ") OR NOT ADDONS:MJ:HASSUFFIX("PLANNER") OR NOT ADDON
     RUNPATH("0:/SpaceCore/ChangeInc.ks", targetInc).
 } ELSE {
     PRINT "[MJ] Planning change of Inclination to " + targetInc + " degrees".
-    LOCAL planner IS ADDONS:MJ:PLANNER.
+    LOCAL PLANNER IS ADDONS:MJ:PLANNER.
     LOCAL success IS FALSE.
     
-    IF planner:HASSUFFIX("CHANGEINCLINATION") {
-        planner:CHANGEINCLINATION(targetInc).
+    IF PLANNER:HASSUFFIX("CHANGEINCLINATION") {
+        PLANNER:CHANGEINCLINATION(targetInc).
         SET success TO TRUE.
     }
     

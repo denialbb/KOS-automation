@@ -1,4 +1,4 @@
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
 // ------------------------------------------------------------------------
 // SpaceCore: General Docking Procedure
@@ -9,65 +9,65 @@
 // on your preferred docking port first.
 // ------------------------------------------------------------------------
 
-if not hastarget {
-    print "ERROR: No target selected. Please select a target docking port.".
-    return.
+IF NOT hastarget {
+    PRINT "ERROR: No target selected. Please select a target docking port.".
+    RETURN.
 }
 
-if target:istype("Vessel") {
-    print "ERROR: Target is a vessel, not a port. Please select a specific docking port on the target vessel.".
-    return.
+IF TARGET:istype("Vessel") {
+    PRINT "ERROR: Target is a vessel, not a port. Please select a specific docking port on the target vessel.".
+    RETURN.
 }
 
-local tgtPort is target.
+LOCAL tgtPort IS TARGET.
 
 // Identify our docking port
-local myPorts is ship:dockingports.
-if myPorts:length = 0 {
-    print "ERROR: No docking ports found on this vessel!".
-    return.
+LOCAL myPorts IS SHIP:dockingports.
+IF myPorts:length = 0 {
+    PRINT "ERROR: No docking ports found on this vessel!".
+    RETURN.
 }
 
 // Default to the first found port, but use the control part if it's already a docking port
-local myPort is myPorts[0].
-if ship:controlpart:istype("DockingPort") {
-    set myPort to ship:controlpart.
-    print "Using currently controlled docking port.".
-} else {
+LOCAL myPort IS myPorts[0].
+IF SHIP:controlpart:istype("DockingPort") {
+    SET myPort TO SHIP:controlpart.
+    PRINT "Using currently controlled docking port.".
+} ELSE {
     myPort:controlfrom().
-    print "Controlled from first available docking port.".
+    PRINT "Controlled from first available docking port.".
 }
 
-print "Initiating docking sequence with " + tgtPort:name + "...".
-rcs on.
-sas off.
+PRINT "Initiating docking sequence with " + tgtPort:NAME + "...".
+RCS ON.
+SAS OFF.
 
 // Lock steering to always face the target port and align roll
-lock steering to lookdirup(-tgtPort:portfacing:vector, tgtPort:portfacing:upvector).
+LOCK STEERING TO lookdirup(-tgtPort:portfacing:vector, tgtPort:portfacing:upvector).
 
 // Translation loop
-until tgtPort:state:contains("Docked") or tgtPort:state:contains("PreAttached") or myPort:state:contains("Docked") {
-    local dist is tgtPort:nodeposition - myPort:nodeposition.
-    local relVel is ship:velocity:orbit - tgtPort:ship:velocity:orbit.
+UNTIL tgtPort:state:contains("Docked") OR tgtPort:state:contains("PreAttached") OR myPort:state:contains("Docked") {
+    LOCAL dist IS tgtPort:nodeposition - myPort:nodeposition.
+    LOCAL relVel IS SHIP:VELOCITY:ORBIT - tgtPort:SHIP:VELOCITY:ORBIT.
     
     // Scale approach speed based on distance
-    local desiredSpeed is min(dist:mag / 10, 2.0).
-    if dist:mag < 5 { set desiredSpeed to 0.5. }
-    if dist:mag < 1 { set desiredSpeed to 0.1. }
+    LOCAL desiredSpeed IS MIN(dist:MAG / 10, 2.0).
+    IF dist:MAG < 5 { SET desiredSpeed TO 0.5. }
+    IF dist:MAG < 1 { SET desiredSpeed TO 0.1. }
     
     // Calculate required translation vectors
-    local approachVec is dist:normalized * desiredSpeed.
-    local rcsVec is approachVec - relVel.
+    LOCAL approachVec IS dist:normalized * desiredSpeed.
+    LOCAL rcsVec IS approachVec - relVel.
     
     // Apply RCS thrust (convert to ship-local coordinates)
-    set ship:control:translation to ship:facing:inverse * rcsVec.
+    SET SHIP:CONTROL:translation TO SHIP:FACING:inverse * rcsVec.
     
-    wait 0.1.
+    WAIT 0.1.
 }
 
 // Cleanup and reset controls
-set ship:control:translation to v(0,0,0).
-unlock steering.
-rcs off.
-sas on.
-print "Docking sequence complete!".
+SET SHIP:CONTROL:translation TO v(0,0,0).
+UNLOCK STEERING.
+RCS OFF.
+SAS ON.
+PRINT "Docking sequence complete!".

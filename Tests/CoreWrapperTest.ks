@@ -15,14 +15,14 @@ SET failedTests TO LIST().
 
 // Simple assert
 DECLARE FUNCTION ASSERT_EQ {
-    PARAMETER name, expected, actual.
+    PARAMETER NAME, expected, actual.
 
     SET totalTests TO totalTests + 1.
 
     IF expected = actual {
         SET passedTests TO passedTests + 1.
     } ELSE {
-        LOCAL msg IS name + " expected: " + expected + ", actual: " + actual.
+        LOCAL msg IS NAME + " expected: " + expected + ", actual: " + actual.
         failedTests:ADD(msg).
         PRINT "FAILED: " + msg.
     }
@@ -30,16 +30,16 @@ DECLARE FUNCTION ASSERT_EQ {
 
 // Helper: ASSERT_TRUE
 DECLARE FUNCTION ASSERT_TRUE {
-    PARAMETER name, condition.
-    ASSERT_EQ(name, TRUE, condition).
+    PARAMETER NAME, condition.
+    ASSERT_EQ(NAME, TRUE, condition).
 }.
 
 // -----------------------------------------------------------------------------
 // Getting addon and core
 // -----------------------------------------------------------------------------
 PRINT "Getting MJ addon and core...".
-SET mj TO ADDONS:MJ.
-SET mjcore TO mj:CORE.
+SET MJ TO ADDONS:MJ.
+SET mjcore TO MJ:CORE.
 PRINT "OK.".
 PRINT "-------------------------------".
 
@@ -48,9 +48,9 @@ PRINT "-------------------------------".
 // -----------------------------------------------------------------------------
 PRINT "TEST: ADDONS:MJ availability".
 
-ASSERT_TRUE("MJ:AVAILABLE is boolean", mj:AVAILABLE = TRUE OR mj:AVAILABLE = FALSE).
+ASSERT_TRUE("MJ:AVAILABLE is boolean", MJ:AVAILABLE = TRUE OR MJ:AVAILABLE = FALSE).
 
-IF mj:AVAILABLE {
+IF MJ:AVAILABLE {
     PRINT "MechJeb reported as AVAILABLE.".
 } ELSE {
     PRINT "WARNING: MechJeb reported as NOT AVAILABLE.".

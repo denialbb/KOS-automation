@@ -4,151 +4,151 @@
 //                                                 |
 //-------------------------------------------------|
 
-@lazyGlobal off.
+@LAZYGLOBAL OFF.
 
-run once "/KOSmodore/terminal.ks".
-run once "/KOSmodore/GPS.ks".
-run once "/KOSmodore/rover.ks".
-run once "/KOSmodore/splashes.ks".
-run once "/KOSmodore/interface.ks".
-run once "/KOSmodore/graphics.ks".
-run once "/KOSmodore/math.ks".
-run once "/KOSmodore/sampling.ks".
-run once "/KOSmodore/pages.ks".
-run once "/KOSmodore/datalog.ks".
-run once "/KOSmodore/settings.ks".
-run once "/KOSmodore/runKS.ks".
-run once "/KOSmodore/texted.ks".
+RUN once "/KOSmodore/terminal.ks".
+RUN once "/KOSmodore/GPS.ks".
+RUN once "/KOSmodore/rover.ks".
+RUN once "/KOSmodore/splashes.ks".
+RUN once "/KOSmodore/interface.ks".
+RUN once "/KOSmodore/graphics.ks".
+RUN once "/KOSmodore/math.ks".
+RUN once "/KOSmodore/sampling.ks".
+RUN once "/KOSmodore/pages.ks".
+RUN once "/KOSmodore/datalog.ks".
+RUN once "/KOSmodore/settings.ks".
+RUN once "/KOSmodore/runKS.ks".
+RUN once "/KOSmodore/texted.ks".
 //run once "/KOSmodore/basicflow.ks".
 
-global fine to false. // per uscire dal programma e usare il terminale
+GLOBAL fine TO FALSE. // per uscire dal programma e usare il terminale
 
 //Addon KOSProp Monitor
-global monitors to addons:kpm:getmonitorcount().
-global id to addons:kpm:getguidshort(0).      // OR set id to addons:kpm:getguid(0).
-global monindex to addons:kpm:getindexof(id). // If GETINDEXOF Returns -1, GUID Not Found. Works for Whole GUID and Short GUID
+GLOBAL monitors TO ADDONS:kpm:getmonitorcount().
+GLOBAL id TO ADDONS:kpm:getguidshort(0).      // OR set id to addons:kpm:getguid(0).
+GLOBAL monindex TO ADDONS:kpm:getindexof(id). // If GETINDEXOF Returns -1, GUID Not Found. Works for Whole GUID and Short GUID
 
-local LogStart is 0.
-local GPSLogStart is 0.
-local PosStart is 0.                      // just for to blink once POS flag
-local CuBlinkStart is 0.                   // for to blink the cursor
+LOCAL LogStart IS 0.
+LOCAL GPSLogStart IS 0.
+LOCAL PosStart IS 0.                      // just for to blink once POS flag
+LOCAL CuBlinkStart IS 0.                   // for to blink the cursor
 
-global SensLog TO LIST().
-global LoadedTrack TO LIST().  
-global endpos to LatLng(-90,8). 			  //destinazione provvissoria per il rover                   
-global SENSELIST TO LIST().
+GLOBAL SensLog TO LIST().
+GLOBAL LoadedTrack TO LIST().  
+GLOBAL endpos TO LatLng(-90,8). 			  //destinazione provvissoria per il rover                   
+GLOBAL SENSELIST TO LIST().
 
 
 LIST SENSORS IN SENSELIST.
 
 InitTerminalMAIN(monitors).
 
-function ExitOS {
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO {
+FUNCTION ExitOS {
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO {
 		ClearTerminal(x).
 	}
-	clearscreen.
-	print "Exit main loop.".
-	set fine to true.
+	CLEARSCREEN.
+	PRINT "Exit main loop.".
+	SET fine TO TRUE.
 }
 	
-function toggleFlag {
-	parameter flagNum is 0.
-    if flagNum = 0 {
+FUNCTION toggleFlag {
+	PARAMETER flagNum IS 0.
+    IF flagNum = 0 {
 		
-		set PosStart to TIME:SECONDS.
+		SET PosStart TO TIME:SECONDS.
 		RecGPSPOS().
 	}
-	if flagNum = 1 {
-		set GPSLogStart to TIME:SECONDS.
+	IF flagNum = 1 {
+		SET GPSLogStart TO TIME:SECONDS.
 	}
-	if flagNum = 2 {
-		set LogStart to TIME:SECONDS.
+	IF flagNum = 2 {
+		SET LogStart TO TIME:SECONDS.
 	}
 	
-	FROM {local x is 0.} UNTIL x = monitors STEP {set x to x+1.} DO { 
-		set myflags:currentmonitor to x. 
+	FROM {LOCAL x IS 0.} UNTIL x = monitors STEP {SET x TO x+1.} DO { 
+		SET myflags:currentmonitor TO x. 
 		
-		if flagNum = 0 {
+		IF flagNum = 0 {
 			myflags:setstate(0,TRUE).	
 		}
-		if flagNum = 1 {
-			myflags:setstate(1,not (myflags:getstate(1))).
+		IF flagNum = 1 {
+			myflags:setstate(1,NOT (myflags:getstate(1))).
 		}
-		if flagNum = 2 {
-			myflags:setstate(2,not (myflags:getstate(2))).	
+		IF flagNum = 2 {
+			myflags:setstate(2,NOT (myflags:getstate(2))).	
 		}
 	}
 }
 
-function MyREBOOT {
+FUNCTION MyREBOOT {
 	REBOOT.	
 }
 
-function goroverpos {
+FUNCTION goroverpos {
 
-	if GPSPOS:Length = 0 {
-		print "No destination set." at(0 + debugoffset,1).
-	} else {	
+	IF GPSPOS:Length = 0 {
+		PRINT "No destination set." AT(0 + debugoffset,1).
+	} ELSE {	
 	
 	//clearScreen.
-	brakes off.	
-	set endPos to LatLng(GPSPOS[0], GPSPOS[1]).
+	BRAKES OFF.	
+	SET endPos TO LatLng(GPSPOS[0], GPSPOS[1]).
 	
 	//solo per inizializzare qualcosa:
-	set speedPID:setPoint to 1.   //speed
-	set turnPID:setPoint to 0.     	//Direction
+	SET speedPID:setPoint TO 1.   //speed
+	SET turnPID:setPoint TO 0.     	//Direction
 		
-	global wanted_throttle to 0. // for now.
-	lock wheelThrottle to wanted_throttle.
-	global wanted_angle to 0.
-	lock WHEELSTEERING to wanted_angle.
+	GLOBAL wanted_throttle TO 0. // for now.
+	LOCK wheelThrottle TO wanted_throttle.
+	GLOBAL wanted_angle TO 0.
+	LOCK WHEELSTEERING TO wanted_angle.
 	
-	set controlrover to 1.
-	set roverstate to 1.
+	SET controlrover TO 1.
+	SET roverstate TO 1.
 	} 	
 }
 
-function gorovertrack {
+FUNCTION gorovertrack {
 	
-	if LoadedTrack:Length = 1 { //perché c'è lo header
-		print "No track set." at(1,1).
-	} else {	
-		clearScreen.
-		brakes off.	
+	IF LoadedTrack:Length = 1 { //perché c'è lo header
+		PRINT "No track set." AT(1,1).
+	} ELSE {	
+		CLEARSCREEN.
+		BRAKES OFF.	
 		
-		set speedPID:setPoint to 1.      //Speed
-		set turnPID:setPoint to 0.      //Direction
+		SET speedPID:setPoint TO 1.      //Speed
+		SET turnPID:setPoint TO 0.      //Direction
 			
-		global wanted_throttle to 0. // for now.
-		lock wheelThrottle to wanted_throttle.
-		global wanted_angle to 0.
-		lock WHEELSTEERING to wanted_angle.
+		GLOBAL wanted_throttle TO 0. // for now.
+		LOCK wheelThrottle TO wanted_throttle.
+		GLOBAL wanted_angle TO 0.
+		LOCK WHEELSTEERING TO wanted_angle.
 	
-		set roverstate to 1.
-		set controlrover to 2.
+		SET roverstate TO 1.
+		SET controlrover TO 2.
 	}
 }
-function DataLogAdd {
-			SensLog:add(LIST()).
-			SensLog[SensLog:LENGTH-1]:add(TIME:SECONDS).
-			for ds in DataSourcesAdded {
-				if ds = 1 {SensLog[SensLog:LENGTH-1]:add(ship:sensors:LIGHT).}
-				if ds = 2 {SensLog[SensLog:LENGTH-1]:add(ship:sensors:TEMP).}
-				if ds = 3 {SensLog[SensLog:LENGTH-1]:add(ship:sensors:PRES).}
-				if ds = 4 {SensLog[SensLog:LENGTH-1]:add(ship:mass).}
-				if ds = 10 {SensLog[SensLog:LENGTH-1]:add(ship:mass).}
-				if ds = 20 {SensLog[SensLog:LENGTH-1]:add(ship:airspeed).}
-				if ds = 21 {SensLog[SensLog:LENGTH-1]:add(ship:verticalspeed).}
-				if ds = 22 {SensLog[SensLog:LENGTH-1]:add(ship:groundspeed).}
-				if ds = 101 {SensLog[SensLog:LENGTH-1]:add(SHIP:GEOPOSITION:LAT).}
-				if ds = 102 {SensLog[SensLog:LENGTH-1]:add(SHIP:GEOPOSITION:LNG).}
+FUNCTION DataLogAdd {
+			SensLog:ADD(LIST()).
+			SensLog[SensLog:LENGTH-1]:ADD(TIME:SECONDS).
+			FOR ds IN DataSourcesAdded {
+				IF ds = 1 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:sensors:LIGHT).}
+				IF ds = 2 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:sensors:TEMP).}
+				IF ds = 3 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:sensors:PRES).}
+				IF ds = 4 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:MASS).}
+				IF ds = 10 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:MASS).}
+				IF ds = 20 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:airspeed).}
+				IF ds = 21 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:verticalspeed).}
+				IF ds = 22 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:groundspeed).}
+				IF ds = 101 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:GEOPOSITION:LAT).}
+				IF ds = 102 {SensLog[SensLog:LENGTH-1]:ADD(SHIP:GEOPOSITION:LNG).}
 			}
 			
-			If Npage = 70 {
+			IF Npage = 70 {
 				GoPage(70).
 			}
-			If Npage = 72 {
+			IF Npage = 72 {
 				GoPage(72).
 			}
 }
@@ -156,11 +156,11 @@ function DataLogAdd {
 //---------------------Initialize-----------------------
 
 riempiSettings().
-DataSourcesAdded:add(4). // default source: Vessel mass
+DataSourcesAdded:ADD(4). // default source: Vessel mass
 InitSensLog().
 InitGPSLog().
-switch to 0. //con questa riga i file vengono salvati fisicamente (in archivio)
-brakes on.   //for rovers..
+switch TO 0. //con questa riga i file vengono salvati fisicamente (in archivio)
+BRAKES ON.   //for rovers..
 SPage(0).
 
 riempisourcelist().
@@ -168,8 +168,8 @@ initstextvar().
 mainsplash().
 
 SET LBook TO READJSON("/KOSmodore/logbook/logbook.json").
-print "Logbook loaded from logbook.json".
-set CurrentNote to LBook:LENGTH-1.
+PRINT "Logbook loaded from logbook.json".
+SET CurrentNote TO LBook:LENGTH-1.
 
 //flags
  myflags:setstate(0,FALSE).
@@ -188,72 +188,72 @@ set CurrentNote to LBook:LENGTH-1.
 
 UNTIL fine {
 // Pos flag label blink
-if myflags:getstate(0) {
-		if TIME:SECONDS > PosStart + 1{
+IF myflags:getstate(0) {
+		IF TIME:SECONDS > PosStart + 1{
 			 MSetFlag(0,FALSE,monitors).
 		}
 	}
 
 //LOGging
-	if myflags:getstate(1) {
-		if TIME:SECONDS > GPSLogStart {
-			LoadedTrack:add(LIST()).
-			LoadedTrack[LoadedTrack:LENGTH-1]:add(TIME:SECONDS).			
-			LoadedTrack[LoadedTrack:LENGTH-1]:add(SHIP:GEOPOSITION:LAT).
-			LoadedTrack[LoadedTrack:LENGTH-1]:add(SHIP:GEOPOSITION:LNG).
+	IF myflags:getstate(1) {
+		IF TIME:SECONDS > GPSLogStart {
+			LoadedTrack:ADD(LIST()).
+			LoadedTrack[LoadedTrack:LENGTH-1]:ADD(TIME:SECONDS).			
+			LoadedTrack[LoadedTrack:LENGTH-1]:ADD(SHIP:GEOPOSITION:LAT).
+			LoadedTrack[LoadedTrack:LENGTH-1]:ADD(SHIP:GEOPOSITION:LNG).
 			
-			If Npage = 30 {
+			IF Npage = 30 {
 				Gopage(30).
 			}
-			If Npage = 32 {
+			IF Npage = 32 {
 				GoPage(32).
 			}
 			
-			set GPSLogStart to GPSLogStart + SettingsL[2]. //  track sampling time interval
+			SET GPSLogStart TO GPSLogStart + SettingsL[2]. //  track sampling time interval
 		}
 	}
 	
-	if myflags:getstate(2) {
-		if TIME:SECONDS > LogStart {		
+	IF myflags:getstate(2) {
+		IF TIME:SECONDS > LogStart {		
 			DataLogAdd().
 			
-			set LogStart to LogStart + SettingsL[1]. // data sampling time interval
+			SET LogStart TO LogStart + SettingsL[1]. // data sampling time interval
 		}
 	}
 
 //rover
-	if controlrover = 1 {
+	IF controlrover = 1 {
 		conroverPos(endPos).
 	}
-	if controlrover = 2 {
+	IF controlrover = 2 {
 		ConRovertrack(LoadedTrack).
 	}
 	
 //blinking cursor
-    if NPage = 237 or NPage = 238 or NPage = 239 or NPage = 240 or
-	   NPage = 277 or NPage = 278 or NPage = 279 or NPage = 280 or
-	   NPage = 243 or NPage = 244 or NPage = 245 or
-	   NPage = 253 or NPage = 254 or NPage = 255 or	   
-	   NPage = 52 or NPage = 53 or NPage = 54 or
-	   NPage = 55 or NPage = 56 or
+    IF NPage = 237 OR NPage = 238 OR NPage = 239 OR NPage = 240 OR
+	   NPage = 277 OR NPage = 278 OR NPage = 279 OR NPage = 280 OR
+	   NPage = 243 OR NPage = 244 OR NPage = 245 OR
+	   NPage = 253 OR NPage = 254 OR NPage = 255 OR	   
+	   NPage = 52 OR NPage = 53 OR NPage = 54 OR
+	   NPage = 55 OR NPage = 56 OR
 	   // file rename
-	   NPage = 37 or NPage = 38 or NPage = 39 or
-	   NPage = 57 or NPage = 58 or NPage = 59 or
-	   NPage = 87 or NPage = 88 or NPage = 89 or
-	   NPage = 187 or NPage = 188 or NPage = 189 or
-	   NPage = 197 or NPage = 198 or NPage = 199 or
-	   NPage = 227 or NPage = 228 or NPage = 229 or
+	   NPage = 37 OR NPage = 38 OR NPage = 39 OR
+	   NPage = 57 OR NPage = 58 OR NPage = 59 OR
+	   NPage = 87 OR NPage = 88 OR NPage = 89 OR
+	   NPage = 187 OR NPage = 188 OR NPage = 189 OR
+	   NPage = 197 OR NPage = 198 OR NPage = 199 OR
+	   NPage = 227 OR NPage = 228 OR NPage = 229 OR
 	   
-	   NPage = 33 or NPage = 34 or NPage = 35 or
-	   NPage = 83 or NPage = 84 or NPage = 85 or
-	   NPage = 101 or NPage = 102 or NPage = 103 or
-	   NPage = 207 or NPage = 208 or NPage = 209{
-		if TIME:SECONDS > CuBlinkStart + .45{
-			set CuBlinkStart to TIME:SECONDS.
-			set cuVisible to not cuvisible.
-			if cuVisible {
+	   NPage = 33 OR NPage = 34 OR NPage = 35 OR
+	   NPage = 83 OR NPage = 84 OR NPage = 85 OR
+	   NPage = 101 OR NPage = 102 OR NPage = 103 OR
+	   NPage = 207 OR NPage = 208 OR NPage = 209{
+		IF TIME:SECONDS > CuBlinkStart + .45{
+			SET CuBlinkStart TO TIME:SECONDS.
+			SET cuVisible TO NOT cuvisible.
+			IF cuVisible {
 				Cur().
-			} else {
+			} ELSE {
 				Cudel().
 			}
 		}
@@ -262,31 +262,31 @@ if myflags:getstate(0) {
 
 // BASIC
 
-if (BASICrun) {RunBASICline().} 
+IF (BASICrun) {RunBASICline().} 
 
 // return to basic program (v1.1.1)
 
-if backtobascase = 2 {
-	if TIME:SECONDS > basWStart + basWtime {
+IF backtobascase = 2 {
+	IF TIME:SECONDS > basWStart + basWtime {
 		//set exodos to false.
-		set backtobascase to 0.
-		set BASICrun to true.
+		SET backtobascase TO 0.
+		SET BASICrun TO TRUE.
 	}
 }
 		
 	
 
-	if backtobascase = 1 {		
-		if controlrover = 0 {
-			set backtobascase to 0.
-			set BASICrun to true.
+	IF backtobascase = 1 {		
+		IF controlrover = 0 {
+			SET backtobascase TO 0.
+			SET BASICrun TO TRUE.
 		}
 	}
 
 //debug window
-	if debugbas and (Npage = 220 or Npage = 230 or NPage = 231) {
-		if TIME:SECONDS > debugbasstart + .5{
-			set debugbasstart to TIME:SECONDS.
+	IF debugbas AND (Npage = 220 OR Npage = 230 OR NPage = 231) {
+		IF TIME:SECONDS > debugbasstart + .5{
+			SET debugbasstart TO TIME:SECONDS.
 			debugwin().
 		}
 	}
