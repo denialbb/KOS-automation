@@ -50,3 +50,13 @@ Minmus's orbit is inclined at $6^\circ$ relative to Kerbin. To minimize transfer
 - Periodically scan all parts for science and sensor modules (`ModuleScienceExperiment`, `ModuleSensorExperiment`, `ModuleKerbalismScience`, etc.).
 - Automatically trigger the experiments using `deploy()` and relevant events (`start`, `run`).
 - Deploy transmitters/antennas for data transmission.
+
+---
+
+## 3. Mission Architecture (Modular Refactor)
+
+The `DASA/minmus_mission.ks` script has been refactored from a monolithic script into a modular, phase-based task-runner architecture:
+- **Mission Runner (`DASA/core/mission_runner.ks`)**: A core engine that iterates through a configured `mission_sequence` array, dynamically loading and executing phases.
+- **Phase Modules (`DASA/phases/`)**: Individual mission stages (`boot.ks`, `ascent.ks`, `deployment.ks`, `transfer.ks`, `coast.ks`, `capture.ks`) are self-contained and executed sequentially by the runner.
+- **Utilities (`DASA/utils/`)**: Reusable subsystems and helper functions (`logging.ks`, `telemetry.ks`, `power.ks`, `science.ks`, `math.ks`, `coasting.ks`) are imported as needed.
+- **Mission Configuration (`DASA/minmus_mission.ks`)**: Acts strictly as a configuration file, setting up the target parameters, defining the `mission_sequence` array, and invoking the runner.

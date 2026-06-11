@@ -57,7 +57,11 @@ graph TD
 
 ## Repository Structure
 
-- `DASA/`: Mission coordination scripts (e.g., Minmus automation, probe deployment).
+- `DASA/`: Mission coordination framework and modular task-runner architecture.
+  - `core/`: Contains the `mission_runner.ks` task-runner engine that executes mission sequences.
+  - `phases/`: Phase modules (e.g., `boot.ks`, `ascent.ks`, `transfer.ks`, `capture.ks`).
+  - `utils/`: Reusable mission utility functions (e.g., telemetry, power, science, logging).
+  - `minmus_mission.ks`: Slim mission configuration file defining the sequence array and targets.
 - `SpaceCore/`: Modular autopilot libraries (ascent, node execution, intercepts, landing, docking).
 - `KOSmodore/`: Standard utility libraries (terminal interfaces, filesystem tools, GPS, hovering).
 - `dashboard/`: Frontend HTML5/JS telemetry dashboard.
