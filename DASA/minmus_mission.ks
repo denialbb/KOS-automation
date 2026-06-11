@@ -449,15 +449,210 @@ if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING
     sas on.
     logMsg("Vessel is pre-launch/flying. Waiting for staging to initiate launch.").
     wait until maxthrust > 0.
+                if state {
+                    if (evLower:contains("start") or evLower:contains("activate") or evLower:contains("enable")) and (evLower:contains("cell") or evLower:contains("gen") or evLower:contains("apu") or evLower:contains("power")) {
+                        pMod:doevent(ev).
+                        logMsg("APU ON: " + ev + " on " + p:title).
+                    }
+                } else {
+                    if (evLower:contains("stop") or evLower:contains("deactivate") or evLower:contains("disable")) and (evLower:contains("cell") or evLower:contains("gen") or evLower:contains("apu") or evLower:contains("power")) {
+                        pMod:doevent(ev).
+                        logMsg("APU OFF: " + ev + " on " + p:title).
+                    }
+                }
+            }
+        }
+    }
+}
+
+function checkPower {
+    local ec is ship:electriccharge.
+    local ecMax is 0.
+    for r in ship:resources {
+        if r:name = "ElectricCharge" { set ecMax to r:capacity. }
+    }
+    if ecMax > 0 {
+        local pct is ec / ecMax.
+        if pct < 0.20 {
+            if not apuState {
+                logMsg("CRITICAL POWER: Starting APUs.").
+                setAPUState(true).
+                set apuState to true.
+            }
+            if lights {
+                lights off.
+                logMsg("CRITICAL POWER: Turning off lights to conserve energy.").
+            }
+        } else if pct > 0.95 {
+            if apuState {
+                logMsg("Power restored. Stopping APUs.").
+                setAPUState(false).
+                set apuState to false.
+            }
+        }
+
+        // Turn lights on if in orbit and power is stable (>20%)
+        if pct >= 0.20 and (ship:status = "ORBITING" or ship:status = "ESCAPING") {
+            if not lights {
+                lights on.
+                logMsg("Vessel in orbit with stable power. Turning lights on.").
+            }
+        }
+    }
+}
+
+function runAllScience {
+    logMsg("Triggering all science experiments...").
+    for p in ship:parts {
+        for mName in p:modules {
+            local mNameLower is mName:tolower.
+            if mNameLower:contains("science") or mNameLower:contains("experiment") or mNameLower:contains("sensor") {
+                local pMod is p:getmodule(mName).
+                if pMod:hasfield("deploy") or pMod:hasevent("deploy") {
+                    pMod:doevent("deploy").
+                }
+                for ev in pMod:allevents {
+                    local evLower is ev:tolower.
+                    if evLower:contains("start") or evLower:contains("deploy") or evLower:contains("run") or evLower:contains("collect") {
+                        pMod:doevent(ev).
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------------
+// Safe Coasting Routine
+// ------------------------------------------------------------------------
+function safeCoast {
+    parameter targetTime.
+    setStage("Coasting").
+
+    until time:seconds >= targetTime - 60 {
+        lock steering to sun:position.
+        checkPower().
+        runAllScience().
+
+        local timeLeft is targetTime - time:seconds.
+        if timeLeft > 3600 {
+            local nextStop is min(time:seconds + 3600, targetTime - 60).
+            set warpmode to "rails".
+            warpto(nextStop).
+            wait until time:seconds >= nextStop - 5.
+        } else if timeLeft > 300 {
+            local nextStop is targetTime - 60.
+            set warpmode to "rails".
+            warpto(nextStop).
+            wait until time:seconds >= nextStop - 5.
+        } else {
+            wait 10.
+        }
+    }
+    unlock steering.
+}
+
+// ------------------------------------------------------------------------
+// Math & Orbital Node Calculation
+// ------------------------------------------------------------------------
+function clamp {
+    parameter val, mn, mx.
+    if val < mn return mn.
+    if val > mx return mx.
+    return val.
+}
+
+function createNodeFromVector {
+    parameter burnTime, dVVector.
+    local r_at is positionat(ship, burnTime) - positionat(ship:body, burnTime).
+    local v_at is velocityat(ship, burnTime):orbit.
+
+    local pro_dir is v_at:normalized.
+    local norm_dir is vcrs(v_at, r_at):normalized.
+    local rad_dir is vcrs(pro_dir, norm_dir):normalized.
+
+    local dV_pro is vdot(dVVector, pro_dir).
+    local dV_norm is vdot(dVVector, norm_dir).
+    local dV_rad is vdot(dVVector, rad_dir).
+
+    local nd is node(burnTime, dV_rad, dV_norm, dV_pro).
+    add nd.
+    return nd.
+}
+
+
+
+// ------------------------------------------------------------------------
+// Main Mission Sequence
+// ------------------------------------------------------------------------
+// Start background power and subsystem monitor trigger (runs every 5 seconds)
+when time:seconds > lastPowerCheck + 5 then {
+    set lastPowerCheck to time:seconds.
+    checkPower().
+    preserve.
+}
+
+when time:seconds > lastTelemetryUpdate + 0.2 then {
+    local hasConn is homeconnection:isconnected.
+    if hasConn <> hadConnection {
+        if hasConn {
+            logMsg("Signal restored. Reconnected to KSC.").
+        } else {
+            logMsg("SIGNAL LOST: Connection to KSC lost.").
+        }
+        set hadConnection to hasConn.
+    }
+
+    if telemetryStage = "Ascent" and not maxQLogged {
+        local currentQ is ship:dynamicpressure.
+        if currentQ > maxQVal {
+            set maxQVal to currentQ.
+            set maxQTime to missiontime.
+        } else if currentQ < maxQVal - 0.01 and maxQVal > 0.05 and missiontime > maxQTime + 2 {
+            set maxQLogged to true.
+            logMsg("Max Q reached: " + round(maxQVal * 101.325, 2) + " kPa").
+        }
+    }
+
+    updateTelemetry(telemetryStage).
+    set lastTelemetryUpdate to time:seconds.
+    preserve.
+}
+
+setStage("Booting").
+logMsg("Minmus Automation Mission Initialized.").
+print "Scan vessel structure? (y/n)".
+local scanChoice is "".
+until scanChoice = "y" or scanChoice = "n" {
+    set scanChoice to terminal:input:getchar().
+}
+if scanChoice = "y" {
+    runpath("0:/DASA/VesselScan.ks").
+} else {
+    if exists("0:/telemetry/vessel_structure.json") {
+        logMsg("Skipping vessel scan. Dashboard will use existing vessel structure.").
+    } else {
+        logMsg("No existing vessel structure found. Forcing scan...").
+        runpath("0:/DASA/VesselScan.ks").
+    }
+}
+
+local skipDeployment is false.
+// 1. Wait for deployment / Pre-launch
+if ship:status = "PRELAUNCH" or ship:status = "LANDED" or (ship:status = "FLYING" and ship:altitude < 70000) {
+    setStage("Pre-Launch").
+    sas on.
+    logMsg("Vessel is pre-launch/flying. Waiting for staging to initiate launch.").
+    wait until maxthrust > 0.
 
     logMsg("Launch detected! Ascending to 80km orbit.").
     setStage("Ascent").
-    runpath("0:/MJ/MJAscent", false, 80, 0, 60). // 80km, 0 inc, fairing at 60km
+    runpath("0:/SpaceCore/Launch.ks", 80000).
 
     if ship:periapsis < 75000 {
         logMsg("Circularizing at Apoapsis.").
         setStage("Circularization").
-        runpath("0:/MJ/MJCircToAp").
+        runpath("0:/SpaceCore/CircToAp.ks").
     }
 } else {
     if panels {
@@ -612,9 +807,15 @@ if bms:length = 0 {
         until not hasnode { remove nextnode. wait 0.1. }
 
         // Manually add this burn model as a maneuver node
-        print "[DEBUG] Adding node " + i + " to flight plan. At time: " + bm:atTime + ", dV: " + bm:totalDV.
-        add bm:toNode.
-        print "[DEBUG] Node " + i + " added. Waiting for hasnode...".
+        print "[DEBUG] Instantiating node " + i + " from Astrogator.".
+        local myNode is bm:toNode.
+        if not hasnode {
+            print "[DEBUG] Node not automatically added by toNode. Adding it manually...".
+            add myNode.
+        } else {
+            print "[DEBUG] Node was automatically added to the flight plan by toNode.".
+        }
+        print "[DEBUG] Node " + i + " prepared. Waiting for hasnode...".
 
         // Wait up to 5 seconds for the node to appear on the flight plan
         local waitStart is time:seconds.
@@ -628,7 +829,7 @@ if bms:length = 0 {
         } else {
             print "[DEBUG] hasnode confirmed for node " + i + ".".
             logMsg("Executing node " + i + "...").
-            runpath("0:/SpaceCore/ExeNode.ks").
+            runpath("0:/MJ/ExeNode.ks").
             print "[DEBUG] Execution of node " + i + " returned.".
         }
     }
@@ -659,19 +860,19 @@ local dV_cap is v_peri_pred - v_tgt.
 
 local nd_cap is node(time:seconds + eta:periapsis, 0, 0, -dV_cap).
 add nd_cap.
-runpath("0:/SpaceCore/ExeNode.ks").
+runpath("0:/MJ/ExeNode.ks").
 
 // 6. Polar Inclination Change
 setStage("Inclination Change").
 logMsg("Adjusting to polar orbit (90 deg inclination).").
-runpath("0:/MJ/MJChangeInc.ks", 90).
+runpath("0:/SpaceCore/ChangeInc.ks", 90).
 
 // 6. Circularize
 setStage("Circularize").
 logMsg("Circularizing at Minmus Apoapsis.").
-runpath("0:/MJ/MJCircToAp").
-runpath("0:/MJ/MJChangeAp.ks", 20).
-runpath("0:/MJ/MJChangePe.ks", 20).
+runpath("0:/SpaceCore/CircToAp.ks").
+runpath("0:/SpaceCore/ChangeAp.ks", 20).
+runpath("0:/SpaceCore/ChangePe.ks", 20).
 
 setStage("Mission Complete").
 logMsg("Minmus automation mission completed successfully! Orbit is polar 20km.").
