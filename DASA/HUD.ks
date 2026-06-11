@@ -6,11 +6,11 @@ GLOBAL FUNCTION HUD_print_header {
 }
 
 GLOBAL FUNCTION HUD_print_ascent {
-    PARAMETER twr, Q, v, alt, apo.
+    PARAMETER twr, dynPress, vel, alt, apo.
     
     PRINT "TWR: " + ROUND(twr, 2) + "        " AT(0,31).
-    PRINT "Q:   " + ROUND(Q, 4) + " kPa   " AT(0,32).
-    PRINT "Velocity: " + ROUND(v) + " m/s       " AT(0,33).
+    PRINT "Q:   " + ROUND(dynPress, 4) + " kPa   " AT(0,32).
+    PRINT "Velocity: " + ROUND(vel) + " m/s       " AT(0,33).
     PRINT "Altitude: " + ROUND(alt) + " m       " AT(0,34).
     PRINT "Apoapsis: " + ROUND(apo) + " m       " AT(0,35).
 }
