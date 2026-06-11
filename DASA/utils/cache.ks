@@ -74,6 +74,7 @@ GLOBAL FUNCTION loadDeployablesFromCache {
                 LOCAL p IS partMap[pUid].
                 IF p:HASMODULE(mName) {
                     fairingModules:ADD(p:GETMODULE(mName)).
+                    logMsg("Loaded fairing from cache: " + p:title).
                 }
             }
         }
@@ -87,6 +88,7 @@ GLOBAL FUNCTION loadDeployablesFromCache {
                 LOCAL p IS partMap[pUid].
                 IF p:HASMODULE(mName) {
                     deployableModules:ADD(p:GETMODULE(mName)).
+                    logMsg("Loaded deployable from cache: " + p:title).
                 }
             }
         }
@@ -100,6 +102,7 @@ GLOBAL FUNCTION loadDeployablesFromCache {
                 LOCAL p IS partMap[pUid].
                 IF p:HASMODULE(mName) {
                     solarPanelsList:ADD(p:GETMODULE(mName)).
+                    logMsg("Loaded solar panel from cache: " + p:title).
                 }
             }
         }

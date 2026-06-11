@@ -34,6 +34,7 @@ IF NOT skipDeployment {
                 // Fairings
                 IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
                     fairingModules:ADD(pMod).
+                    logMsg("Scanned and added fairing: " + p:title).
                 }
 
                 // Deployables
@@ -45,12 +46,14 @@ IF NOT skipDeployment {
                 }
                 IF isAntennaOrPanelPart OR isDeployableModule {
                     deployableModules:ADD(pMod).
+                    logMsg("Scanned and added deployable: " + p:title).
                 }
 
                 // Solar Panels for Optimization
                 IF mName:contains("deployablesolarpanel") OR mName:contains("solar") {
                     IF pMod:HASFIELD("energy flow") {
                         solarPanelsLocal:ADD(pMod).
+                        logMsg("Scanned and added solar panel for optimization: " + p:title).
                     }
                 }
             }

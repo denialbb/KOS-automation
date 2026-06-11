@@ -26,6 +26,7 @@ GLOBAL FUNCTION initSolarPanels {
                         LOCAL pMod IS p:GETMODULE(m).
                         IF pMod:HASFIELD("energy flow") {
                             solarPanelsList:ADD(pMod).
+                            logMsg("Scanned and added solar panel: " + p:title).
                         }
                     }
                 }
