@@ -16,9 +16,9 @@ RUNONCEPATH("0:/DASA/HUD.ks").
 
 CLEARSCREEN.
 
-PRINT "==========================================".
-PRINT "      PROBE BOOT SEQUENCE INITIATED       ".
-PRINT "==========================================".
+PRINT("==================================================").
+PRINT "           PROBE BOOT SEQUENCE INITIATED          ".
+PRINT("==================================================").
 WAIT 0.5.
 
 // Play a boot sound sequence

@@ -221,7 +221,7 @@ FUNCTION setStage {
     PRINT("==================================================").
     logMsg("       Stage: " + newStage).
     PRINT("==================================================").
-    PRINT("    ").
+    PRINT(" ").
     SET telemetryStage TO newStage.
     updateTelemetry(telemetryStage).
 
@@ -248,14 +248,9 @@ FUNCTION setStage {
 LOCAL aborted IS FALSE.
 
 WHEN ABORT THEN {
-    IF aborted {
-        PRESERVE.
-    } ELSE {
-        SET aborted TO TRUE.
-        setStage("Aborted").
-        logMsg("--- MISSION ABORTED ---").
-    }
-    PRESERVE.
+    SET aborted TO TRUE.
+    setStage("Aborted").
+    logMsg("--- MISSION ABORTED ---").
 }
 
 // ------------------------------------------------------------------------
@@ -348,12 +343,15 @@ FUNCTION runAllScience {
 // ------------------------------------------------------------------------
 // Safe Coasting Routine
 // ------------------------------------------------------------------------
-FUNCTION safeCoast {
+FUNCTION safeCoast { // STOPS ONE MINUTE BEFORE TARGET T
     PARAMETER targetTime.
     setStage("Coasting").
 
+    // TODO: point to normal direction in respect to the sun to
+    //       have the side of the ship facing the sun
+
     UNTIL TIME:SECONDS >= targetTime - 60 {
-        LOCK STEERING TO sun:position.
+        LOCK STEERING TO SUN:POSITION.
         checkPower().
         runAllScience().
 
@@ -372,6 +370,7 @@ FUNCTION safeCoast {
             WAIT 10.
         }
     }
+    logMsg("Ending Coasting Phase.").
     UNLOCK STEERING.
 }
 
@@ -486,8 +485,8 @@ IF SHIP:STATUS = "PRELAUNCH" OR SHIP:STATUS = "LANDED" OR (SHIP:STATUS = "FLYING
         SET skipDeployment TO TRUE.
     }
     FOR p IN SHIP:parts {
+        HUD_loading().
         FOR m IN p:modules {
-            HUD_loading().
             LOCAL mName IS m:tostring:tolower.
             IF mName:contains("solar") OR mName:contains("panel") {
                 LOCAL pMod IS p:getmodule(m).
@@ -504,6 +503,9 @@ IF SHIP:STATUS = "PRELAUNCH" OR SHIP:STATUS = "LANDED" OR (SHIP:STATUS = "FLYING
         logMsg("Vessel already in orbit with panels active. Skipping jettison & deployment.").
     } ELSE {
         logMsg("Vessel already in orbit. Proceeding with mission.").
+        spinload(10).
+        spinload_clear().
+        CLEARSCREEN.
     }
 }
 
@@ -512,8 +514,8 @@ IF NOT skipDeployment {
     // 1. Deploy any fairings on the vessel first to unshield parts
     logMsg("Jettisoning all fairings...").
     FOR p IN SHIP:parts {
+        HUD_loading().
         FOR m IN p:modules { // TODO OPTIMIZATION: save a list of solar panels, bays and antennas to deploy later.
-            HUD_loading().
             LOCAL mName IS m:tostring:tolower.
             IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
                 LOCAL pMod IS p:getmodule(m).
@@ -537,6 +539,7 @@ IF NOT skipDeployment {
     // TODO have a list ready to avoid re-walking the tree
 
     FOR p IN SHIP:parts {
+        HUD_loading().
         // Check if the part itself is likely an antenna or solar panel
         LOCAL pName IS p:NAME:tolower.
         LOCAL pTitle IS p:title:tolower.
@@ -553,7 +556,6 @@ IF NOT skipDeployment {
         }
 
         FOR m IN p:modules {
-            HUD_loading().
             LOCAL mName IS m:tostring:tolower.
             LOCAL pMod IS p:getmodule(m).
 
@@ -577,6 +579,7 @@ IF NOT skipDeployment {
                                 OR evLower:contains("disable") OR evLower:contains("shutdown") OR evLower:contains("jettison")) {
                             pMod:doevent(ev).
                             logMsg(p:title + ": " + ev).
+                            HUD_loading().
                         }
                     }
                 }
@@ -653,23 +656,23 @@ IF bms:length = 0 {
         IF NOT HASNODE {
             PRINT "[DEBUG] Node not automatically added by toNode. Adding it manually...".
             ADD myNode.
-        } ELSE {
-            PRINT "[DEBUG] Node was automatically added to the flight plan by toNode.".
         }
-        PRINT "[DEBUG] Node " + i + " prepared. Waiting for hasnode...".
 
         // Wait up to 5 seconds for the node to appear on the flight plan
         LOCAL waitStart IS TIME:SECONDS.
         UNTIL HASNODE OR (TIME:SECONDS - waitStart > 5) {
-            HUD_loading().
-            WAIT 0.1.
+            spinload(1).
         }
 
         IF NOT HASNODE {
             logMsg("WARNING: Node " + i + " did not appear on flight plan after 5s. Skipping.").
             PRINT "[DEBUG] hasnode timeout for node " + i + ".".
         } ELSE {
-            PRINT "[DEBUG] hasnode confirmed for node " + i + ".".
+            // Coast safely to node
+            IF myNode:ETA > 120 {
+                safeCoast(TIME:SECONDS + myNode:ETA).
+            }
+
             logMsg("Executing node " + i + "...").
             spinload(10).
             spinload_clear().
@@ -686,7 +689,7 @@ spinload_clear().
 logMsg("Transfer burn complete. Coasting to Minmus SOI.").
 WAIT UNTIL ORBIT:hasnextpatch AND ORBIT:nextpatch:BODY:NAME = "Minmus".
 LOCAL timeToSOI IS ORBIT:nextpatch:ETA.
-safeCoast(TIME:SECONDS + timeToSOI + 10).
+safeCoast(TIME:SECONDS + timeToSOI).
 
 WAIT UNTIL SHIP:BODY:NAME = "Minmus".
 logMsg("Entered Minmus SOI!").

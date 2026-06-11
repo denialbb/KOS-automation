@@ -6,6 +6,10 @@ IF NOT HASNODE {
     ABORT.
 }
 
+PRINT("==================================================").
+PRINT "          EXECUTE NODE SEQUENCE INITIATED          ".
+PRINT("==================================================").
+
 LOCAL nd IS NEXTNODE.
 LOCAL initial_dv_mag IS nd:DELTAV:MAG.
 CLEARSCREEN.
@@ -19,8 +23,6 @@ RUNONCEPATH("0:/MJ/MJ.ks").
 UNLOCK STEERING.
 UNLOCK THROTTLE.
 SET SHIP:CONTROL:PILOTMAINTHROTTLE TO 0.
-
-PRINT "[ExeNode] Executing maneuver node.".
 
 // Ensure we have active engines, if not wait.
 LOCAL max_acc IS 0.
@@ -43,7 +45,7 @@ LOCAL burn_time IS 0.
 LOCAL t_half_dv IS 0.
 
 IF ADDONS:AVAILABLE("KE") AND ADDONS:KE:HASSUFFIX("NODEBURNTIME") {
-    logMsg("Kerbal Engineer available").
+    logMsg("Kerbal Engineer available.").
     SET burn_time TO ADDONS:KE:NODEBURNTIME.
     SET t_half_dv TO ADDONS:KE:NODEHALFBURNTIME.
 } ELSE {
@@ -120,7 +122,7 @@ IF burnStartEta > 40 {
 // Execute burn
 IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------------- MJ
     LOCAL nodeExecutor IS ADDONS:MJ:NODE.
-    logMsg("MechJeb available").
+    logMsg("MechJeb available.").
     mjReleaseControl().
     mjLog("Node planned. Executing via MechJeb...").
     SET nodeExecutor:ENABLED TO TRUE.
@@ -222,10 +224,8 @@ IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------
 
 
 UNLOCK STEERING.
-PRINT "[ExeNode] Burn complete. Removing node.".
 REMOVE nd.
 WAIT 0.1.
 
 SET running TO FALSE.
-SAS ON.
 CLEARSCREEN.
