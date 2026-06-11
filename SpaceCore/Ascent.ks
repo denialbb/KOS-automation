@@ -87,8 +87,8 @@ lock steering to heading((90-RelativeInclination),90,TargetRoll).
 print "Ascent Program" at (0,0).
 
 wait until ship:velocity:surface:mag > PitchStartVelocity.
-lock TargetPitch to 90-((ship:apoapsis-PitchStartAltitude)*1.4)/((TargetAltitude-PitchStartAltitude)/90).
 set PitchStartAltitude to altitude.
+lock TargetPitch to 90-((ship:apoapsis-PitchStartAltitude)*1.4)/((TargetAltitude-PitchStartAltitude)/90).
 lock steering to heading((90-RelativeInclination),TargetPitch,TargetRoll).
 
 wait until TargetPitch < 0.

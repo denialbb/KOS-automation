@@ -99,3 +99,15 @@ When declaring local or global variables under `@lazyGlobal off`, avoid using na
     ```
     The `wait 0.05.` inside the loop ensures KSP's physics engine has enough time to register the node removal before the script queries `hasnode` again or executes subsequent instructions.
 *   **Safe Node Addition Check:** When attempting to iterate over Astrogator `BurnModel`s and adding them via `add bms[i]:toNode.`, always check `if not hasnode` first. If Astrogator already populated the nodes, executing `add` again will result in a double-add exception.
+
+## 9. MechJeb Addon Version & Suffix Verification
+*   **Version Suffix Discrepancies:** The `kOS.MechJeb2.Addon` (v0.0.4+) exposes wrappers like `ASCENT` and `VESSEL`, but does not guarantee the existence of `PLANNER` or `NODE` / `NODEEXECUTOR` suffixes depending on the specific compiled release or fork. Calling missing suffixes throws a fatal `KOSSuffixUseException` (e.g., `GET Suffix 'PLANNER' not found`).
+*   **HASSUFFIX Check & Fallback:** Always check if these suffixes are exposed using `HASSUFFIX` on `ADDONS:MJ` before attempting to access them:
+    ```kerboscript
+    if not addons:available("MJ") or not addons:mj:hassuffix("PLANNER") or not addons:mj:hassuffix("NODE") {
+        // Fall back to native kOS maneuver planning and execution
+    } else {
+        // Safe to use MechJeb planner and executor
+    }
+    ```
+

@@ -2,8 +2,8 @@
 
 RUNONCEPATH("0:/MJ/MJ.ks").
 
-IF NOT mjAvailable() {
-    PRINT "[MJ] MechJeb not available! Falling back to SpaceCore/CircToAp.ks".
+IF NOT mjAvailable() OR NOT ADDONS:MJ:HASSUFFIX("PLANNER") OR NOT ADDONS:MJ:HASSUFFIX("NODE") {
+    PRINT "[MJ] MechJeb Planner or Node Executor not supported by this addon version! Falling back to SpaceCore/CircToAp.ks".
     RUNPATH("0:/SpaceCore/CircToAp.ks").
 } ELSE {
     mjLog("Planner Suffixes: " + ADDONS:MJ:PLANNER:SUFFIXNAMES:JOIN(", ")).
