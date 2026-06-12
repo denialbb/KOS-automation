@@ -39,7 +39,7 @@ GLOBAL FUNCTION checkPower {
     IF ecMax > 0 {
         LOCAL pct IS ec / ecMax.
         IF lastLoggedPower < 0 OR ABS(pct - lastLoggedPower) >= 0.05 {
-            logMsg("Energy status check: " + ROUND(ec) + " / " + ROUND(ecMax) + " EC (" + ROUND(pct * 100, 1) + "%).").
+            logMsg("EC: " + ROUND(ec) + " / " + ROUND(ecMax) + " " + ROUND(pct * 100, 1) + "%.").
             SET lastLoggedPower TO pct.
         }
         IF pct < 0.20 {

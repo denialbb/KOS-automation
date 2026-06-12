@@ -6,6 +6,10 @@
 // ------------------------------------------------------------------------
 
 GLOBAL cacheFile IS "0:/telemetry/deployables_cache.json".
+GLOBAL cachedFairings IS LIST().
+GLOBAL cachedDeployables IS LIST().
+GLOBAL cachedSolarPanels IS LIST().
+GLOBAL cacheLoaded IS FALSE.
 
 GLOBAL FUNCTION isCacheValid {
     IF NOT EXISTS(cacheFile) {
@@ -25,20 +29,18 @@ GLOBAL FUNCTION isCacheValid {
 }
 
 GLOBAL FUNCTION saveDeployablesCache {
-    DECLARE PARAMETER fairingsList, deployablesList, solarPanelsList.
-
     LOCAL cacheFairings IS LIST().
-    FOR pMod IN fairingsList {
+    FOR pMod IN cachedFairings {
         cacheFairings:ADD(LIST(pMod:part:UID, pMod:NAME)).
     }
 
     LOCAL cacheDeployables IS LIST().
-    FOR pMod IN deployablesList {
+    FOR pMod IN cachedDeployables {
         cacheDeployables:ADD(LIST(pMod:part:UID, pMod:NAME)).
     }
 
     LOCAL cacheSolarPanels IS LIST().
-    FOR pMod IN solarPanelsList {
+    FOR pMod IN cachedSolarPanels {
         cacheSolarPanels:ADD(LIST(pMod:part:UID, pMod:NAME)).
     }
 
@@ -55,58 +57,83 @@ GLOBAL FUNCTION saveDeployablesCache {
     logMsg("Saved deployables list to cache: " + cacheFile).
 }
 
-GLOBAL FUNCTION loadDeployablesFromCache {
-    DECLARE PARAMETER fairingModules, deployableModules, solarPanelsList.
+GLOBAL FUNCTION initDeployablesCache {
+    IF cacheLoaded { RETURN. }
 
-    LOCAL cache IS READJSON(cacheFile).
+    IF isCacheValid() {
+        LOCAL cache IS READJSON(cacheFile).
+        LOCAL partMap IS LEXICON().
+        FOR p IN SHIP:parts {
+            SET partMap[p:UID] TO p.
+        }
 
-    // Create a fast lookup map of the current parts
-    LOCAL partMap IS LEXICON().
-    FOR p IN SHIP:parts {
-        SET partMap[p:UID] TO p.
-    }
-
-    IF cache:HASKEY("fairings") {
-        FOR item IN cache["fairings"] {
-            LOCAL pUid IS item[0].
-            LOCAL mName IS item[1].
-            IF partMap:HASKEY(pUid) {
-                LOCAL p IS partMap[pUid].
-                IF p:HASMODULE(mName) {
-                    fairingModules:ADD(p:GETMODULE(mName)).
-                    logMsg("Loaded fairing from cache: " + p:title).
+        IF cache:HASKEY("fairings") {
+            FOR item IN cache["fairings"] {
+                IF partMap:HASKEY(item[0]) {
+                    LOCAL p IS partMap[item[0]].
+                    IF p:HASMODULE(item[1]) {
+                        cachedFairings:ADD(p:GETMODULE(item[1])).
+                    }
                 }
             }
         }
-    }
 
-    IF cache:HASKEY("deployables") {
-        FOR item IN cache["deployables"] {
-            LOCAL pUid IS item[0].
-            LOCAL mName IS item[1].
-            IF partMap:HASKEY(pUid) {
-                LOCAL p IS partMap[pUid].
-                IF p:HASMODULE(mName) {
-                    deployableModules:ADD(p:GETMODULE(mName)).
-                    logMsg("Loaded deployable from cache: " + p:title).
+        IF cache:HASKEY("deployables") {
+            FOR item IN cache["deployables"] {
+                IF partMap:HASKEY(item[0]) {
+                    LOCAL p IS partMap[item[0]].
+                    IF p:HASMODULE(item[1]) {
+                        cachedDeployables:ADD(p:GETMODULE(item[1])).
+                    }
                 }
             }
         }
-    }
 
-    IF cache:HASKEY("solar_panels") {
-        FOR item IN cache["solar_panels"] {
-            LOCAL pUid IS item[0].
-            LOCAL mName IS item[1].
-            IF partMap:HASKEY(pUid) {
-                LOCAL p IS partMap[pUid].
-                IF p:HASMODULE(mName) {
-                    solarPanelsList:ADD(p:GETMODULE(mName)).
-                    logMsg("Loaded solar panel from cache: " + p:title).
+        IF cache:HASKEY("solar_panels") {
+            FOR item IN cache["solar_panels"] {
+                IF partMap:HASKEY(item[0]) {
+                    LOCAL p IS partMap[item[0]].
+                    IF p:HASMODULE(item[1]) {
+                        cachedSolarPanels:ADD(p:GETMODULE(item[1])).
+                    }
                 }
             }
         }
-    }
 
-    logMsg("Successfully loaded deployables from cache.").
+        SET cacheLoaded TO TRUE.
+        logMsg("Successfully loaded deployables from cache.").
+    } ELSE {
+        // Walk the parts tree once to categorize all modules
+        FOR p IN SHIP:parts {
+            FOR m IN p:modules {
+                LOCAL mName IS m:tostring:tolower.
+                LOCAL pMod IS p:getmodule(m).
+
+                // Fairings
+                IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
+                    cachedFairings:ADD(pMod).
+                    logMsg("Scanned and added fairing: " + p:title).
+                }
+
+                // Deployables (filter out command modules which contain 'comm')
+                IF mName:contains("solar") OR mName:contains("panel") OR mName:contains("antenna")
+                   OR mName:contains("transmit") OR (mName:contains("comm") AND NOT mName:contains("command"))
+                   OR mName:contains("animate") OR mName:contains("deploy") 
+                   OR mName:contains("dish") OR mName:contains("boom") {
+                    cachedDeployables:ADD(pMod).
+                    logMsg("Scanned and added deployable: " + p:title).
+                }
+
+                // Solar Panels for Optimization
+                IF mName:contains("deployablesolarpanel") OR mName:contains("solar") {
+                    IF pMod:HASFIELD("energy flow") {
+                        cachedSolarPanels:ADD(pMod).
+                        logMsg("Scanned and added solar panel for optimization: " + p:title).
+                    }
+                }
+            }
+        }
+        saveDeployablesCache().
+        SET cacheLoaded TO TRUE.
+    }
 }

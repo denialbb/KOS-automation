@@ -6,13 +6,13 @@ IF NOT HASNODE {
     ABORT.
 }
 
+CLEARSCREEN.
 PRINT("==================================================").
-PRINT "          EXECUTE NODE SEQUENCE INITIATED          ".
+PRINT "         EXECUTE NODE SEQUENCE INITIATED        ".
 PRINT("==================================================").
 
 LOCAL nd IS NEXTNODE.
 LOCAL initial_dv_mag IS nd:DELTAV:MAG.
-CLEARSCREEN.
 LOCAL running IS TRUE.
 RUNONCEPATH("0:/DASA/HUD.ks").
 RUNONCEPATH("0:/MJ/MJ.ks").
@@ -130,12 +130,9 @@ IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------
 
     LOCAL nd IS NEXTNODE.
     UNTIL NOT HASNODE {
-        UNTIL HASNODE AND NEXTNODE:DELTAV:MAG < 1  {
-            HUD_print_header("MANEUVER NODE INFO").
-            HUD_print_node(nd:ETA, initial_dv_mag, nd:DELTAV:MAG, SHIP:DELTAV:CURRENT).
-            WAIT 0.1.
-        }
-        WAIT 0.5.
+        HUD_print_header("MANEUVER NODE INFO").
+        HUD_print_node(nd:ETA, initial_dv_mag, nd:DELTAV:MAG, SHIP:DELTAV:CURRENT).
+        WAIT 0.1.
     }
     SET nodeExecutor:ENABLED TO FALSE.
     mjLog("Burn complete.").

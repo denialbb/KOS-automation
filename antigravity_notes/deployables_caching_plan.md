@@ -44,3 +44,7 @@ Reconstructing lists of `PartModule`s from the cache:
 1. Map `SHIP:parts` into a `LEXICON` keyed by `part:UID` (single $O(N)$ pass, no string matching).
 2. For each cached item, look up the part by UID in $O(1)$ and fetch the module using `part:getmodule(moduleName)` ($O(1)$).
 This reduces the complexity from a nested string-scanning loop to simple dictionary lookups, bypassing interpreted string comparisons.
+
+## 2026-06-11 Bug Fix: Global Cache & Duplication
+- **Bug:** The initial implementation cached all modules on any part that was flagged as an antenna/solar panel, including modules like `TweakScale` or `ModuleCommand`. Furthermore, `deployment.ks` and `solar_optimization.ks` were overwriting each other's cache or maintaining local lists.
+- **Fix:** Introduced `initDeployablesCache()` in `cache.ks` which acts as a singleton loader/scanner. It populates global lists (`cachedFairings`, `cachedDeployables`, `cachedSolarPanels`) ONCE. Also, tightened the filter so that only actual deployable modules are added instead of every module on the part. This prevents cache bloat and eliminates duplicates.

@@ -1,46 +1,16 @@
 @LAZYGLOBAL OFF.
 RUNONCEPATH("0:/DASA/utils/cache.ks").
 
-GLOBAL solarPanelsList IS LIST().
 GLOBAL targetRoll IS 0.
 LOCAL lastRollOptimization IS 0.
 
 GLOBAL FUNCTION initSolarPanels {
-    IF solarPanelsList:LENGTH > 0 { RETURN. }
-
-    IF isCacheValid() {
-        LOCAL dummyFairings IS LIST().
-        LOCAL dummyDeployables IS LIST().
-        loadDeployablesFromCache(dummyFairings, dummyDeployables, solarPanelsList).
-    } ELSE {
-        FOR p IN SHIP:PARTS {
-            LOCAL isPanel IS FALSE.
-            LOCAL pName IS p:NAME:TOLOWER.
-            IF pName:CONTAINS("solar") OR pName:CONTAINS("panel") {
-                SET isPanel TO TRUE.
-            }
-            IF isPanel {
-                FOR m IN p:MODULES {
-                    LOCAL mName IS m:TOSTRING:TOLOWER.
-                    IF mName:CONTAINS("deployablesolarpanel") OR mName:CONTAINS("solar") {
-                        LOCAL pMod IS p:GETMODULE(m).
-                        IF pMod:HASFIELD("energy flow") {
-                            solarPanelsList:ADD(pMod).
-                            logMsg("Scanned and added solar panel: " + p:title).
-                        }
-                    }
-                }
-            }
-        }
-        LOCAL dummyFairings IS LIST().
-        LOCAL dummyDeployables IS LIST().
-        saveDeployablesCache(dummyFairings, dummyDeployables, solarPanelsList).
-    }
+    initDeployablesCache().
 }
 
 GLOBAL FUNCTION getTotalEnergyFlow {
     LOCAL totalFlow IS 0.
-    FOR pMod IN solarPanelsList {
+    FOR pMod IN cachedSolarPanels {
         IF pMod:HASFIELD("energy flow") {
             SET totalFlow TO totalFlow + pMod:GETFIELD("energy flow").
         }
@@ -55,7 +25,7 @@ GLOBAL FUNCTION optimizeRoll {
     }
     
     initSolarPanels().
-    IF solarPanelsList:LENGTH = 0 { RETURN. }
+    IF cachedSolarPanels:LENGTH = 0 { RETURN. }
     
     logMsg("Starting solar panel roll optimization...").
     
