@@ -127,36 +127,34 @@ GLOBAL FUNCTION initDeployablesCache {
                 LOCAL mName IS m:tostring:tolower.
                 LOCAL pMod IS p:getmodule(m).
 
-                // Fairings
                 IF mName:contains("fairing") OR mName:contains("jettison") OR mName:contains("shroud") {
                     cachedFairings:ADD(pMod).
-                    logMsg("Scanned and added fairing: " + p:title).
                 }
 
-                // Deployables (filter out command modules which contain 'comm')
                 IF mName:contains("solar") OR mName:contains("panel") OR mName:contains("antenna")
                    OR mName:contains("transmit") OR (mName:contains("comm") AND NOT mName:contains("command"))
                    OR mName:contains("animate") OR mName:contains("deploy") 
                    OR mName:contains("dish") OR mName:contains("boom") {
                     cachedDeployables:ADD(pMod).
-                    logMsg("Scanned and added deployable: " + p:title).
                 }
 
-                // Solar Panels for Optimization
                 IF mName:contains("deployablesolarpanel") OR mName:contains("solar") {
-                    IF pMod:HASFIELD("energy flow") {
+                    IF pMod:HASFIELD("energy flow") OR pMod:HASFIELD("sun exposure") OR pMod:HASFIELD("flow") {
                         cachedSolarPanels:ADD(pMod).
-                        logMsg("Scanned and added solar panel for optimization: " + p:title).
                     }
                 }
 
-                // Science Experiments (Stock and Kerbalism)
                 IF mName:contains("experiment") OR mName:contains("science") {
                     cachedExperiments:ADD(pMod).
-                    logMsg("Scanned and added experiment: " + p:title).
                 }
             }
         }
+        logMsg("Tree walk complete. Cache built successfully.").
+        logMsg(" - Fairings found: " + cachedFairings:LENGTH).
+        logMsg(" - Deployables found: " + cachedDeployables:LENGTH).
+        logMsg(" - Solar Panels found: " + cachedSolarPanels:LENGTH).
+        logMsg(" - Experiments found: " + cachedExperiments:LENGTH).
+        
         saveDeployablesCache().
         SET cacheLoaded TO TRUE.
     }
