@@ -90,7 +90,7 @@ $RE_KOS       = [regex]::new(
 
 # Signals an error condition on the line
 $RE_ERROR     = [regex]::new(
-    '(?i)\b(error|exception|nre)\b' +
+    '(?i)\b(error|nre)\b|exception' +
     '|\[ERR\b|\[EXC\b' +
     '|NullReference|IndexOutOfRange|InvalidOperation' +
     '|ArgumentException|UnityException|KeyNotFoundException' +
@@ -99,9 +99,9 @@ $RE_ERROR     = [regex]::new(
     [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
 )
 
-# Stack-trace continuation lines (no KSP tag at the start)
+# Stack-trace continuation lines (no KSP tag at the start, plus kOS code fragments)
 $RE_STACK     = [regex]::new(
-    '^  at |^\s+at |^\s+---\s|^UnityEngine\.|^System\.|^kOS\.',
+    '^  at |^\s+at |^\s+---\s|^UnityEngine\.|^System\.|^kOS\.|^\[LOG.*?\] Code Fragment|^File\s+Line:Col|^====|^[a-zA-Z0-9_]+:/',
     [System.Text.RegularExpressions.RegexOptions]::Compiled
 )
 
@@ -184,7 +184,7 @@ if ($Watch) { $gcParams['Wait'] = $true }
 
 try {
     Get-Content @gcParams | ForEach-Object {
-        $raw = $_
+        $raw = [string]$_
 
         # ── Heartbeat (watch mode only) ────────────────────────────────────
         if ($Watch -and $HeartbeatSec -gt 0) {
@@ -259,14 +259,9 @@ try {
             raw_line    = $raw
         }
 
-        # [EXC] lines are followed by a stack trace — hold the event
-        if ($tag -eq 'EXC') {
-            $inStack = $true
-            # Don't emit yet; wait for stack continuation lines
-        } else {
-            Emit $pendingEvent
-            $pendingEvent = $null
-        }
+        # Always hold the event to check for following stack trace or code fragment lines
+        $inStack = $true
+        # Don't emit yet; wait for stack continuation lines
     }
 
     # EOF (one-shot mode) — flush any pending stack event
