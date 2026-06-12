@@ -39,24 +39,35 @@ GLOBAL FUNCTION HUD_print_node {
     PRINT "Vessel delta-V:   " + padding + ROUND(vessel_dv, 1) + " m/s" AT (0,34).
 }
 
+GLOBAL last_hud_time IS 0.
+
 GLOBAL FUNCTION HUD_print_solar {
     PARAMETER currP, currY, currR, currFlow.
     PARAMETER bestP, bestY, bestR, bestFlow.
+    PARAMETER elapsedSecs.
 
-    HUD_print_header("Solar Optimization").
+    // Throttle updates to ~5 FPS to prevent screen jitter
+    IF TIME:SECONDS < last_hud_time + 0.2 { RETURN. }
+    SET last_hud_time TO TIME:SECONDS.
+
+    // Use fixed-width substring padding to completely overwrite old text and prevent ghosting
+    LOCAL cP IS (ROUND(currP) + padding):SUBSTRING(0, 15).
+    LOCAL bP IS (ROUND(bestP) + padding):SUBSTRING(0, 15).
+    LOCAL cY IS (ROUND(currY) + padding):SUBSTRING(0, 15).
+    LOCAL bY IS (ROUND(bestY) + padding):SUBSTRING(0, 15).
+    LOCAL cR IS (ROUND(currR) + padding):SUBSTRING(0, 15).
+    LOCAL bR IS (ROUND(bestR) + padding):SUBSTRING(0, 15).
+    LOCAL cF IS (ROUND(currFlow, 4) + padding):SUBSTRING(0, 15).
+    LOCAL bF IS (ROUND(bestFlow, 4) + padding):SUBSTRING(0, 15).
+
+    LOCAL head IS ("Solar Optimization [T+" + ROUND(elapsedSecs, 1) + "s]" + padding):SUBSTRING(0, 40).
+    PRINT "--- " + head + " ---" AT(0,30).
     
-    PRINT "               CURRENT        BEST" AT(0, 31).
-    PRINT "Pitch:         " + padding + ROUND(bestP) AT(0, 32).
-    PRINT "Pitch:         " + ROUND(currP) AT(0, 32).
-    
-    PRINT "Yaw:           " + padding + ROUND(bestY) AT(0, 33).
-    PRINT "Yaw:           " + ROUND(currY) AT(0, 33).
-    
-    PRINT "Roll:          " + padding + ROUND(bestR) AT(0, 34).
-    PRINT "Roll:          " + ROUND(currR) AT(0, 34).
-    
-    PRINT "Flow:          " + padding + ROUND(bestFlow, 4) AT(0, 35).
-    PRINT "Flow:          " + ROUND(currFlow, 4) AT(0, 35).
+    PRINT "               CURRENT        BEST           " AT(0, 31).
+    PRINT "Pitch:         " + cP + bP AT(0, 32).
+    PRINT "Yaw:           " + cY + bY AT(0, 33).
+    PRINT "Roll:          " + cR + bR AT(0, 34).
+    PRINT "Flow:          " + cF + bF AT(0, 35).
 }
 
 

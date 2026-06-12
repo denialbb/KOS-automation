@@ -2,10 +2,10 @@
 
 CLEARSCREEN.
 PRINT "=================================".
-PRINT "   SOLAR OPTIMIZATION TESTER     ".
+PRINT " RADAR SOLAR OPTIMIZATION TESTER ".
 PRINT "=================================".
 
-GLOBAL logFileName IS "0:/logs/solar_test_log.txt".
+GLOBAL logFileName IS "0:/logs/solar_radar_test_log.txt".
 
 // Start fresh for each test run
 IF EXISTS(logFileName) {
@@ -26,21 +26,20 @@ GLOBAL FUNCTION logMsg {
     LOG fullMsg TO logFileName.
 }
 
-logMsg("Starting solar optimization test script...").
+logMsg("Starting radar solar optimization test script...").
 
-// Load the solar optimization library
-// We use RUNPATH instead of RUNONCEPATH so that it always resets the 10-minute cooldown
+// Load the solar optimization radar library
 RUNPATH("0:/DASA/solar_optimization.ks").
 
-logMsg("Library loaded successfully.").
-logMsg("Triggering optimizeRoll()...").
+logMsg("Radar Library loaded successfully.").
+logMsg("Triggering optimizeSunExposure()...").
 
-optimizeRoll().
+optimizeSunExposure().
 
-logMsg("Optimization complete!").
+logMsg("Radar Optimization complete!").
 logMsg("Final target roll angle is: " + ROUND(targetRoll) + " degrees.").
 
 UNLOCK STEERING.
 SAS ON.
 
-logMsg("SAS Locked. Test script finished. Full log saved to: " + logFileName).
+logMsg("SAS Locked. Test script finished.").

@@ -6,7 +6,7 @@ GLOBAL FUNCTION orientForPower {
     LOCK STEERING TO targetDir.
     LOCAL t0 IS TIME:SECONDS.
     WAIT UNTIL (VANG(SHIP:FACING:FOREVECTOR, targetDir:FOREVECTOR) < 2 AND VANG(SHIP:FACING:TOPVECTOR, targetDir:TOPVECTOR) < 2) OR TIME:SECONDS > t0 + 60.
-    optimizeRoll().
+    optimizeSunExposure().
     checkPower().
     runAllScience().
     UNLOCK STEERING.
