@@ -60,10 +60,8 @@ async function runDiagnostics() {
 
     // 3. Start Telemetry Server in the Background
     console.log("[INFO] Spawning telemetry server...");
-    const psScript = path.join(rootDir, 'start_telemetry_server.ps1');
-    const serverProcess = spawn('powershell.exe', [
-        '-ExecutionPolicy', 'Bypass',
-        '-File', psScript
+    const serverProcess = spawn('node', [
+        'telemetry_server/server.js'
     ], {
         cwd: rootDir,
         stdio: 'pipe'
