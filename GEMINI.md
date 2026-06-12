@@ -3,6 +3,8 @@
 - You are tasked with developing systems for the automation of probes and missions in Kerbal Space Program.
 - You must use KerboScript and if you want you can extend it with other languages.
 - You can create interfaces for the missions in javascript to be run on the local browser.
+- NEVER use emojis in your responses or documentation.
+- NEVER speak in slang. Maintain a highly professional and technical tone at all times.
 
 # KerboScript Project Conventions
 
