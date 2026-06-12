@@ -1,6 +1,7 @@
 @LAZYGLOBAL OFF.
 
 GLOBAL apuState IS FALSE.
+GLOBAL lastLoggedPower IS -1.
 
 GLOBAL FUNCTION setAPUState {
     PARAMETER state.
@@ -37,6 +38,10 @@ GLOBAL FUNCTION checkPower {
     }
     IF ecMax > 0 {
         LOCAL pct IS ec / ecMax.
+        IF lastLoggedPower < 0 OR ABS(pct - lastLoggedPower) >= 0.05 {
+            logMsg("Energy status check: " + ROUND(ec) + " / " + ROUND(ecMax) + " EC (" + ROUND(pct * 100, 1) + "%).").
+            SET lastLoggedPower TO pct.
+        }
         IF pct < 0.20 {
             logMsg("LOW POWER.").
             IF NOT apuState {
