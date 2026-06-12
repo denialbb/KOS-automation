@@ -22,11 +22,13 @@ To trigger this skill, the user can prompt:
 ## Workflow
 
 ### 1. Retrieve the Log Entries
-*   Locate the main Unity log file at the KSP root:
-    `c:\Program Files (x86)\Steam\steamapps\common\Kerbal Space Program\KSP.log`
-*   Run a terminal command to fetch the tail end of the file, specifically filtering for `kOS` entries. For example:
-    `powershell -Command "Select-String -Path '..\..\KSP.log' -Pattern 'kOS' | Select-Object -Last 30"`
-*   Alternatively, retrieve the last 150 lines of `KSP.log` to see standard terminal `print` logs leading up to the crash.
+*   **Mandatory Log Parser:** You MUST always use `watch_kos_errors.py` to inspect the main Unity log (`KSP.log`). Do NOT read the raw file directly or use simple PowerShell/Select-String commands.
+*   To extract recent errors from the tail end of the log, execute:
+    `python watch_kos_errors.py --tail-lines 200`
+*   To scan the entire log file from the beginning (useful if the crash happened earlier):
+    `python watch_kos_errors.py --extract-all`
+*   To stream log updates in real-time during execution/debugging, use:
+    `python watch_kos_errors.py --watch`
 
 ### 2. Telemetry Fallback
 *   If `KSP.log` has no new kOS entries (due to file locking or delayed writes), read the local mission logs:
@@ -52,6 +54,6 @@ To trigger this skill, the user can prompt:
     3.  A summary of the fix.
 
 ## Common Mistakes
-*   **Reading `KSP.log` from the beginning:** The log is typically very large; always read the tail end of the file or use pattern matching to find the latest entries.
+*   **Bypassing the python log watcher:** Reading `KSP.log` directly or scanning it without `watch_kos_errors.py` is inefficient and error-prone. Always run the script.
 *   **Using backslashes for escaping double quotes:** This will break kOS compilation. Always construct JSON strings using a `local q is char(34).` helper.
 *   **Ignoring celestial/terrain safety altitudes:** Mountains on Minmus reach over $5.7 \text{ km}$ high. Always cross-reference orbits with KSP Wiki parameters to ensure orbital altitudes are safely above the terrain peaks.
