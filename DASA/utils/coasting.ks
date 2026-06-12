@@ -2,7 +2,7 @@
 
 GLOBAL FUNCTION orientForPower {
     logMsg("Orienting solar panels to sun...").
-    LOCAL targetDir IS LOOKDIRUP(SUN:POSITION, SUN:NORTH:VECTOR) * R(0, -90, targetRoll).
+    LOCAL targetDir IS LOOKDIRUP(SUN:POSITION, SUN:NORTH:VECTOR) * R(0, 0, targetRoll).
     LOCK STEERING TO targetDir.
     LOCAL t0 IS TIME:SECONDS.
     WAIT UNTIL (VANG(SHIP:FACING:FOREVECTOR, targetDir:FOREVECTOR) < 2 AND VANG(SHIP:FACING:TOPVECTOR, targetDir:TOPVECTOR) < 2) OR TIME:SECONDS > t0 + 60.
