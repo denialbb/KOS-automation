@@ -10,6 +10,7 @@ GLOBAL FUNCTION orientForPower {
     checkPower().
     runAllScience().
     UNLOCK STEERING.
+    SAS ON.
 }
 
 GLOBAL FUNCTION safeCoast {

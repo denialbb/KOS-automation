@@ -39,6 +39,26 @@ GLOBAL FUNCTION HUD_print_node {
     PRINT "Vessel delta-V:   " + padding + ROUND(vessel_dv, 1) + " m/s" AT (0,34).
 }
 
+GLOBAL FUNCTION HUD_print_solar {
+    PARAMETER currP, currY, currR, currFlow.
+    PARAMETER bestP, bestY, bestR, bestFlow.
+
+    HUD_print_header("Solar Optimization").
+    
+    PRINT "               CURRENT        BEST" AT(0, 31).
+    PRINT "Pitch:         " + padding + ROUND(bestP) AT(0, 32).
+    PRINT "Pitch:         " + ROUND(currP) AT(0, 32).
+    
+    PRINT "Yaw:           " + padding + ROUND(bestY) AT(0, 33).
+    PRINT "Yaw:           " + ROUND(currY) AT(0, 33).
+    
+    PRINT "Roll:          " + padding + ROUND(bestR) AT(0, 34).
+    PRINT "Roll:          " + ROUND(currR) AT(0, 34).
+    
+    PRINT "Flow:          " + padding + ROUND(bestFlow, 4) AT(0, 35).
+    PRINT "Flow:          " + ROUND(currFlow, 4) AT(0, 35).
+}
+
 
 GLOBAL FUNCTION HUD_loading {
     IF loading_tick = 0 {

@@ -39,4 +39,8 @@ optimizeRoll().
 
 logMsg("Optimization complete!").
 logMsg("Final target roll angle is: " + ROUND(targetRoll) + " degrees.").
-logMsg("Test script finished. Full log saved to: " + logFileName).
+
+UNLOCK STEERING.
+SAS ON.
+
+logMsg("SAS Locked. Test script finished. Full log saved to: " + logFileName).
