@@ -48,6 +48,18 @@ app.get('/telemetry_dashboard.css', (req, res) => {
     }
 });
 
+// Serve Kerbin texture
+app.get('/kerbin_line_art.png', (req, res) => {
+    const filePath = path.join(__dirname, '..', 'dashboard', 'kerbin_line_art.png');
+    if (fs.existsSync(filePath)) {
+        res.setHeader('Content-Type', 'image/png');
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('Not found');
+    }
+});
+
+
 // Serve telemetry.json
 app.get('/telemetry.json', (req, res) => {
     const filePath = path.join(__dirname, '..', 'telemetry', 'telemetry.json');

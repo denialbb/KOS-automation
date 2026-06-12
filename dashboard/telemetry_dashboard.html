@@ -1747,7 +1747,7 @@
             const focusDist = e * a;
             
             // Draw Body
-            if (d.body === 'Kerbin' && kerbinTex.complete) {
+            if (d.body === 'Kerbin' && kerbinTex.complete && kerbinTex.naturalWidth > 0) {
                 ctx.save();
                 ctx.globalCompositeOperation = 'screen';
                 ctx.drawImage(kerbinTex, focusDist * scale - R_body * scale, -R_body * scale, R_body * scale * 2, R_body * scale * 2);
