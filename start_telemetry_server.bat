@@ -1,3 +1,4 @@
 @echo off
-powershell -ExecutionPolicy Bypass -File "%~dp0start_telemetry_server.ps1"
+echo Starting DASA Node.js Telemetry Server...
+node "%~dp0telemetry_server\server.js"
 pause
