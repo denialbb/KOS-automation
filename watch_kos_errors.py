@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from enum import Enum, auto
 
 RE_KSP_LINE = re.compile(r'^\[(?P<tag>[A-Z]{3})\s+(?P<ts>[\d:.]+)\]\s*(?P<msg>.*)$')
-RE_KOS = re.compile(r'(?i)\bkOS\b|kos\.|KOSException|KOSScript|kos:')
+RE_KOS = re.compile(r'(?i)\bkOS\b|kos\.|KOSException|KOSScript|kos:|IOException|Ships\\Script|telemetry\.json')
 RE_ERROR = re.compile(r'(?i)\b(error|nre)\b|exception|\[ERR\b|\[EXC\b|NullReference|IndexOutOfRange|InvalidOperation|ArgumentException|UnityException|KeyNotFoundException|StackOverflow|OutOfMemory')
 RE_STACK = re.compile(r'^  at |^\s+at |^\s+---\s|^UnityEngine\.|^System\.|^kOS\.|^\[LOG.*?\] Code Fragment|^File\s+Line:Col|^====|^[a-zA-Z0-9_]+:/')
 
