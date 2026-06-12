@@ -40,13 +40,23 @@ graph TD
 - Orbital maneuver execution (Hohmann transfers, inclination adjustments, phasing, and intercepts).
 - Docking and landing algorithms using RCS translation and suicide burn controls.
 
-### Real-Time Telemetry Dashboard (v2)
+### Real-Time Telemetry Dashboard (v2.1)
 - **Modular Dashboard Grid Layout**: Uses a responsive CSS grid including CRT typography, styling improvements (e.g. log border fades, science payload details), and error indicators.
 - **Stacked Y-Axes Graph Drawer**: A collapsible history graph drawer featuring distinct stacked Y-axes for each active telemetry measure (Trajectory, Dynamics, and Resources), avoiding axis clutter.
 - **Dynamic Velocity Scaling**: Velocity graphs automatically scale between m/s and km/s (switching at 300 m/s) to display orbital speed changes cleanly.
 - **Interactive Resource Tabs**: Switch between interactive resource metrics with custom history graphs, cached colors to prevent gauge flashing, and abbreviated resource names.
 - **Navball & Interpolation**: 60fps local ENU attitude projections, heading indicators, and smooth linear interpolation between 1 Hz telemetry packets.
 - **Adaptive 3D Vessel Viewer**: Recalculates viewport scale and automatically centers the active vessel render when the graph drawer is toggled open or closed.
+- **Performance & Core Fixes**: Eliminated DOM thrashing, improved to O(1) part lookups, ensured deterministic graph colors, and implemented async-safe telemetry fetching.
+- **Mesh & Backend Improvements**: Added quaternion rotations for angled parts, KSP pause detection to prevent false alarms, and a new deployables cache server route.
+- **Orbit Diagram Panel**: A 2D visualization rendering the planetary body, orbital ellipse, Ap/Pe markers, and live maneuver node/target offsets.
+- **Maneuver Burn Timer**: Displays an accurate burn countdown window estimating required burn duration based on active Thrust-to-Weight Ratio.
+- **Critical Threshold Alert System**: A declarative alert engine that scans for danger states and triggers animated visual and audio warnings.
+- **WebSocket Push Telemetry**: Real-time WebSocket connection pushes JSON updates instantly, eliminating HTTP polling latency.
+- **Deployables Status Panel**: Parses and tracks the dynamic status of fairings, antennas, and science sensors.
+- **Telemetry Data Export**: Allows engineers to download the session's historical flight telemetry charts to a `.csv` file.
+- **Blueprint Part Category Filter**: Interactive toggle chips to isolate specific vessel components in the 3D viewer.
+- **Periapsis-in-Atmosphere Warning**: Persistent inline warning next to the periapsis readout if it drops below the atmospheric limit.
 
 ### Offline 3D Vessel Visualizer
 - Offline extraction of KSP .mu binary model meshes from GameData.
