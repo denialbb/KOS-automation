@@ -61,6 +61,7 @@
 ## Agent & Orchestrator Conventions
 To maintain a high-quality development environment using AI agents, we strictly follow the **"Infrastructure as Prompt"** model:
 - **Shared Agent Rules (`GEMINI.md`):** This file acts as the primary configuration and rule-set for any agent checking out the repository. It MUST always be tracked and committed.
+- **Multi-Model Orchestration:** The agent MUST leverage the custom OpenRouter MCP server (`openrouter_server.py`) and the self-correcting orchestrator script (`orchestrate_coding.py`) for all complex tasks. Specifically, deploy the specialized reasoning tools (`qwen_reason` for coding, `deepseek_reason` for mathematical verification, and `llama_reason` for drafting and reports) to generate and verify code, ensuring it strictly adheres to all KSP and kOS conventions.
 - **Architecture Decision Records (`antigravity_notes/`):** We use this directory as an active knowledge base. Agents and humans should continually read and append Markdown notes here when facing limitations, designing systems, or discovering bugs. This provides search context (RAG) for future agent tasks. It MUST be tracked and committed.
 - **Shared Skills (`.agents/skills/`):** Custom workflows that agents generate (like live-debuggers) must be tracked so the entire team can leverage the same tools.
 - **Local Agent State:** Agent execution logs, memory, workspaces, and chat histories (usually stored in `.agents/`, `.gemini/`, or `.claude/`) are volatile and user-specific. They MUST NOT be tracked, and are explicitly ignored in `.gitignore`.
