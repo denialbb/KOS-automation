@@ -82,6 +82,19 @@ def apply_transform(v, pos, rot, scale):
     # We will just return scaled + translated
     return (x + pos[0], y + pos[1], z + pos[2])
 
+def quat_rotate(q, v):
+    """Rotate vector v by unit quaternion q = (x, y, z, w)."""
+    qx, qy, qz, qw = q
+    # t = 2 * cross(q.xyz, v)
+    tx = 2*(qy*v[2] - qz*v[1])
+    ty = 2*(qz*v[0] - qx*v[2])
+    tz = 2*(qx*v[1] - qy*v[0])
+    return (
+        v[0] + qw*tx + qy*tz - qz*ty,
+        v[1] + qw*ty + qz*tx - qx*tz,
+        v[2] + qw*tz + qx*ty - qy*tx,
+    )
+
 def extract_mu_mesh(filepath):
     """
     Parses a .mu file and extracts simplified vertex/triangle data.
@@ -111,12 +124,11 @@ def extract_mu_mesh(filepath):
                 if mesh:
                     v_offset = len(all_verts)
                     for v in mesh.verts:
-                        # scale and translate
-                        all_verts.append((
-                            v[0] * obj.transform.localScale[0] + pos[0],
-                            v[1] * obj.transform.localScale[1] + pos[1],
-                            v[2] * obj.transform.localScale[2] + pos[2]
-                        ))
+                        sv = (v[0]*obj.transform.localScale[0],
+                              v[1]*obj.transform.localScale[1],
+                              v[2]*obj.transform.localScale[2])
+                        rv = quat_rotate(obj.transform.localRotation, sv)
+                        all_verts.append((rv[0]+pos[0], rv[1]+pos[1], rv[2]+pos[2]))
                     for sm in mesh.submeshes:
                         for tri in sm:
                             all_tris.append((tri[0]+v_offset, tri[1]+v_offset, tri[2]+v_offset))

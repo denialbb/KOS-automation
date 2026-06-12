@@ -12,6 +12,8 @@
     --crt-amber: #ffb000;
     --crt-amber-dim: rgba(255, 176, 0, 0.15);
     --safety-orange: #ff6600;
+    --danger: #ef4444;
+    --success: #10b981;
     --text-main: #d4d4d8;
     --text-muted: #71717a;
     --text-white: #ffffff;
@@ -166,7 +168,6 @@ body::after {
 .left-sidebar {
     width: 320px;
     display: flex;
-    flex-col: column;
     flex-direction: column;
     gap: 8px;
     flex-shrink: 0;
@@ -243,6 +244,30 @@ body::after {
     border-color: var(--crt-green);
     font-weight: 700;
     box-shadow: 0 0 8px rgba(51, 255, 51, 0.2);
+}
+
+/* Alerts */
+.alert-badge {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    animation: pulseAlert 1s infinite alternate;
+}
+.alert-badge.critical {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+.alert-badge.warning {
+    background: rgba(255, 176, 0, 0.2);
+    color: var(--crt-amber);
+    border: 1px solid var(--crt-amber);
+}
+@keyframes pulseAlert {
+    from { opacity: 0.6; }
+    to { opacity: 1; }
 }
 
 /* Data Rows */

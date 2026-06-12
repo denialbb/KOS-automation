@@ -21,6 +21,9 @@
         <div class="status-badge" id="conn-status">LIVE</div>
     </div>
 
+    <!-- Alert Bar -->
+    <div id="alert-bar" style="display:none; padding: 6px 20px; background: rgba(0,0,0,0.85); border-bottom: 1px solid var(--panel-border); gap: 12px; flex-wrap: wrap;"></div>
+
     <div class="dashboard-grid">
         <!-- Left Sidebar: Attitude & Target & Orbital -->
         <div class="left-sidebar custom-scrollbar">
@@ -51,6 +54,7 @@
                 <div class="data-row"><span class="data-label">Altitude</span><span class="data-value font-mono text-crt-amber" id="alt">--</span></div>
                 <div class="data-row"><span class="data-label">Apoapsis</span><span class="data-value font-mono text-crt-amber" id="apo">--</span></div>
                 <div class="data-row"><span class="data-label">Periapsis</span><span class="data-value font-mono text-crt-amber" id="peri">--</span></div>
+                <span id="atmo-warn" style="display:none; font-size:0.7rem; color:var(--danger); font-weight:700; letter-spacing:1px; padding-left: 4px;"></span>
                 <div class="data-row"><span class="data-label">Inclination</span><span class="data-value font-mono" id="inc">--</span></div>
                 <div class="data-row"><span class="data-label">Velocity</span><span class="data-value font-mono text-crt-green" id="vel">--</span></div>
                 <div class="data-row"><span class="data-label">Delta V</span><span class="data-value font-mono text-crt-green" id="delta-v">--</span></div>
@@ -62,6 +66,10 @@
                 <h2 class="panel-title" style="color: var(--crt-amber); border-color: rgba(255,176,0,0.3);">Maneuver Node</h2>
                 <div class="data-row"><span class="data-label">ETA</span><span class="data-value font-mono text-crt-amber" id="mnv-eta">--</span></div>
                 <div class="data-row"><span class="data-label">Delta-V</span><span class="data-value font-mono text-crt-amber" id="mnv-dv">--</span></div>
+                <div class="data-row"><span class="data-label">Burn Start</span><span class="data-value font-mono text-crt-amber" id="mnv-start">--</span></div>
+                <div class="data-row"><span class="data-label">Burn Stop</span><span class="data-value font-mono text-crt-amber" id="mnv-stop">--</span></div>
+                <div class="data-row"><span class="data-label">Duration</span><span class="data-value font-mono text-crt-amber" id="mnv-dur">--</span></div>
+                <div class="gauge-bar" style="margin-top: 4px;"><div id="mnv-progress" class="gauge-fill" style="width: 0%; background: var(--crt-amber);"></div></div>
             </div>
         </div>
 
@@ -71,8 +79,11 @@
                 <div class="hud-controls">
                     <button id="btn-mode-attitude" class="hud-btn active" onclick="setViewerMode('attitude')">Attitude 3D</button>
                     <button id="btn-mode-blueprint" class="hud-btn" onclick="setViewerMode('blueprint')">Blueprint</button>
+                    <button id="btn-mode-orbit" class="hud-btn" onclick="setViewerMode('orbit')">Orbit</button>
+                    <div id="blueprint-filters" style="display: none; flex-wrap: wrap; gap: 4px; margin-left: 8px;"></div>
                 </div>
                 <canvas id="vessel-canvas" class="vessel-canvas"></canvas>
+                <canvas id="orbit-canvas" class="vessel-canvas" style="display:none;"></canvas>
 
                 <!-- Floating Part Tooltip -->
                 <div id="part-tooltip"></div>
@@ -86,9 +97,10 @@
 
             <!-- Collapsible Bottom Drawer for Graphs (sibling to vessel viewer) -->
             <div id="graph-drawer" class="graph-drawer">
-                <button onclick="toggleGraphDrawer()" class="graph-drawer-toggle">
-                    HISTORICAL GRAPHS <span id="graph-drawer-icon">&#9650;</span>
-                </button>
+                <div class="graph-drawer-toggle">
+                    <span onclick="toggleGraphDrawer()" style="cursor:pointer; flex:1; text-align:center; padding-left: 100px;">HISTORICAL GRAPHS <span id="graph-drawer-icon">&#9650;</span></span>
+                    <button onclick="exportCSV()" class="hud-btn" style="margin-left:auto; pointer-events: auto;">⬇ Export CSV</button>
+                </div>
                 <div class="graph-drawer-content">
                     <div class="graph-container-left">
                         <div class="graph-tabs" id="graph-tabs"></div>
@@ -118,6 +130,13 @@
                 </div>
             </div>
 
+            <div class="panel">
+                <h2 class="panel-title">Deployables & Fairings</h2>
+                <div id="deployables-container" class="custom-scrollbar font-mono" style="overflow-y: auto; flex: 1; min-height: 120px; font-size: 0.75rem;">
+                    <div class="data-row"><span class="data-label">No deployable data</span></div>
+                </div>
+            </div>
+            
             <div class="panel">
                 <h2 class="panel-title">Resources</h2>
                 <div id="resources-container" class="custom-scrollbar" style="overflow-y: auto; flex: 1; min-height: 120px;">
@@ -174,6 +193,56 @@
         // ==========================================
         let baseMissionTime = 0;
         let lastSyncTime = 0;
+        let resourcesDirty = false;
+        
+        const BODY_ATM_LIMITS = { Kerbin: 70000, Duna: 50000, Eve: 90000, Jool: 200000, Laythe: 50000 };
+        const BODY_RADII = { Kerbin: 600000, Mun: 200000, Minmus: 60000, Duna: 320000, Eve: 700000, Jool: 6000000, Laythe: 500000 };
+
+        const PART_CATEGORIES = [
+            "Command Module", "Fuel Tank", "Solid Booster", "Liquid Engine", 
+            "Solar Panel", "Battery Pack", "Decoupler", "Science Instrument", 
+            "Comms Antenna", "RCS Thrusters", "Vessel Utility Part"
+        ];
+        let activeCategories = new Set(PART_CATEGORIES);
+
+        function buildCategoryFilters() {
+            const container = document.getElementById('blueprint-filters');
+            PART_CATEGORIES.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.className = 'hud-btn active';
+                btn.innerText = cat;
+                btn.onclick = () => {
+                    if (activeCategories.has(cat)) {
+                        activeCategories.delete(cat);
+                        btn.classList.remove('active');
+                    } else {
+                        activeCategories.add(cat);
+                        btn.classList.add('active');
+                    }
+                };
+                container.appendChild(btn);
+            });
+        }
+        buildCategoryFilters();
+
+        function exportCSV() {
+            const rows = [['timestamp_ms', 'altitude_km', 'velocity', 'twr', 'q_kpa']];
+            const baseSeries = telemetryChart.data.datasets[0].data; // altitude as time anchor
+            baseSeries.forEach((pt, i) => {
+                rows.push([
+                    pt.x,
+                    telemetryChart.data.datasets[0].data[i]?.y ?? '',
+                    telemetryChart.data.datasets[1].data[i]?.y ?? '',
+                    telemetryChart.data.datasets[2].data[i]?.y ?? '',
+                    telemetryChart.data.datasets[3].data[i]?.y ?? '',
+                ]);
+            });
+            const csv = rows.map(r => r.join(',')).join('\n');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = `telemetry_${Date.now()}.csv`;
+            a.click();
+        }
 
         // Attitude interpolation
         let currentFore = [0, 0, 1];
@@ -330,9 +399,15 @@
             'Fuel Cell': '#71717a'
         };
 
+        function hashColor(str) {
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+            return '#' + ((hash >>> 0) % 0xFFFFFF).toString(16).padStart(6, '0');
+        }
+
         function getResourceColor(name) {
             if (!predefinedColors[name]) {
-                predefinedColors[name] = '#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0');
+                predefinedColors[name] = hashColor(name);
             }
             return predefinedColors[name];
         }
@@ -487,19 +562,30 @@
         // ==========================================
         function setViewerMode(mode) {
             viewerMode = mode;
+            document.getElementById('btn-mode-attitude').classList.remove('active');
+            document.getElementById('btn-mode-blueprint').classList.remove('active');
+            document.getElementById('btn-mode-orbit').classList.remove('active');
+            
+            document.getElementById('vessel-canvas').style.display = (mode === 'orbit') ? 'none' : '';
+            document.getElementById('orbit-canvas').style.display = (mode === 'orbit') ? '' : 'none';
+            const tooltip = document.getElementById('part-tooltip');
+            if (tooltip) tooltip.style.display = 'none';
+
             if (mode === 'attitude') {
                 document.getElementById('btn-mode-attitude').classList.add('active');
-                document.getElementById('btn-mode-blueprint').classList.remove('active');
-            } else {
+                document.getElementById('blueprint-filters').style.display = 'none';
+            } else if (mode === 'blueprint') {
                 document.getElementById('btn-mode-blueprint').classList.add('active');
-                document.getElementById('btn-mode-attitude').classList.remove('active');
+                document.getElementById('blueprint-filters').style.display = 'flex';
                 cameraYaw = 0; cameraPitch = 0; zoomScale = 1.0; panOffset = { x: 0, y: 0 };
+            } else if (mode === 'orbit') {
+                document.getElementById('btn-mode-orbit').classList.add('active');
+                document.getElementById('blueprint-filters').style.display = 'none';
+                zoomScale = 1.0; panOffset = { x: 0, y: 0 };
             }
             calculateScale();
             updateSciencePayloadList();
             if (viewerMode !== 'blueprint') {
-                const tooltip = document.getElementById('part-tooltip');
-                if (tooltip) tooltip.style.display = 'none';
                 hoveredPart = null;
             }
         }
@@ -614,13 +700,127 @@
         }
 
         // ==========================================
-        // TELEMETRY FETCH (1 Hz)
+        // ALERTS & DEPLOYABLES RENDER
         // ==========================================
-        async function fetchTelemetry() {
+        let activeAlerts = new Set();
+        let audioCtx = null;
+        function playAlertBeep() {
             try {
-                const response = await fetch('telemetry.json?t=' + Date.now(), { cache: "no-store" });
-                if (!response.ok) return;
-                const data = await response.json();
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.3);
+            } catch(e) {}
+        }
+
+        const ALERTS = [
+            { id: 'low_ec',   label: 'LOW ELECTRIC CHARGE', check: d => (d.resources?.ElectricCharge?.capacity > 0 && (d.resources.ElectricCharge.amount / d.resources.ElectricCharge.capacity) < 0.15), severity: 'critical' },
+            { id: 'burn_soon', label: 'BURN IN 60s',         check: d => d.maneuver?.hasNode && d.maneuver.eta < 60,  severity: 'warning'  },
+            { id: 'atmo_pe',  label: 'PERIAPSIS IN ATMO',    check: d => d.body && BODY_ATM_LIMITS[d.body] && d.periapsis < BODY_ATM_LIMITS[d.body], severity: 'critical' },
+            { id: 'max_q',    label: 'MAX-Q ZONE',            check: d => d.q > 20,                                   severity: 'warning'  },
+        ];
+
+        function evaluateAlerts(d) {
+            const alertBar = document.getElementById('alert-bar');
+            let newlyActive = false;
+            let currentAlerts = [];
+            ALERTS.forEach(a => {
+                const isFiring = a.check(d);
+                if (isFiring) {
+                    currentAlerts.push(a);
+                    if (!activeAlerts.has(a.id)) {
+                        activeAlerts.add(a.id);
+                        newlyActive = true;
+                    }
+                } else {
+                    activeAlerts.delete(a.id);
+                }
+            });
+
+            if (newlyActive) playAlertBeep();
+
+            if (currentAlerts.length > 0) {
+                alertBar.style.display = 'flex';
+                alertBar.innerHTML = '';
+                currentAlerts.forEach(a => {
+                    const badge = document.createElement('div');
+                    badge.className = 'alert-badge ' + a.severity;
+                    badge.innerText = '⚠ ' + a.label;
+                    alertBar.appendChild(badge);
+                });
+            } else {
+                alertBar.style.display = 'none';
+            }
+        }
+
+        function renderDeployables() {
+            const container = document.getElementById('deployables-container');
+            if (!container || !deployablesLookup) return;
+            if (deployablesLookup.fairings.length === 0 && deployablesLookup.deployables.length === 0) {
+                return;
+            }
+            
+            const activeUids = new Set(activePartsCache.map(p => p.uid));
+            let html = '';
+            
+            if (deployablesLookup.fairings.length > 0) {
+                html += '<div style="color:var(--text-white); font-weight:700; margin-bottom: 4px;">FAIRINGS</div>';
+                deployablesLookup.fairings.forEach(f => {
+                    const p = vesselStructure?.parts?.find(x => x.uid === f.uid);
+                    const name = p ? (p.title || p.name) : f.uid;
+                    const isLost = !activeUids.has(f.uid);
+                    
+                    let style = "color: var(--text-main);";
+                    let status = "INTACT";
+                    if (isLost) {
+                        style = "color: var(--text-muted); text-decoration: line-through;";
+                        status = "JETTISONED";
+                    }
+                    html += `<div class="data-row" style="${style}"><span class="data-label" style="text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:180px;">${name}</span><span class="data-value">${status}</span></div>`;
+                });
+            }
+            
+            if (deployablesLookup.deployables.length > 0) {
+                html += '<div style="color:var(--text-white); font-weight:700; margin-top: 8px; margin-bottom: 4px;">DEPLOYABLES</div>';
+                deployablesLookup.deployables.forEach(d => {
+                    const p = vesselStructure?.parts?.find(x => x.uid === d.uid);
+                    const name = p ? (p.title || p.name) : d.uid;
+                    const isLost = !activeUids.has(d.uid);
+                    
+                    let stateStr = (typeof d.module === 'string') ? d.module.toUpperCase() : "UNKNOWN";
+                    
+                    let style = "color: var(--text-main);";
+                    let statusHTML = '<span style="color:var(--text-muted);">-</span>';
+                    if (isLost) {
+                        style = "color: var(--text-muted); text-decoration: line-through;";
+                        statusHTML = "STAGED";
+                    } else if (stateStr.includes("DEPLOY") || stateStr === "TRUE") {
+                        statusHTML = '<span style="color:var(--crt-green);">✓</span>';
+                    } else if (stateStr.includes("RETRACT") || stateStr === "FALSE") {
+                        statusHTML = '<span style="color:var(--text-muted);">-</span>';
+                    } else {
+                        statusHTML = stateStr;
+                    }
+                    html += `<div class="data-row" style="${style}"><span class="data-label" style="text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:180px;">${name}</span><span class="data-value">${statusHTML}</span></div>`;
+                });
+            }
+            
+            if (container.innerHTML !== html) container.innerHTML = html;
+        }
+
+        // ==========================================
+        // TELEMETRY FETCH (1 Hz) & WEBSOCKET
+        // ==========================================
+        function processTelemData(data) {
+            try {
 
                 // Check if mission time is paused (e.g. pre-launch or actual game pause)
                 const isPaused = !currTelemetry || (data.time === currTelemetry.time);
@@ -657,9 +857,10 @@
 
                 if (data.parts && data.parts.length > 0) {
                     activePartsCache = data.parts;
+                    const activeLookup = new Map(data.parts.map(p => [p.uid, p]));
                     if (vesselStructure && vesselStructure.parts) {
                         vesselStructure.parts.forEach(p => {
-                            const ap = activePartsCache.find(x => x.uid === p.uid);
+                            const ap = activeLookup.get(p.uid);
                             if (ap) p.title = ap.title;
                         });
                     }
@@ -670,8 +871,8 @@
                     const now = Date.now();
                     const rawVel = data.velocity || 0;
                     
-                    // Transition velocity scale if threshold is crossed (300 m/s)
-                    if (!isVelKmS && rawVel >= 300) {
+                    // Transition velocity scale if threshold is crossed
+                    if (!isVelKmS && rawVel >= 9999) {
                         isVelKmS = true;
                         datasets[1].label = 'Velocity (km/s)';
                         if (telemetryChart && telemetryChart.data.datasets[1]) {
@@ -684,7 +885,7 @@
                             telemetryChart.options.scales.y_vel.title.text = 'Vel (km/s)';
                         }
                         buildGraphTabs();
-                    } else if (isVelKmS && rawVel < 300) {
+                    } else if (isVelKmS && rawVel < 9999) {
                         isVelKmS = false;
                         datasets[1].label = 'Velocity (m/s)';
                         if (telemetryChart && telemetryChart.data.datasets[1]) {
@@ -716,6 +917,7 @@
                     
                     // Dynamic resource datasets
                     if (data.resources) {
+                        resourcesDirty = true;
                         const activeKeys = Object.keys(data.resources);
                         const activeAbbrevNames = activeKeys.map(k => abbreviateResourceName(formatResourceName(k)) + " %");
                         
@@ -819,6 +1021,19 @@
                 }
                 
                 updateSciencePayloadList();
+                evaluateAlerts(data);
+                renderDeployables();
+            } catch (err) {
+                console.error("Telemetry process error:", err);
+            }
+        }
+
+        async function fetchTelemetry() {
+            try {
+                const response = await fetch('telemetry.json?t=' + Date.now(), { cache: "no-store" });
+                if (!response.ok) return;
+                const data = await response.json();
+                processTelemData(data);
             } catch (err) {
                 console.error("Telemetry fetch error:", err);
             }
@@ -844,6 +1059,19 @@
             document.getElementById('alt').innerText = formatNumber(d.altitude || 0) + " m";
             document.getElementById('apo').innerText = formatNumber(d.apoapsis || 0) + " m";
             document.getElementById('peri').innerText = formatNumber(d.periapsis || 0) + " m";
+            
+            const atmLimit = BODY_ATM_LIMITS[d.body];
+            const periEl = document.getElementById('peri');
+            const warnEl = document.getElementById('atmo-warn');
+            if (atmLimit && d.periapsis < atmLimit) {
+                periEl.style.color = 'var(--danger)';
+                warnEl.textContent = '⚠ IN ATMO';
+                warnEl.style.display = 'inline';
+            } else {
+                periEl.style.color = '';
+                warnEl.style.display = 'none';
+            }
+            
             document.getElementById('inc').innerText = (d.inclination || 0).toFixed(2) + "\u00B0";
             document.getElementById('vel').innerText = formatNumber(d.velocity || 0) + " m/s";
             document.getElementById('delta-v').innerText = (d.deltaV !== undefined) ? formatNumber(d.deltaV) + " m/s" : "--";
@@ -852,23 +1080,26 @@
             document.getElementById('stage').innerText = (d.stage || "--").toUpperCase();
 
             // Resources
-            const resContainer = document.getElementById('resources-container');
-            if (d.resources && Object.keys(d.resources).length > 0) {
-                resContainer.innerHTML = '';
-                for (const [resName, resData] of Object.entries(d.resources)) {
-                    const cleanName = formatResourceName(resName);
-                    const abbrevName = abbreviateResourceName(cleanName);
-                    const pct = resData.capacity > 0 ? (resData.amount / resData.capacity) * 100 : 0;
-                    const el = document.createElement('div');
-                    el.className = 'gauge-container';
-                    let color = getResourceColor(cleanName);
-                    if (resName === "ElectricCharge" && pct < 20) {
-                        color = 'var(--danger)';
+            if (resourcesDirty && d.resources) {
+                resourcesDirty = false;
+                const resContainer = document.getElementById('resources-container');
+                if (Object.keys(d.resources).length > 0) {
+                    resContainer.innerHTML = '';
+                    for (const [resName, resData] of Object.entries(d.resources)) {
+                        const cleanName = formatResourceName(resName);
+                        const abbrevName = abbreviateResourceName(cleanName);
+                        const pct = resData.capacity > 0 ? (resData.amount / resData.capacity) * 100 : 0;
+                        const el = document.createElement('div');
+                        el.className = 'gauge-container';
+                        let color = getResourceColor(cleanName);
+                        if (resName === "ElectricCharge" && pct < 20) {
+                            color = 'var(--danger)';
+                        }
+                        el.innerHTML =
+                            '<div class="data-row"><span class="data-label">' + abbrevName + '</span><span class="data-value tabular">' + formatNumber(resData.amount) + ' / ' + formatNumber(resData.capacity) + '</span></div>' +
+                            '<div class="gauge-bar"><div class="gauge-fill" style="width:' + pct.toFixed(1) + '%; background:' + color + ';"></div></div>';
+                        resContainer.appendChild(el);
                     }
-                    el.innerHTML =
-                        '<div class="data-row"><span class="data-label">' + abbrevName + '</span><span class="data-value tabular">' + formatNumber(resData.amount) + ' / ' + formatNumber(resData.capacity) + '</span></div>' +
-                        '<div class="gauge-bar"><div class="gauge-fill" style="width:' + pct.toFixed(1) + '%; background:' + color + ';"></div></div>';
-                    resContainer.appendChild(el);
                 }
             }
 
@@ -885,6 +1116,43 @@
                 mnvBlock.style.display = '';
                 document.getElementById('mnv-eta').innerText = formatTime(d.maneuver.eta);
                 document.getElementById('mnv-dv').innerText = d.maneuver.dv.toFixed(1) + " m/s";
+
+                const t_half = (d.twr && d.twr > 0) ? (d.maneuver.dv / (d.twr * 9.81)) : 0;
+                
+                let startSign = d.maneuver.eta >= t_half ? "T - " : "T + ";
+                let startVal = Math.abs(d.maneuver.eta - t_half);
+                document.getElementById('mnv-start').innerText = startSign + formatTime(startVal);
+                
+                let stopSign = d.maneuver.eta >= -t_half ? "T - " : "T + ";
+                let stopVal = Math.abs(d.maneuver.eta + t_half);
+                document.getElementById('mnv-stop').innerText = stopSign + formatTime(stopVal);
+                
+                document.getElementById('mnv-dur').innerText = (2 * t_half).toFixed(1) + " s";
+
+                let prog = 0;
+                if (t_half > 0) {
+                    if (d.maneuver.eta > t_half) {
+                        prog = 0;
+                    } else if (d.maneuver.eta < -t_half) {
+                        prog = 100;
+                    } else {
+                        let elapsed = t_half - d.maneuver.eta;
+                        prog = (elapsed / (2 * t_half)) * 100;
+                    }
+                }
+                document.getElementById('mnv-progress').style.width = prog + "%";
+
+                let timeToStart = d.maneuver.eta - t_half;
+                if (timeToStart <= 10 && timeToStart >= -10) {
+                    mnvBlock.style.borderColor = "var(--danger)";
+                    mnvBlock.style.boxShadow = "0 0 10px rgba(239, 68, 68, 0.4)";
+                } else if (timeToStart <= 60 && timeToStart >= -10) {
+                    mnvBlock.style.borderColor = "var(--crt-amber)";
+                    mnvBlock.style.boxShadow = "0 0 10px rgba(255, 176, 0, 0.4)";
+                } else {
+                    mnvBlock.style.borderColor = "rgba(255,176,0,0.3)";
+                    mnvBlock.style.boxShadow = "none";
+                }
             } else {
                 mnvBlock.style.display = 'none';
             }
@@ -1270,12 +1538,16 @@
 
         function drawProceduralPart(ctx, p, R_star, R_top, R_fore, isHovered = false) {
             const style = getPartStyle(p.name, p.title || "");
+            const cat = getPartCategory(p.name);
             ctx.save();
             ctx.strokeStyle = isHovered ? "#33ff33" : style.color;
             ctx.lineWidth = isHovered ? 3.0 : 1.5;
             if (isHovered) {
                 ctx.shadowColor = "#33ff33";
                 ctx.shadowBlur = 12;
+            }
+            if (viewerMode === 'blueprint' && !activeCategories.has(cat)) {
+                ctx.globalAlpha = 0.08;
             }
 
             const x = p.pos[0];
@@ -1350,12 +1622,16 @@
 
         function drawMeshPart(ctx, p, meshData, R_star, R_top, R_fore, isHovered = false) {
             const style = getPartStyle(p.name, p.title || "");
+            const cat = getPartCategory(p.name);
             ctx.save();
             ctx.strokeStyle = isHovered ? "#33ff33" : style.color;
             ctx.lineWidth = isHovered ? 2.5 : 1.0;
             if (isHovered) {
                 ctx.shadowColor = "#33ff33";
                 ctx.shadowBlur = 12;
+            }
+            if (viewerMode === 'blueprint' && !activeCategories.has(cat)) {
+                ctx.globalAlpha = 0.08;
             }
             
             // To avoid overwhelming the canvas with thousands of lines, 
@@ -1434,6 +1710,117 @@
             }
         }
 
+        function drawOrbitDiagram() {
+            const canvas = document.getElementById('orbit-canvas');
+            if (!canvas || viewerMode !== 'orbit') return;
+            const rect = canvas.parentElement.getBoundingClientRect();
+            if (canvas.width !== Math.floor(rect.width) || canvas.height !== Math.floor(rect.height)) {
+                canvas.width = Math.floor(rect.width);
+                canvas.height = Math.floor(rect.height);
+            }
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const d = currTelemetry;
+            if (!d || !d.body || d.apoapsis === undefined || d.periapsis === undefined) return;
+            
+            const R_body = BODY_RADII[d.body] || 600000;
+            const apo = d.apoapsis + R_body;
+            const peri = d.periapsis + R_body;
+            const a = (apo + peri) / 2;
+            let b = a;
+            if (a * peri > 0) b = Math.sqrt(a * peri);
+            const e = a > 0 ? (apo - peri) / (apo + peri) : 0;
+            
+            const cx = canvas.width / 2 + panOffset.x;
+            const cy = canvas.height / 2 + panOffset.y;
+            
+            const maxRadius = apo;
+            const minDim = Math.min(canvas.width, canvas.height);
+            let scale = (minDim * 0.4 * zoomScale) / Math.max(maxRadius, 100);
+            
+            ctx.save();
+            ctx.translate(cx, cy);
+            
+            const focusDist = e * a;
+            
+            // Draw Body
+            ctx.fillStyle = '#10b981';
+            if (d.body === 'Mun') ctx.fillStyle = '#9ca3af';
+            else if (d.body === 'Minmus') ctx.fillStyle = '#6ee7b7';
+            else if (d.body === 'Duna') ctx.fillStyle = '#ef4444';
+            ctx.beginPath();
+            ctx.arc(focusDist * scale, 0, R_body * scale, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw Orbit
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, a * scale, b * scale, 0, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Vessel pos
+            const altRadius = (d.altitude || 0) + R_body;
+            let cosNu = 0;
+            if (e > 0.001) {
+                cosNu = (a*(1 - e*e) / altRadius - 1) / e;
+                cosNu = Math.max(-1, Math.min(1, cosNu));
+            }
+            let nu = Math.acos(cosNu);
+            
+            let altIncreasing = (currTelemetry && prevTelemetry && currTelemetry.altitude > prevTelemetry.altitude);
+            let vy = altRadius * Math.sin(nu) * scale * (altIncreasing ? -1 : 1);
+            let vx = focusDist * scale + altRadius * Math.cos(nu) * scale;
+            
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(vx, vy, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Target
+            if (d.target && d.target.hasTarget && d.target.distance) {
+                let tgtNu = nu + (d.target.distance / altRadius); 
+                let tvx = focusDist * scale + altRadius * Math.cos(tgtNu) * scale;
+                let tvy = altRadius * Math.sin(tgtNu) * scale * (altIncreasing ? -1 : 1);
+                ctx.fillStyle = '#d946ef';
+                ctx.fillRect(tvx - 3, tvy - 3, 6, 6);
+            }
+            
+            // Ap/Pe marks
+            ctx.fillStyle = '#fde047';
+            ctx.font = '10px monospace';
+            ctx.fillText('Ap', -a * scale - 15, -5);
+            ctx.fillText('Pe', a * scale + 5, -5);
+            
+            // Maneuver Node
+            if (d.maneuver && d.maneuver.hasNode && d.velocity > 0) {
+                let GM = Math.pow(d.velocity, 2) / (2 / altRadius - 1 / a);
+                if (GM > 0) {
+                    let T = 2 * Math.PI * Math.sqrt(Math.pow(a, 3) / GM);
+                    let meanMotion = 2 * Math.PI / T;
+                    let futureNu = nu + meanMotion * d.maneuver.eta;
+                    let nodeRadius = a * (1 - e*e) / (1 + e * Math.cos(futureNu));
+                    let nx = focusDist * scale + nodeRadius * Math.cos(futureNu) * scale;
+                    let ny = nodeRadius * Math.sin(futureNu) * scale * (altIncreasing ? -1 : 1);
+                    
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(nx, ny, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(nx, ny);
+                    ctx.lineTo(nx + 10, ny - 10);
+                    ctx.stroke();
+                }
+            }
+            
+            ctx.restore();
+        }
+
         // ==========================================
         // MAIN ANIMATION LOOP (60fps)
         // ==========================================
@@ -1463,6 +1850,11 @@
             if (lastSyncTime > 0) {
                 const currentVal = baseMissionTime + (Date.now() - lastSyncTime) / 1000;
                 document.getElementById('time').innerText = formatTime(currentVal);
+            }
+
+            if (viewerMode === 'orbit') {
+                drawOrbitDiagram();
+                return;
             }
 
             // Draw Vessel Viewer
@@ -1607,6 +1999,19 @@
                 mousePos.y = e.clientY - rect.top;
                 updateHoveredPart();
             });
+            const orbitCanvas = document.getElementById('orbit-canvas');
+            if (orbitCanvas) {
+                orbitCanvas.addEventListener('wheel', (e) => {
+                    e.preventDefault();
+                    zoomScale *= (e.deltaY < 0) ? 1.1 : (1/1.1);
+                    zoomScale = Math.max(0.1, Math.min(10, zoomScale));
+                });
+                orbitCanvas.addEventListener('mousedown', (e) => {
+                    isDragging = true; previousMousePosition = { x: e.clientX, y: e.clientY };
+                    orbitCanvas.style.cursor = 'grabbing';
+                });
+                orbitCanvas.addEventListener('contextmenu', e => e.preventDefault());
+            }
             canvas.addEventListener('mouseleave', () => {
                 mousePos = { x: -1000, y: -1000 };
                 updateHoveredPart();
@@ -1624,7 +2029,7 @@
                 if (!isDragging) return;
                 const dx = e.clientX - previousMousePosition.x;
                 const dy = e.clientY - previousMousePosition.y;
-                if (e.buttons === 2 || e.shiftKey || e.buttons === 4 || viewerMode === 'blueprint') {
+                if (e.buttons === 2 || e.shiftKey || e.buttons === 4 || viewerMode === 'blueprint' || viewerMode === 'orbit') {
                     panOffset.x += dx; panOffset.y += dy;
                 } else if (viewerMode === 'attitude') {
                     cameraYaw += dx * 0.01; cameraPitch += dy * 0.01;
@@ -1639,23 +2044,25 @@
 
             // Touch
             canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
                 if (e.touches.length === 1) {
                     isDragging = true;
                     previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
                 }
-            });
+            }, { passive: false });
             window.addEventListener('touchmove', (e) => {
                 if (!isDragging || e.touches.length !== 1) return;
+                e.preventDefault();
                 const dx = e.touches[0].clientX - previousMousePosition.x;
                 const dy = e.touches[0].clientY - previousMousePosition.y;
-                if (viewerMode === 'blueprint') {
+                if (viewerMode === 'blueprint' || viewerMode === 'orbit') {
                     panOffset.x += dx; panOffset.y += dy;
                 } else {
                     cameraYaw += dx * 0.01; cameraPitch += dy * 0.01;
                     cameraPitch = Math.max(-Math.PI/2 + 0.05, Math.min(Math.PI/2 - 0.05, cameraPitch));
                 }
                 previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            });
+            }, { passive: false });
             window.addEventListener('touchend', () => { isDragging = false; });
         }
 
@@ -1682,6 +2089,31 @@
             try {
                 const res = await fetch('vessel_mesh.json?t=' + Date.now(), { cache: "no-store" });
                 if (res.ok) vesselMeshes = await res.json();
+            } catch(e) {}
+        }
+
+        let deployablesLookup = { fairings: [], deployables: [] };
+        async function fetchDeployables() {
+            try {
+                const res = await fetch('deployables_cache.json?t=' + Date.now(), { cache: "no-store" });
+                if (res.ok) { 
+                    const raw = await res.json();
+                    deployablesLookup = { fairings: [], deployables: [] };
+                    if (raw && raw.entries) {
+                        for (let i = 0; i < raw.entries.length; i += 2) {
+                            const key = raw.entries[i];
+                            const val = raw.entries[i+1];
+                            if (val && val.entries) {
+                                for (let j = 0; j < val.entries.length; j += 2) {
+                                    const uid = val.entries[j];
+                                    const module = val.entries[j+1];
+                                    if (key === 'fairings') deployablesLookup.fairings.push({uid, module});
+                                    if (key === 'deployables') deployablesLookup.deployables.push({uid, module});
+                                }
+                            }
+                        }
+                    }
+                }
             } catch(e) {}
         }
         function calculateScale() {
@@ -1711,7 +2143,36 @@
         initControls();
         setInterval(fetchStructure, 5000); fetchStructure();
         setInterval(fetchMeshes, 10000); fetchMeshes();
-        setInterval(fetchTelemetry, 200); fetchTelemetry();
+        setInterval(fetchDeployables, 5000); fetchDeployables();
+        async function scheduledFetch() {
+            if (useWs) return;
+            await fetchTelemetry();
+            setTimeout(scheduledFetch, 200);
+        }
+        
+        let wsRetries = 0;
+        let useWs = true;
+        
+        function connectWS() {
+            if (!useWs) return;
+            const ws = new WebSocket(`ws://${location.host}`);
+            ws.onopen = () => { wsRetries = 0; };
+            ws.onmessage = e => { processTelemData(JSON.parse(e.data)); };
+            ws.onclose = () => {
+                wsRetries++;
+                if (wsRetries >= 3) {
+                    console.log("WebSocket failed 3 times, falling back to HTTP polling.");
+                    useWs = false;
+                    scheduledFetch();
+                } else {
+                    setTimeout(connectWS, 2000);
+                }
+            };
+            ws.onerror = () => ws.close();
+        }
+        
+        connectWS();
+        
         animateViewer();
     </script>
 </body>

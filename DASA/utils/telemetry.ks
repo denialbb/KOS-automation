@@ -85,6 +85,9 @@ GLOBAL FUNCTION updateTelemetry {
 
     // Construct JSON string
     LOCAL jsonStr IS "{".
+    LOCAL isPausedStr IS "false".
+    IF KUNIVERSE:TIMEWARP:RATE = 0 { SET isPausedStr TO "true". }
+    SET jsonStr TO jsonStr + dq + "paused" + dq + ": " + isPausedStr + ", ".
     SET jsonStr TO jsonStr + dq + "time" + dq + ": " + ROUND(MISSIONTIME, 1) + ", ".
     SET jsonStr TO jsonStr + dq + "vessel" + dq + ": " + dq + SHIP:NAME + dq + ", ".
     SET jsonStr TO jsonStr + dq + "stage" + dq + ": " + dq + stageName + dq + ", ".

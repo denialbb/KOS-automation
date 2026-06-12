@@ -59,15 +59,25 @@ app.get('/telemetry.json', (req, res) => {
         res.setHeader('Expires', '0');
         
         if (ageMs > 3000) {
-            if (wasConnected) {
-                wasConnected = false;
-                logEvent(`${formatTime(lastKnownTime)} SIGNAL LOST: Connection to KOS computer lost.`);
-            }
             try {
                 const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-                data.signalLost = true;
-                res.json(data);
+                if (data.paused) {
+                    // Game is paused — not a signal loss
+                    data.signalLost = false;
+                    res.json(data);
+                } else {
+                    if (wasConnected) {
+                        wasConnected = false;
+                        logEvent(`${formatTime(lastKnownTime)} SIGNAL LOST: Connection to KOS computer lost.`);
+                    }
+                    data.signalLost = true;
+                    res.json(data);
+                }
             } catch (err) {
+                if (wasConnected) {
+                    wasConnected = false;
+                    logEvent(`${formatTime(lastKnownTime)} SIGNAL LOST: Connection to KOS computer lost.`);
+                }
                 res.json({ signalLost: true });
             }
         } else {
@@ -103,6 +113,14 @@ app.get('/vessel_structure.json', (req, res) => {
     }
 });
 
+// Serve deployables_cache.json
+app.get('/deployables_cache.json', (req, res) => {
+    const filePath = path.join(__dirname, '..', 'telemetry', 'deployables_cache.json');
+    if (fs.existsSync(filePath)) {
+        res.setHeader('Cache-Control', 'no-store'); res.sendFile(filePath);
+    } else { res.json({}); }
+});
+
 // Serve vessel_mesh.json
 app.get('/vessel_mesh.json', (req, res) => {
     const filePath = path.join(__dirname, '..', 'telemetry', 'vessel_mesh.json');
@@ -116,6 +134,39 @@ app.get('/vessel_mesh.json', (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
+const { WebSocketServer } = require('ws');
+
+const server = app.listen(PORT, () => {
     console.log(`Node.js Telemetry Server running at http://localhost:${PORT}`);
 });
+
+const wss = new WebSocketServer({ server });
+
+const telemetryFilePath = path.join(__dirname, '..', 'telemetry', 'telemetry.json');
+if (fs.existsSync(telemetryFilePath)) {
+    fs.watch(telemetryFilePath, () => {
+        try {
+            const fileContent = fs.readFileSync(telemetryFilePath, 'utf8');
+            if (!fileContent.trim()) return;
+            const data = JSON.parse(fileContent);
+            
+            // Check paused state like in the GET endpoint
+            const ageMs = Date.now() - fs.statSync(telemetryFilePath).mtimeMs;
+            if (ageMs > 3000) {
+                if (data.paused) {
+                    data.signalLost = false;
+                } else {
+                    data.signalLost = true;
+                }
+            }
+            
+            wss.clients.forEach(client => {
+                if (client.readyState === 1) {
+                    client.send(JSON.stringify(data));
+                }
+            });
+        } catch (err) {
+            // file might be in the middle of being written, ignore
+        }
+    });
+}
