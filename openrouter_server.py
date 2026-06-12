@@ -63,27 +63,27 @@ def call_openrouter(model_id: str, prompt: str) -> str:
 @mcp.tool()
 def qwen_reason(prompt: str) -> str:
     """Useful for coding, program implementation, syntax correction, and software design tasks.
-    Routes to Qwen 2.5 Coder 32B Instruct via OpenRouter.
+    Routes to Qwen 2.5 Coder 32B Instruct (Free) via OpenRouter.
     """
     # Print to stderr for server side tracking (stdout is used for JSON-RPC)
-    print("Calling Qwen 2.5 Coder via OpenRouter...", file=sys.stderr)
-    return call_openrouter("qwen/qwen-2.5-coder-32b-instruct", prompt)
+    print("Calling Qwen 2.5 Coder (Free) via OpenRouter...", file=sys.stderr)
+    return call_openrouter("qwen/qwen-2.5-coder-32b-instruct:free", prompt)
 
 @mcp.tool()
 def deepseek_reason(prompt: str) -> str:
     """Useful for mathematical reasoning, complex logic, scientific calculations, and deep troubleshooting.
-    Routes to DeepSeek R1 via OpenRouter.
+    Routes to DeepSeek R1 (Free) via OpenRouter.
     """
-    print("Calling DeepSeek R1 via OpenRouter...", file=sys.stderr)
-    return call_openrouter("deepseek/deepseek-r1", prompt)
+    print("Calling DeepSeek R1 (Free) via OpenRouter...", file=sys.stderr)
+    return call_openrouter("deepseek/deepseek-r1:free", prompt)
 
 @mcp.tool()
 def llama_reason(prompt: str) -> str:
     """Useful for general text drafting, explanation of concepts, summarization, and formatting.
-    Routes to Llama 3.3 70B Instruct via OpenRouter.
+    Routes to Llama 3.3 70B Instruct (Free) via OpenRouter.
     """
-    print("Calling Llama 3.3 70B Instruct via OpenRouter...", file=sys.stderr)
-    return call_openrouter("meta-llama/llama-3.3-70b-instruct", prompt)
+    print("Calling Llama 3.3 70B Instruct (Free) via OpenRouter...", file=sys.stderr)
+    return call_openrouter("meta-llama/llama-3.3-70b-instruct:free", prompt)
 
 if __name__ == "__main__":
     mcp.run()
