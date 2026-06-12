@@ -1746,6 +1746,13 @@
             
             const focusDist = e * a;
             
+            // Draw Orbit
+            ctx.strokeStyle = '#38bdf8';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, a * scale, b * scale, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
             // Draw Body
             if (d.body === 'Kerbin' && kerbinTex.complete && kerbinTex.naturalWidth > 0) {
                 ctx.save();
@@ -1761,13 +1768,6 @@
                 ctx.arc(focusDist * scale, 0, R_body * scale, 0, Math.PI * 2);
                 ctx.fill();
             }
-            
-            // Draw Orbit
-            ctx.strokeStyle = '#38bdf8';
-            ctx.lineWidth = 1.5;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, a * scale, b * scale, 0, 0, Math.PI * 2);
-            ctx.stroke();
             
             // Vessel pos
             const altRadius = (d.altitude || 0) + R_body;
