@@ -41,6 +41,9 @@ graph TD
 - Docking and landing algorithms using RCS translation and suicide burn controls.
 
 ### Real-Time Telemetry Dashboard (v2.1)
+
+![Dashboard Orbital View](dashboard/orbit_test_screenshot.png)
+
 - **Modular Dashboard Grid Layout**: Uses a responsive CSS grid including CRT typography, styling improvements (e.g. log border fades, science payload details), and error indicators.
 - **Stacked Y-Axes Graph Drawer**: A collapsible history graph drawer featuring distinct stacked Y-axes for each active telemetry measure (Trajectory, Dynamics, and Resources), avoiding axis clutter.
 - **Dynamic Velocity Scaling**: Velocity graphs automatically scale between m/s and km/s (switching at 300 m/s) to display orbital speed changes cleanly.
@@ -62,6 +65,14 @@ graph TD
 - Offline extraction of KSP .mu binary model meshes from GameData.
 - Mesh decimation to optimize JSON payload sizes.
 - Real-time vessel structure rendering and part tracking.
+
+### AI Agent Orchestration & Monitoring Tools
+
+![Antigravity Orchestration Architecture](antigravity_notes/antigravity_orchestration_architecture.svg)
+
+- **Multi-Model Orchestration**: Utilizes an OpenRouter MCP gateway (`openrouter_server.py`) to leverage specialized reasoning models (e.g., Qwen 3, DeepSeek, Llama).
+- **Self-Correcting Loop**: Features an automated workflow (`orchestrate_coding.py`) that applies AI coding agents to KSP automation scripts with strict adherence to conventions defined in `GEMINI.md`.
+- **kOS Error Watcher**: A robust Python script (`watch_kos_errors.py`) that continually monitors KSP logs for kOS exceptions and IO errors, seamlessly integrated with the `kos-debug` skill for live AI debugging.
 
 ---
 
