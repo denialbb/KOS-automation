@@ -140,6 +140,19 @@ while ($listener.IsListening) {
                     $response.ContentLength64 = $buffer.Length
                     $response.OutputStream.Write($buffer, 0, $buffer.Length)
                 }
+            } elseif ($request.Url.LocalPath -eq "/kerbin_line_art.png") {
+                if (Test-Path "dashboard/kerbin_line_art.png") {
+                    $fileStream = New-Object System.IO.FileStream("dashboard/kerbin_line_art.png", [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+                    $response.ContentType = "image/png"
+                    $response.Headers.Add("Cache-Control", "no-store, no-cache, must-revalidate")
+                    $response.Headers.Add("Pragma", "no-cache")
+                    $response.Headers.Add("Expires", "0")
+                    $response.ContentLength64 = $fileStream.Length
+                    $fileStream.CopyTo($response.OutputStream)
+                    $fileStream.Close()
+                } else {
+                    $response.StatusCode = 404
+                }
             } else {
                 $response.StatusCode = 404
             }
