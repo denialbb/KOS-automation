@@ -19,7 +19,6 @@ RUNONCEPATH("0:/DASA/solar_optimization.ks").
 RUNONCEPATH("0:/DASA/utils/logging.ks").
 RUNONCEPATH("0:/DASA/utils/telemetry.ks").
 RUNONCEPATH("0:/DASA/utils/power.ks").
-RUNONCEPATH("0:/DASA/phases/science_loop.ks").
 RUNONCEPATH("0:/DASA/utils/math.ks").
 RUNONCEPATH("0:/DASA/utils/coasting.ks").
 RUNONCEPATH("0:/DASA/utils/cache.ks").
