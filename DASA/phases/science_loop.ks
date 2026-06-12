@@ -9,6 +9,9 @@ GLOBAL FUNCTION runScienceLoop {
     UNTIL FALSE {
         logMsg("--- Science Collection Cycle Start ---").
         
+        LOCAL numTransmissions IS 0.
+        LOCAL numActivations IS 0.
+        
         // Ensure antennas are deployed for transmission
         FOR pMod IN cachedDeployables {
             FOR ev IN pMod:alleventnames {
@@ -22,9 +25,11 @@ GLOBAL FUNCTION runScienceLoop {
         }
         
         FOR pMod IN cachedExperiments {
-            PRINT "Debugging events for " + pMod:part:title + ":".
+            logDebug("Debugging events for " + pMod:part:title + ":").
             FOR ev IN pMod:alleventnames {
-                PRINT " - Event: " + ev.
+                IF ev <> "_" {
+                    logDebug(" - Event: " + ev).
+                }
             }
             
             FOR ev IN pMod:alleventnames {
@@ -32,9 +37,9 @@ GLOBAL FUNCTION runScienceLoop {
                 
                 // Transmit data first to free up space
                 IF evLower:contains("transmit") OR evLower:contains("send") {
-                    PRINT "Transmitting data: " + ev + " on " + pMod:part:title.
                     logMsg("Transmitting data: " + ev + " on " + pMod:part:title).
                     pMod:doevent(ev).
+                    SET numTransmissions TO numTransmissions + 1.
                 }
             }
             
@@ -45,18 +50,20 @@ GLOBAL FUNCTION runScienceLoop {
                 LOCAL evLower IS ev:tolower.
                 
                 // Deploy / Start experiments
-                IF evLower:contains("deploy") OR evLower:contains("start") OR evLower:contains("run") OR evLower:contains("observe") OR evLower:contains("log") {
+                IF evLower:contains("deploy") OR evLower:contains("start") OR evLower:contains("run") OR evLower:contains("observ") OR evLower:contains("log") OR evLower:contains("perform") OR evLower:contains("take") OR evLower:contains("scan") {
                     // Avoid stopping or retracting
                     IF NOT (evLower:contains("retract") OR evLower:contains("stop") OR evLower:contains("disable") OR evLower:contains("reset")) {
-                        PRINT "Activating experiment: " + ev + " on " + pMod:part:title.
                         logMsg("Activating experiment: " + ev + " on " + pMod:part:title).
                         pMod:doevent(ev).
+                        SET numActivations TO numActivations + 1.
                     }
                 }
             }
         }
 
         logMsg("--- Science Collection Cycle Complete ---").
+        logMsg("Summary: Transmitted data from " + numTransmissions + " experiments.").
+        logMsg("Summary: Activated " + numActivations + " experiments.").
         logMsg("Waiting 1 hour until next cycle...").
         
         LOCAL waitEnd IS TIME:SECONDS + 3600.

@@ -48,3 +48,27 @@ GLOBAL FUNCTION logMsg {
         LOG line TO localLogPath.
     }
 }
+
+GLOBAL FUNCTION logDebug {
+    PARAMETER msg.
+    LOCAL tStr IS "T+".
+    LOCAL tVal IS MISSIONTIME.
+    IF HASNODE {
+        SET tVal TO NEXTNODE:ETA.
+        SET tStr TO "T-".
+    }
+    LOCAL line IS "[" + tStr + formatTime(tVal) + "] DEBUG: " + msg.
+
+    IF homeconnection:isconnected {
+        IF EXISTS(localLogPath) {
+            LOCAL f IS OPEN(localLogPath).
+            FOR l IN f:READALL {
+                LOG l TO missionLogPath.
+            }
+            DELETEPATH(localLogPath).
+        }
+        LOG line TO missionLogPath.
+    } ELSE {
+        LOG line TO localLogPath.
+    }
+}
