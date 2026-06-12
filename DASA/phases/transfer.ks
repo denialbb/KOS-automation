@@ -77,10 +77,8 @@ IF bms:length = 0 {
             logMsg("WARNING: Node " + i + " did not appear on flight plan after 5s. Skipping.").
             PRINT "[DEBUG] hasnode timeout for node " + i + ".".
         } ELSE {
-            // Coast safely to node
-            IF myNode:ETA > 120 {
-                safeCoast(TIME:SECONDS + myNode:ETA).
-            }
+            // Orient for power before node execution
+            orientForPower().
 
             logMsg("Executing node " + i + "...").
             spinload(10).

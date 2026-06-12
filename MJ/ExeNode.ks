@@ -103,22 +103,8 @@ IF ADDONS:AVAILABLE("KE") AND ADDONS:KE:HASSUFFIX("NODEBURNTIME") {
 
 logMsg("Est. burn duration: " + ROUND(burn_time, 2) + "s").
 
-// Orient ship to burn direction
-LOCAL burn_dir IS nd:DELTAV.
-LOCK STEERING TO burn_dir.
-
-// Warp to the burn start time if eta is long
-LOCAL burnStartEta IS nd:ETA - t_half_dv.
-IF burnStartEta > 40 {
-    SET WARPMODE TO "rails".
-    WARPTO(TIME:SECONDS + burnStartEta - 30).
-    UNTIL (nd:ETA - t_half_dv) <= 35 {
-        HUD_print_header("MANEUVER NODE INFO").
-        HUD_print_node(nd:ETA, initial_dv_mag, nd:DELTAV:MAG, SHIP:DELTAV:CURRENT).
-        WAIT 0.1.
-    }
-}
-
+// We rely on MechJeb's Node Executor to handle warping to the node, 
+// so no manual warp is needed here.
 // Execute burn
 IF ADDONS:AVAILABLE("MJ") AND ADDONS:MJ:HASSUFFIX("NODE") {  // ----------------------- MJ
     LOCAL nodeExecutor IS ADDONS:MJ:NODE.
