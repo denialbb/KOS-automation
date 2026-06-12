@@ -1755,9 +1755,22 @@
 
             // Draw Body
             if (d.body === 'Kerbin' && kerbinTex.complete && kerbinTex.naturalWidth > 0) {
+                // Circular glow behind the planet
+                let r = R_body * scale;
+                let p_cx = focusDist * scale;
+                let p_cy = 0;
+                let glow = ctx.createRadialGradient(p_cx, p_cy, r * 0.9, p_cx, p_cy, r * 1.15);
+                glow.addColorStop(0, 'rgba(56, 189, 248, 0.3)');
+                glow.addColorStop(1, 'rgba(56, 189, 248, 0)');
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(p_cx, p_cy, r * 1.15, 0, Math.PI * 2);
+                ctx.fill();
+
                 ctx.save();
-                ctx.globalCompositeOperation = 'screen';
-                ctx.drawImage(kerbinTex, focusDist * scale - R_body * scale, -R_body * scale, R_body * scale * 2, R_body * scale * 2);
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(kerbinTex, p_cx - r, p_cy - r, r * 2, r * 2);
                 ctx.restore();
             } else {
                 ctx.fillStyle = '#10b981';
