@@ -8,6 +8,22 @@ IF NOT (DEFINED mission_sequence) {
     RUNPATH("0:/DASA/basic_probe_routine.ks").
 }
 
+LOCAL inLKO IS FALSE.
+IF SHIP:BODY:NAME = "Kerbin" {
+    IF SHIP:STATUS = "PRELAUNCH" OR SHIP:STATUS = "LANDED" OR SHIP:STATUS = "FLYING" OR SHIP:STATUS = "SUB_ORBITAL" {
+        SET inLKO TO TRUE.
+    } ELSE IF SHIP:STATUS = "ORBITING" AND SHIP:PERIAPSIS > 70000 AND SHIP:APOAPSIS < 250000 {
+        SET inLKO TO TRUE.
+    }
+}
+
+IF inLKO {
+    logMsg("Vessel recognized in Low Kerbin Orbit (or LKO-bound). Running full mission sequence.").
+} ELSE {
+    logMsg("Vessel not in Low Kerbin Orbit. Defaulting to coasting stage.").
+    SET mission_sequence TO LIST("boot", "coast").
+}
+
 // Ensure utility background triggers are running
 LOCAL lastPowerCheck IS TIME:SECONDS + 60.
 LOCAL lastTelemetryUpdate IS 0.
