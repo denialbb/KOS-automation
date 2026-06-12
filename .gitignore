@@ -23,3 +23,7 @@ Thumbs.db
 
 # Diagnostic screenshots
 dashboard/.temp_diagnostics/
+
+# Local environment keys
+.env
+

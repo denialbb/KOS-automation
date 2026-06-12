@@ -1,0 +1,243 @@
+Yes. Because MCP servers run as standard OS processes (e.g., using Node.js or Python) on the host machine, they have full access to the host's networking capabilities (unless restricted by system-level firewalls or containers).
+
+Here is how that works:
+
+Outbound HTTP Requests: An MCP server can use standard HTTP libraries (fetch, axios, requests, etc.) to query external APIs, scrape web pages, or interact with other network resources.
+Returning Arbitrary Text: Once the server gets a response, it compiles the data into the standard MCP JSON response format (CallToolResult). The server can return arbitrary text (e.g., JSON, HTML, raw text, Markdown) in the content block:
+json
+
+
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "Arbitrary text retrieved from the HTTP request goes here..."
+    }
+  ]
+}
+Agent Integration: The agent client receives this text directly as the output of the tool call, allowing the agent to read, parse, and act on the fetched data.
+5:58 AM
+
+
+
+Show me the exact MCP server specification, SDK, and transport expected by custom MCP servers. Include example configurations.
+6:01 AM
+
+
+The Model Context Protocol (MCP) defines a standardized way for AI applications (hosts) to discover and execute capabilities (tools, resources, and prompts) provided by external processes (servers).
+
+The following is a complete breakdown of the protocol specification, the core transport layers, SDK examples, and configuration setups.
+
+1. The MCP Protocol Specification (JSON-RPC 2.0)
+All communication between an MCP host and server uses JSON-RPC 2.0. The primary message structures for discovering and executing tools are detailed below.
+
+Tool Discovery: tools/list
+The host queries the server to learn what tools are available and what inputs they expect.
+
+Request from Host:
+json
+
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list"
+}
+Response from Server:
+json
+
+
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "calculate_velocity",
+        "description": "Calculates orbital velocity based on altitude and semi-major axis.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "altitude": { "type": "number", "description": "Altitude in meters" },
+            "semi_major_axis": { "type": "number", "description": "Orbit semi-major axis in meters" }
+          },
+          "required": ["altitude", "semi_major_axis"]
+        }
+      }
+    ]
+  }
+}
+Tool Execution: tools/call
+The host requests the server to execute a specific tool with parameter values.
+
+Request from Host:
+json
+
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "calculate_velocity",
+    "arguments": {
+      "altitude": 100000,
+      "semi_major_axis": 700000
+    }
+  }
+}
+Response from Server:
+json
+
+
+{
+  "jsonrpc": "2.0",
+  "id": 2,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Orbital velocity: 2246.13 m/s"
+      }
+    ]
+  }
+}
+2. Transport Mechanisms
+MCP messages are packaged and sent using two standard transports:
+
+Stdio Transport (Standard Input/Output):
+The host launches the server binary/script as a direct subprocess.
+Communication takes place strictly via the subprocess's stdin (client sending) and stdout (server responding).
+Note: The server must log diagnostic outputs to stderr rather than stdout to avoid corrupting the JSON-RPC message stream.
+SSE Transport (Server-Sent Events over HTTP):
+The server runs as an independent web server (e.g., listening on port 3000).
+The host opens a persistent SSE connection to the server's endpoint to stream notifications/responses.
+The host sends requests to the server via standard HTTP POST requests.
+3. Official SDK Server Examples
+The easiest way to implement an MCP server is via the official TypeScript or Python SDKs.
+
+TypeScript SDK Example (using Stdio Transport)
+typescript
+
+
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+const server = new Server(
+  { name: "orbit-calculator", version: "1.0.0" },
+  { capabilities: { tools: {} } }
+);
+// Register available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  tools: [
+    {
+      name: "calculate_velocity",
+      description: "Calculates orbital velocity.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          altitude: { type: "number" },
+          semi_major_axis: { type: "number" }
+        },
+        required: ["altitude", "semi_major_axis"],
+      },
+    },
+  ],
+}));
+// Handle tool execution requests
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  if (request.params.name === "calculate_velocity") {
+    const { altitude, semi_major_axis } = request.params.arguments as {
+      altitude: number;
+      semi_major_axis: number;
+    };
+
+    const mu = 3.5316e12; // Kerbin standard gravitational parameter
+    const r = altitude + 600000; // Radius (alt + body radius)
+    const velocity = Math.sqrt(mu * ((2 / r) - (1 / semi_major_axis)));
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Calculated orbital velocity is ${velocity.toFixed(2)} m/s.`,
+        },
+      ],
+    };
+  }
+  throw new Error(`Tool not found: ${request.params.name}`);
+});
+// Start the server using stdio transport
+const transport = new StdioServerTransport();
+await server.connect(transport);
+Python SDK Example (using Stdio Transport)
+python
+
+
+import math
+from mcp.server.fastmcp import FastMCP
+# Initialize FastMCP server
+mcp = FastMCP("orbit-calculator")
+@mcp.tool()
+def calculate_velocity(altitude: float, semi_major_axis: float) -> str:
+    """Calculates orbital velocity.
+    Args:
+        altitude: Altitude above body surface in meters.
+        semi_major_axis: Semi-major axis in meters.
+    """
+    mu = 3.5316e12
+    r = altitude + 600000
+    velocity = math.sqrt(mu * ((2 / r) - (1 / semi_major_axis)))
+    return f"Calculated orbital velocity is {velocity:.2f} m/s."
+if __name__ == "__main__":
+    # Runs stdio transport by default
+    mcp.run()
+4. Configuration Examples (mcp_config.json)
+To install these servers into an MCP-compliant agent platform or host (such as this workspace or Claude Desktop), add them to the mcpServers object in the configuration file.
+
+Configuration for local Node.js Stdio Server
+json
+
+
+{
+  "mcpServers": {
+    "node-orbit-calc": {
+      "command": "node",
+      "args": [
+        "C:/Users/dnbias/projects/orbit-calc/build/index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
+Configuration for local Python Stdio Server (via uv)
+json
+
+
+{
+  "mcpServers": {
+    "python-orbit-calc": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--path",
+        "C:/Users/dnbias/projects/orbit-calc/main.py"
+      ]
+    }
+  }
+}
+Configuration for remote HTTP/SSE Server
+json
+
+
+{
+  "mcpServers": {
+    "remote-orbit-calc": {
+      "url": "http://localhost:3000/sse"
+    }
+  }
+}

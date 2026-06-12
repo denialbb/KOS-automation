@@ -1,0 +1,137 @@
+At this point, I would stop thinking about "how do I get Claude/GPT/Qwen agents into Antigravity?" and instead think:
+
+"How do I expose external models as MCP tools?"
+
+Because Antigravity can already:
+
+orchestrate tasks
+create subagents
+run tools
+call MCP servers
+consume arbitrary text responses
+
+That's enough to build a multi-model system.
+
+Architecture I'd recommend
+Gemini Pro (Antigravity)
+        │
+        ▼
+   Model Router MCP
+        │
+ ┌──────┼─────────┬─────────┐
+ ▼      ▼         ▼         ▼
+Qwen  DeepSeek  Llama   Gemini
+(OpenRouter)
+
+The router MCP would expose a single tool:
+
+ask_model(
+    model="qwen",
+    prompt="..."
+)
+
+ask_model(
+    model="deepseek",
+    prompt="..."
+)
+
+Gemini decides which model to call.
+
+Even better: expose models as separate tools
+
+Instead of:
+
+ask_model(model="qwen")
+
+create:
+
+qwen_reason()
+deepseek_reason()
+llama_reason()
+
+Why?
+
+Because Gemini is much better at tool selection when each tool has a clear description.
+
+For example:
+
+Tool: qwen_reason
+Best for coding and implementation.
+
+Tool: deepseek_reason
+Best for mathematical reasoning.
+
+Tool: llama_reason
+Best for summarization and drafting.
+
+Now the planner naturally routes work.
+
+What I would actually build first
+
+A tiny Python MCP server.
+
+It only needs:
+
+def qwen(prompt):
+    call_openrouter()
+
+def deepseek(prompt):
+    call_openrouter()
+
+def compare(model_a, model_b, prompt):
+    call both
+
+Maybe 100–150 lines of code.
+
+No LangGraph.
+No AutoGen.
+No CrewAI.
+
+Just a clean MCP tool layer.
+
+Free model stack
+
+Through OpenRouter, I'd start with:
+
+Role	Model
+Planner	Gemini Pro
+Coding	Qwen
+Alternative solution	DeepSeek
+Summary	Llama
+
+That's enough to get meaningful model diversity.
+
+What I would not do
+
+I would not try to automate:
+
+ChatGPT web UI
+Claude web UI
+
+via browser automation.
+
+People do it, but it's brittle:
+
+login issues
+captchas
+UI changes
+rate limits
+terms-of-service concerns
+
+An API-backed MCP integration is dramatically more reliable.
+
+Where you are now
+
+From everything you've discovered, Antigravity is already acting like:
+
+Claude Code
++
+MCP
++
+Subagents
++
+Browser Automation
+
+The only missing component is a model gateway.
+
+A simple OpenRouter MCP server would solve that and give Gemini access to Qwen, DeepSeek, Llama, and any future model OpenRouter exposes—without needing local hardware and with very little ongoing cost.
