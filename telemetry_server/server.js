@@ -52,6 +52,9 @@ app.get('/telemetry_dashboard.css', (req, res) => {
 app.get('/kerbin_line_art.png', (req, res) => {
     const filePath = path.join(__dirname, '..', 'dashboard', 'kerbin_line_art.png');
     if (fs.existsSync(filePath)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         res.setHeader('Content-Type', 'image/png');
         res.sendFile(filePath);
     } else {
