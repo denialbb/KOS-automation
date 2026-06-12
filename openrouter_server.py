@@ -63,19 +63,19 @@ def call_openrouter(model_id: str, prompt: str) -> str:
 @mcp.tool()
 def qwen_reason(prompt: str) -> str:
     """Useful for coding, program implementation, syntax correction, and software design tasks.
-    Routes to Qwen 2.5 Coder 32B Instruct (Free) via OpenRouter.
+    Routes to Qwen 3 Coder (Free) via OpenRouter.
     """
     # Print to stderr for server side tracking (stdout is used for JSON-RPC)
-    print("Calling Qwen 2.5 Coder (Free) via OpenRouter...", file=sys.stderr)
-    return call_openrouter("qwen/qwen-2.5-coder-32b-instruct:free", prompt)
+    print("Calling Qwen 3 Coder (Free) via OpenRouter...", file=sys.stderr)
+    return call_openrouter("qwen/qwen3-coder:free", prompt)
 
 @mcp.tool()
 def deepseek_reason(prompt: str) -> str:
     """Useful for mathematical reasoning, complex logic, scientific calculations, and deep troubleshooting.
-    Routes to DeepSeek R1 (Free) via OpenRouter.
+    Routes to Gemma 4 31B IT (Free reasoning) via OpenRouter.
     """
-    print("Calling DeepSeek R1 (Free) via OpenRouter...", file=sys.stderr)
-    return call_openrouter("deepseek/deepseek-r1:free", prompt)
+    print("Calling Gemma 4 (Free) via OpenRouter...", file=sys.stderr)
+    return call_openrouter("google/gemma-4-31b-it:free", prompt)
 
 @mcp.tool()
 def llama_reason(prompt: str) -> str:
