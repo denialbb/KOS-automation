@@ -60,4 +60,4 @@
 
 ## Git Commit Convention
 - **Always Commit Changes:** Once changes are finalized, verified, and complete, you MUST commit all code, configuration, and notes to the repository with a clear and descriptive commit message.
-
+- **Focused Commits:** Only ever `git add` files individually to make focused and clear commits. Do not use blanket commands like `git add .` or `git add -A`.
