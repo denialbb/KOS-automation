@@ -42,8 +42,13 @@ GLOBAL FUNCTION optimizeRoll {
     FOR dir IN testDirs {
         LOCAL testRoll IS targetRoll + (stepSize * dir).
         logMsg("Testing roll angle: " + ROUND(testRoll) + " degrees...").
-        LOCK STEERING TO LOOKDIRUP(SUN:POSITION, SUN:NORTH:VECTOR) * R(0, -90, testRoll).
-        WAIT 5. // Wait for ship to rotate and flow to update
+        LOCAL targetDir IS LOOKDIRUP(SUN:POSITION, SUN:NORTH:VECTOR) * R(0, -90, testRoll).
+        LOCK STEERING TO targetDir.
+        
+        LOCAL t0 IS TIME:SECONDS.
+        WAIT UNTIL (VANG(SHIP:FACING:FOREVECTOR, targetDir:FOREVECTOR) < 2 AND VANG(SHIP:FACING:TOPVECTOR, targetDir:TOPVECTOR) < 2) OR TIME:SECONDS > t0 + 60.
+        WAIT 2. // Wait for flow to update
+        
         LOCAL flow IS getTotalEnergyFlow().
         logMsg("Energy flow at " + ROUND(testRoll) + " deg: " + ROUND(flow, 2) + " kW.").
         IF flow > bestFlow {
@@ -61,8 +66,13 @@ GLOBAL FUNCTION optimizeRoll {
         UNTIL NOT climbing {
             LOCAL testRoll IS bestRoll + (stepSize * direction).
             logMsg("Hill climb step " + stepCount + ": testing roll " + ROUND(testRoll) + " degrees...").
-            LOCK STEERING TO LOOKDIRUP(SUN:POSITION, SUN:NORTH:VECTOR) * R(0, -90, testRoll).
-            WAIT 5.
+            LOCAL targetDir IS LOOKDIRUP(SUN:POSITION, SUN:NORTH:VECTOR) * R(0, -90, testRoll).
+            LOCK STEERING TO targetDir.
+            
+            LOCAL t0 IS TIME:SECONDS.
+            WAIT UNTIL (VANG(SHIP:FACING:FOREVECTOR, targetDir:FOREVECTOR) < 2 AND VANG(SHIP:FACING:TOPVECTOR, targetDir:TOPVECTOR) < 2) OR TIME:SECONDS > t0 + 60.
+            WAIT 2.
+            
             LOCAL flow IS getTotalEnergyFlow().
             logMsg("Flow at " + ROUND(testRoll) + " deg: " + ROUND(flow, 2) + " kW.").
             IF flow > bestFlow {

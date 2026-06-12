@@ -141,8 +141,8 @@ GLOBAL FUNCTION updateTelemetry {
 
     // Only write telemetry to archive if KSC connection is active to prevent kOS crash
     IF homeconnection:isconnected {
-        IF exists(telemetryFile) {
-            deletepath(telemetryFile).
+        IF EXISTS(telemetryFile) {
+            DELETEPATH(telemetryFile).
         }
         LOG jsonStr TO telemetryFile.
     }
@@ -160,7 +160,7 @@ GLOBAL FUNCTION setStage {
 
     IF homeconnection:isconnected {
         LOCAL histFile IS "0:/logs/mission_history.log".
-        IF NOT exists(histFile) {
+        IF NOT EXISTS(histFile) {
             LOG "Time,Stage,Body,Alt,Pe,Ap,Inc,EC_pct,Vel" TO histFile.
         }
 

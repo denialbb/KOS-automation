@@ -2,7 +2,7 @@
 
 setStage("Booting").
 
-IF NOT exists("0:/telemetry/vessel_structure.json") {
+IF NOT EXISTS("0:/telemetry/vessel_structure.json") {
     logMsg("No existing vessel structure found. Forcing scan...").
     WAIT 1.
     RUNPATH("0:/DASA/VesselScan.ks").

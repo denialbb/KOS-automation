@@ -9,6 +9,7 @@ GLOBAL cacheFile IS "0:/telemetry/deployables_cache.json".
 GLOBAL cachedFairings IS LIST().
 GLOBAL cachedDeployables IS LIST().
 GLOBAL cachedSolarPanels IS LIST().
+GLOBAL cachedExperiments IS LIST().
 GLOBAL cacheLoaded IS FALSE.
 
 GLOBAL FUNCTION isCacheValid {
@@ -44,13 +45,19 @@ GLOBAL FUNCTION saveDeployablesCache {
         cacheSolarPanels:ADD(LIST(pMod:part:UID, pMod:NAME)).
     }
 
+    LOCAL cacheExperiments IS LIST().
+    FOR pMod IN cachedExperiments {
+        cacheExperiments:ADD(LIST(pMod:part:UID, pMod:NAME)).
+    }
+
     LOCAL cache IS LEXICON(
         "vessel_name", SHIP:NAME,
         "root_uid", SHIP:ROOTPART:UID,
         "part_count", SHIP:PARTS:LENGTH,
         "fairings", cacheFairings,
         "deployables", cacheDeployables,
-        "solar_panels", cacheSolarPanels
+        "solar_panels", cacheSolarPanels,
+        "experiments", cacheExperiments
     ).
 
     WRITEJSON(cache, cacheFile).
@@ -100,6 +107,17 @@ GLOBAL FUNCTION initDeployablesCache {
             }
         }
 
+        IF cache:HASKEY("experiments") {
+            FOR item IN cache["experiments"] {
+                IF partMap:HASKEY(item[0]) {
+                    LOCAL p IS partMap[item[0]].
+                    IF p:HASMODULE(item[1]) {
+                        cachedExperiments:ADD(p:GETMODULE(item[1])).
+                    }
+                }
+            }
+        }
+
         SET cacheLoaded TO TRUE.
         logMsg("Successfully loaded deployables from cache.").
     } ELSE {
@@ -130,6 +148,12 @@ GLOBAL FUNCTION initDeployablesCache {
                         cachedSolarPanels:ADD(pMod).
                         logMsg("Scanned and added solar panel for optimization: " + p:title).
                     }
+                }
+
+                // Science Experiments (Stock and Kerbalism)
+                IF mName:contains("experiment") OR mName:contains("science") {
+                    cachedExperiments:ADD(pMod).
+                    logMsg("Scanned and added experiment: " + p:title).
                 }
             }
         }

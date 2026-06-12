@@ -206,4 +206,5 @@ FUNCTION prepareAndDock {
 }
 
 prepareAndDock().
-logMsg("Mission script terminated.").
+logMsg("Docking complete! Commencing continuous science routine.").
+RUNPATH("0:/DASA/phases/science_loop.ks").

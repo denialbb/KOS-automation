@@ -68,7 +68,7 @@ spinload_clear().
 WAIT 0.3.
 
 // Load the main mission script if it exists
-IF exists("0:/DASA/minmus_mission.ks") {
+IF EXISTS("0:/DASA/minmus_mission.ks") {
     PRINT "Loading 0:/DASA/minmus_mission.ks...".
     spinload(5).
     RUNPATH("0:/DASA/minmus_mission.ks").

@@ -57,3 +57,7 @@
 ## Documentation Style Conventions
 - **Writing Style:** Technical documentation must be written in a clear and technical style, using an impersonal voice and avoiding emojis.
 - **Modularity:** Information must be organized into separate documents when diving deeper into a specific argument, keeping files focused and modular.
+
+## Git Commit Convention
+- **Always Commit Changes:** Once changes are finalized, verified, and complete, you MUST commit all code, configuration, and notes to the repository with a clear and descriptive commit message.
+

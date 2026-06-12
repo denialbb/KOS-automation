@@ -1,11 +1,13 @@
 @LAZYGLOBAL OFF.
 
-// Clean up old log files
-IF exists("0:/logs/mission_history.log") {
-    deletepath("0:/logs/mission_history.log").
-}
-IF exists("0:/logs/log.txt") {
-    deletepath("0:/logs/log.txt").
+// Clean up old log files only if starting a new mission (pre-launch)
+IF SHIP:STATUS = "PRELAUNCH" {
+    IF EXISTS("0:/logs/mission_history.log") {
+        DELETEPATH("0:/logs/mission_history.log").
+    }
+    IF EXISTS("0:/logs/log.txt") {
+        DELETEPATH("0:/logs/log.txt").
+    }
 }
 
 // Load Dependencies
@@ -31,7 +33,8 @@ GLOBAL mission_sequence IS LIST(
     "deployment",
     "transfer",
     "coast",
-    "capture"
+    "capture",
+    "science_loop"
 ).
 
 // Start the Mission Runner

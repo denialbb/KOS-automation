@@ -3,8 +3,8 @@
 PRINT "Scanning Vessel Structure...".
 
 LOCAL structFile IS "0:/telemetry/vessel_structure.json".
-IF exists(structFile) {
-    deletepath(structFile).
+IF EXISTS(structFile) {
+    DELETEPATH(structFile).
 }
 
 LOCAL jsonOut IS "{ ""parts"": [".

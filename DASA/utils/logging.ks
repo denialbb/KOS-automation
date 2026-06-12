@@ -9,16 +9,16 @@ GLOBAL FUNCTION formatTime {
     LOCAL h IS FLOOR(t / 3600).
     LOCAL m IS FLOOR(MOD(t, 3600) / 60).
     LOCAL s IS FLOOR(MOD(t, 60)).
-    
+
     LOCAL hStr IS h:TOSTRING.
     IF h < 10 { SET hStr TO "0" + hStr. }
-    
+
     LOCAL mStr IS m:TOSTRING.
     IF m < 10 { SET mStr TO "0" + mStr. }
-    
+
     LOCAL sStr IS s:TOSTRING.
     IF s < 10 { SET sStr TO "0" + sStr. }
-    
+
     RETURN hStr + ":" + mStr + ":" + sStr.
 }
 
@@ -28,12 +28,7 @@ GLOBAL FUNCTION logMsg {
     LOCAL tVal IS MISSIONTIME.
     IF HASNODE {
         SET tVal TO NEXTNODE:ETA.
-        IF tVal < 0 {
-            SET tStr TO "T-".
-            SET tVal TO 0-tVal.
-        } ELSE {
-            SET tStr TO "T+".
-        }
+        SET tStr TO "T-".
     }
     LOCAL line IS "[" + tStr + formatTime(tVal) + "] " + msg.
     PRINT line.
@@ -41,12 +36,12 @@ GLOBAL FUNCTION logMsg {
 
     IF homeconnection:isconnected {
         // If we have local logs cached from blackout, flush them to archive
-        IF exists(localLogPath) {
-            LOCAL f IS open(localLogPath).
-            FOR l IN f:readall {
+        IF EXISTS(localLogPath) {
+            LOCAL f IS OPEN(localLogPath).
+            FOR l IN f:READALL {
                 LOG l TO missionLogPath.
             }
-            deletepath(localLogPath).
+            DELETEPATH(localLogPath).
         }
         LOG line TO missionLogPath.
     } ELSE {

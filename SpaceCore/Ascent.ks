@@ -67,8 +67,8 @@ WHEN TRUE THEN {
             }
         }
         LOCAL ecPct IS ROUND((ec/ecMax)*100, 1).
-        LOCAL histFile IS "0:/mission_history.log".
-        IF exists(histFile) {
+        LOCAL histFile IS "0:/logs/mission_history.log".
+        IF EXISTS(histFile) {
             LOG ROUND(MISSIONTIME) + ",Staging," + SHIP:BODY:NAME + "," + ROUND(SHIP:ALTITUDE) + "," + ROUND(SHIP:PERIAPSIS) + "," + ROUND(SHIP:APOAPSIS) + "," + ROUND(SHIP:ORBIT:inclination, 1) + "," + ecPct + "," + ROUND(SHIP:VELOCITY:ORBIT:MAG) TO histFile.
         }
 
