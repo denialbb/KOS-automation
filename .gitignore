@@ -2,8 +2,9 @@
 telemetry/
 logs/
 
-# Ignore agent state and local configuration
-.agents/
+# Ignore agent state and local configuration, but KEEP custom skills
+.agents/*
+!.agents/skills/
 .gemini/
 
 # Node.js dependencies

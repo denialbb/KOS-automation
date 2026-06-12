@@ -58,6 +58,13 @@
 - **Writing Style:** Technical documentation must be written in a clear and technical style, using an impersonal voice and avoiding emojis.
 - **Modularity:** Information must be organized into separate documents when diving deeper into a specific argument, keeping files focused and modular.
 
+## Agent & Orchestrator Conventions
+To maintain a high-quality development environment using AI agents, we strictly follow the **"Infrastructure as Prompt"** model:
+- **Shared Agent Rules (`GEMINI.md`):** This file acts as the primary configuration and rule-set for any agent checking out the repository. It MUST always be tracked and committed.
+- **Architecture Decision Records (`antigravity_notes/`):** We use this directory as an active knowledge base. Agents and humans should continually read and append Markdown notes here when facing limitations, designing systems, or discovering bugs. This provides search context (RAG) for future agent tasks. It MUST be tracked and committed.
+- **Shared Skills (`.agents/skills/`):** Custom workflows that agents generate (like live-debuggers) must be tracked so the entire team can leverage the same tools.
+- **Local Agent State:** Agent execution logs, memory, workspaces, and chat histories (usually stored in `.agents/`, `.gemini/`, or `.claude/`) are volatile and user-specific. They MUST NOT be tracked, and are explicitly ignored in `.gitignore`.
+
 ## Git Commit Convention
 - **Always Commit Changes:** Once changes are finalized, verified, and complete, you MUST commit all code, configuration, and notes to the repository with a clear and descriptive commit message.
 - **Focused Commits:** Only ever `git add` files individually to make focused and clear commits. Do not use blanket commands like `git add .` or `git add -A`.
